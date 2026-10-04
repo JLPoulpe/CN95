@@ -40,7 +40,7 @@ $steps = [
 if (WITH_SEED) {
     $steps[] = ['app:seed'];
 }
-$steps[] = ['cache:warm-up'];
+$steps[] = ['cache:warmup'];
 
 $ok = true;
 echo '<!doctype html><meta charset="utf-8"><title>Migration CN95</title><body style="font-family:monospace">';
