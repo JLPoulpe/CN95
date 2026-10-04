@@ -29,9 +29,14 @@ $_SERVER['APP_ENV'] = $_ENV['APP_ENV'] = 'prod';
 $_SERVER['APP_DEBUG'] = $_ENV['APP_DEBUG'] = '0';
 
 require_once $root . '/src/Kernel.php';
-$kernel = new App\Kernel('prod', false);
-$app = new Application($kernel);
-$app->setAutoExit(false);
+
+// Un kernel neuf par étape : après cache:clear, l'ancien kernel garde son
+// container en mémoire et cache:warmup ne régénérerait pas le cache.
+$newApp = static function (): Application {
+    $app = new Application(new App\Kernel('prod', false));
+    $app->setAutoExit(false);
+    return $app;
+};
 
 $steps = [
     ['cache:clear', '--no-warmup' => true],
@@ -51,7 +56,7 @@ foreach ($steps as $step) {
     $input->setInteractive(false);
     $out = new BufferedOutput();
     try {
-        $code = $app->run($input, $out);
+        $code = $newApp()->run($input, $out);
     } catch (Throwable $e) {
         $code = 1;
         $out->writeln($e->getMessage());
@@ -62,6 +67,11 @@ foreach ($steps as $step) {
     if ($code !== 0) {
         break;
     }
+}
+
+// Les anciens fichiers du cache peuvent rester en opcache (PHP-FPM).
+if (function_exists('opcache_reset')) {
+    @opcache_reset();
 }
 
 if ($ok) {
