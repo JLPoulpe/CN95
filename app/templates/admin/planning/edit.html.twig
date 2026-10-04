@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+{% block title %}Semaine S{{ semaine.lundi|date('W') }} – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Semaine S{{ semaine.lundi|date('W') }} <small style="font-size:16px;color:#6b7280">({{ semaine.lundi|date('d/m/Y') }})</small></h1>
+    <div class="card">
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <button class="btn" type="submit">Enregistrer</button>
+            <a href="{{ path('admin_planning_index') }}" style="margin-left:12px">Retour</a>
+        {{ form_end(form) }}
+    </div>
+
+    <div class="section">
+        <div class="section-title">Créneaux</div>
+        <p style="margin-bottom:16px"><a class="btn" href="{{ path('admin_planning_creneau_new', {id: semaine.id}) }}">Ajouter un créneau</a></p>
+        {% for c in semaine.creneaux %}
+            <div class="creneau">
+                <div class="creneau-main">
+                    <span class="activite">{{ c.activitesLabel }}</span>
+                    {% if c.libelle %}<span class="creneau-libelle">{{ c.libelle }}</span>{% endif %}
+                </div>
+                <div class="creneau-meta">
+                    <span>{{ c.jour.label }} · {{ c.lieu.label }}</span>
+                    {% if c.lignes %}<span class="lignes">Lignes {{ c.lignes }}</span>{% endif %}
+                    {% for a in c.aptitudes %}<span class="apt apt-{{ a.code }}">{{ a.code }}</span>{% else %}<span class="apt apt-tous">Tous niveaux</span>{% endfor %}
+                </div>
+                <div class="actions">
+                    <a href="{{ path('admin_planning_creneau_edit', {id: c.id}) }}">Modifier</a>
+                    <form method="post" action="{{ path('admin_planning_creneau_delete', {id: c.id}) }}" onsubmit="return confirm('Supprimer ce créneau ?')" style="display:inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete_creneau_' ~ c.id) }}">
+                        <button type="submit" class="link-danger">Supprimer</button>
+                    </form>
+                </div>
+            </div>
+        {% else %}
+            <p style="color:#6b7280">Aucun créneau.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

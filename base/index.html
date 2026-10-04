@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portail Gestion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .bandeau {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #3b82f6;
+        }
+
+        .bandeau:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .bandeau-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background-color: #eff6ff;
+            border-radius: 8px;
+            margin-right: 16px;
+            font-size: 24px;
+        }
+
+        .bandeau-content {
+            flex: 1;
+        }
+
+        .bandeau-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .bandeau-description {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .bandeau-arrow {
+            color: #d1d5db;
+            font-size: 24px;
+        }
+
+        .bandeau:hover .bandeau-arrow {
+            color: #3b82f6;
+            transform: translateX(4px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Section Communication -->
+        <div class="section">
+            <div class="section-title">Communication</div>
+            <div class="bandeau" onclick="navigateToForm('inscription')">
+                <div class="bandeau-icon">📋</div>
+                <div class="bandeau-content">
+                    <div class="bandeau-label">Inscription à la fosse</div>
+                    <div class="bandeau-description">Gérer les inscriptions à la fosse</div>
+                </div>
+                <div class="bandeau-arrow">→</div>
+            </div>
+            <div class="bandeau" onclick="navigateToForm('communication')">
+                <div class="bandeau-icon">💬</div>
+                <div class="bandeau-content">
+                    <div class="bandeau-label">Communication Générale</div>
+                    <div class="bandeau-description">Envoyer des communications générales</div>
+                </div>
+                <div class="bandeau-arrow">→</div>
+            </div>
+        </div>
+
+        <!-- Section Sondages -->
+        <div class="section">
+            <div class="section-title">Sondages</div>
+            <div class="bandeau" onclick="navigateToForm('inscrit-fosse')">
+                <div class="bandeau-icon">📝</div>
+                <div class="bandeau-content">
+                    <div class="bandeau-label">Inscrit Fosse</div>
+                    <div class="bandeau-description">Consulter les inscrits à la fosse</div>
+                </div>
+                <div class="bandeau-arrow">→</div>
+            </div>
+            <div class="bandeau" onclick="navigateToForm('gestion-sondages')">
+                <div class="bandeau-icon">📊</div>
+                <div class="bandeau-content">
+                    <div class="bandeau-label">Gestion des sondages</div>
+                    <div class="bandeau-description">Gérer les sondages et résultats</div>
+                </div>
+                <div class="bandeau-arrow">→</div>
+            </div>
+        </div>
+
+        <!-- Section Gestion Utilisateur -->
+        <div class="section">
+            <div class="section-title">Gestion Utilisateur</div>
+            <div class="bandeau" onclick="navigateToForm('liste-users')">
+                <div class="bandeau-icon">👥</div>
+                <div class="bandeau-content">
+                    <div class="bandeau-label">Liste des utilisateurs</div>
+                    <div class="bandeau-description">Consulter tous les utilisateurs</div>
+                </div>
+                <div class="bandeau-arrow">→</div>
+            </div>
+            <div class="bandeau" onclick="navigateToForm('ajout-user')">
+                <div class="bandeau-icon">➕</div>
+                <div class="bandeau-content">
+                    <div class="bandeau-label">Ajout d'un utilisateur</div>
+                    <div class="bandeau-description">Créer un nouvel utilisateur</div>
+                </div>
+                <div class="bandeau-arrow">→</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function navigateToForm(type) {
+            // Stocke le type de formulaire et redirige
+            localStorage.setItem('formType', type);
+
+            if (type === 'liste-users') {
+                window.location.href = 'users-list.html';
+            } else if (type === 'inscrit-fosse') {
+                window.location.href = 'inscrit-fosse.html';
+            } else {
+                window.location.href = 'form.html';
+            }
+        }
+    </script>
+</body>
+</html>

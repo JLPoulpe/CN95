@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+{% block title %}Gestion du planning – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container container-wide">
+    <h1 class="header-title">Gestion du planning</h1>
+    <p style="margin-bottom:20px"><a class="btn" href="{{ path('admin_planning_new') }}">Nouvelle semaine</a></p>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Semaine</th><th>Du lundi</th><th>DP</th><th>État</th><th></th></tr></thead>
+            <tbody>
+            {% for s in semaines %}
+                <tr>
+                    <td><strong>S{{ s.lundi|date('W') }}</strong>{% if s.lundi < courante %} <span class="badge badge-grey">passée</span>{% endif %}</td>
+                    <td>{{ s.lundi|date('d/m/Y') }}</td>
+                    <td>{{ s.dp ?? '–' }}</td>
+                    <td>{% if s.fermee %}<span class="badge badge-yellow">Fermée{% if s.motif %} – {{ s.motif }}{% endif %}</span>{% else %}{{ s.creneaux|length }} créneau(x){% endif %}</td>
+                    <td class="actions">
+                        <a href="{{ path('admin_planning_edit', {id: s.id}) }}">Modifier</a>
+                        <a href="{{ path('admin_planning_duplicate', {id: s.id}) }}">Dupliquer</a>
+                        <form method="post" action="{{ path('admin_planning_delete', {id: s.id}) }}" onsubmit="return confirm('Supprimer cette semaine et ses créneaux ?')" style="display:inline">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete_semaine_' ~ s.id) }}">
+                            <button type="submit" class="link-danger">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5">Aucune semaine.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

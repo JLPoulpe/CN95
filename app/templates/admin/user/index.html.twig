@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+{% block title %}Utilisateurs – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container container-wide">
+    <h1 class="header-title">Liste des utilisateurs</h1>
+    <form class="search-bar" method="get">
+        <input type="text" name="q" value="{{ q }}" placeholder="Rechercher par nom, prénom...">
+        <button class="btn" type="submit">Rechercher</button>
+        <a class="btn" href="{{ path('admin_user_new') }}">Ajouter</a>
+    </form>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Nom</th><th>Prénom</th><th>Email</th><th>Téléphone</th><th>Aptitude</th><th>Préparée</th><th>Rôles</th><th></th></tr></thead>
+            <tbody>
+            {% for u in users %}
+                <tr>
+                    <td><strong>{{ u.nom }}</strong></td>
+                    <td>{{ u.prenom }}</td>
+                    <td>{{ u.email }}</td>
+                    <td>{{ u.telephone }}</td>
+                    <td><span class="badge">{{ u.aptitude }}</span></td>
+                    <td>{% if u.aptitudePreparee %}<span class="badge">{{ u.aptitudePreparee }}</span>{% endif %}</td>
+                    <td>{% for r in u.userRoles %}<span class="badge">{{ r }}</span> {% endfor %}</td>
+                    <td><a href="{{ path('admin_user_edit', {id: u.id}) }}">Modifier</a></td>
+                </tr>
+            {% else %}
+                <tr><td colspan="8">Aucun utilisateur.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p style="margin-top:12px;color:#6b7280;font-size:13px">{{ users|length }} utilisateur(s)</p>
+</div>
+{% endblock %}

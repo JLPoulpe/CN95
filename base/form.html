@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulaire</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header-back {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            margin-right: 16px;
+            color: #3b82f6;
+        }
+
+        .header-back:hover {
+            color: #1d4ed8;
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .form-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        fieldset {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        legend {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            padding: 0 8px;
+            margin-left: -8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="date"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        input::placeholder {
+            color: #9ca3af;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+
+        .checkbox-item label {
+            margin-bottom: 0;
+            cursor: pointer;
+            font-weight: 400;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e5e7eb;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            background-color: #ecfdf5;
+            color: #059669;
+        }
+
+        .status-badge.high {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-badge.missing {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="header-back" onclick="goBack()">←</button>
+            <h1 class="header-title" id="pageTitle">Formulaire</h1>
+        </div>
+
+        <form id="mainForm" onsubmit="handleSubmit(event)">
+            <div class="form-section">
+                <!-- Premier Fieldset -->
+                <fieldset>
+                    <legend>📋 Informations</legend>
+
+                    <div class="form-group">
+                        <label for="datefosse">Date de la fosse</label>
+                        <input
+                            type="date"
+                            id="datefosse"
+                            name="datefosse"
+                            placeholder="Date de la fosse"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="infocomplete">Information complémentaire</label>
+                        <textarea
+                            id="infocomplete"
+                            name="infocomplete"
+                            placeholder="Entrez les informations complémentaires..."
+                        ></textarea>
+                    </div>
+                </fieldset>
+
+                <!-- Deuxième Fieldset -->
+                <fieldset>
+                    <legend>📤 À qui envoyer</legend>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="toutlemonde" name="recipients" value="Tout le monde">
+                                <label for="toutlemonde">Tout le monde</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="pn1" name="recipients" value="PN1">
+                                <label for="pn1">PN1</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="n1" name="recipients" value="N1">
+                                <label for="n1">N1</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="pe40" name="recipients" value="PE40">
+                                <label for="pe40">PE40</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="n2" name="recipients" value="N2">
+                                <label for="n2">N2</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="pe60" name="recipients" value="PE60">
+                                <label for="pe60">PE60</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="n3" name="recipients" value="N3">
+                                <label for="n3">N3</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="mf1" name="recipients" value="MF1">
+                                <label for="mf1">MF1</label>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Boutons -->
+                <div class="button-group">
+                    <button type="button" class="btn-secondary" onclick="goBack()">Annuler</button>
+                    <button type="submit" class="btn-primary">Envoyer</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        function getFormTypeLabel() {
+            const formType = localStorage.getItem('formType');
+            const labels = {
+                'inscription': 'Inscription à la fosse',
+                'communication': 'Communication Générale',
+                'liste-users': 'Liste des utilisateurs',
+                'ajout-user': 'Ajout d\'un utilisateur'
+            };
+            return labels[formType] || 'Formulaire';
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault();
+
+            const datefosse = document.getElementById('datefosse').value;
+            const infocomplete = document.getElementById('infocomplete').value;
+            const recipients = Array.from(document.querySelectorAll('input[name="recipients"]:checked'))
+                .map(el => el.value);
+
+            if (recipients.length === 0) {
+                alert('Veuillez sélectionner au moins un destinataire');
+                return;
+            }
+
+            const data = {
+                date: datefosse,
+                information: infocomplete,
+                destinataires: recipients,
+                timestamp: new Date().toISOString()
+            };
+
+            console.log('Données du formulaire:', data);
+            alert('Formulaire envoyé avec succès!\n\nDonnées:\n' + JSON.stringify(data, null, 2));
+        }
+
+        // Initialise le titre de la page
+        document.getElementById('pageTitle').textContent = getFormTypeLabel();
+    </script>
+</body>
+</html>

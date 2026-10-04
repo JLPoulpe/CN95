@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+{% block title %}Dupliquer une semaine – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Dupliquer la semaine S{{ source.lundi|date('W') }}</h1>
+    <div class="card">
+        <p style="margin-bottom:20px">Copie les créneaux du {{ source.lundi|date('d/m/Y') }}. Le DP n'est pas repris.</p>
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <button class="btn" type="submit">Dupliquer</button>
+            <a href="{{ path('admin_planning_index') }}" style="margin-left:12px">Annuler</a>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,4 @@
+.git
+.env
+app/vendor
+app/var

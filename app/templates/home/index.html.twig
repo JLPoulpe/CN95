@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+{% block title %}Accueil – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Bienvenue au club de plongée CN95</h1>
+    <a class="bandeau" href="{{ path('app_planning') }}">
+        <div class="bandeau-icon">📅</div>
+        <div class="bandeau-content">
+            <div class="bandeau-label">Planning des entraînements</div>
+            <div class="bandeau-description">Lundi et vendredi, 21h00 – 22h30 : lieux, lignes d'eau et aptitudes</div>
+        </div>
+    </a>
+    <div class="card">
+        <p>Retrouvez ici les informations publiques du club. Les adhérents peuvent se connecter pour accéder à l'espace privé (inscriptions à la fosse, communications, sondages).</p>
+        {% if not is_granted('ROLE_USER') %}
+            <p style="margin-top:20px"><a class="btn" href="{{ path('app_login') }}">Se connecter</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+###> symfony/framework-bundle ###
+app/var/
+app/public/bundles/
+###< symfony/framework-bundle ###
+
+###> symfony/console ###
+app/.env.local
+app/.env.*.local
+###< symfony/console ###
+
+###> symfony/phpunit-bridge ###
+app/phpunit.xml
+###< symfony/phpunit-bridge ###
+
+###> doctrine/orm ###
+app/.env.local.php
+###< doctrine/orm ###
+
+###> Environment variables ###
+.env
+.env.local
+.env.*.local
+###< Environment variables ###
+
+###> Dependencies ###
+app/vendor/
+node_modules/
+###< Dependencies ###
+
+###> Cache & Logs ###
+app/var/cache/
+app/var/log/
+app/.phpunit.cache/
+###< Cache & Logs ###
+
+###> IDE & OS Files ###
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-workspace
+*.sublime-project
+.editorconfig
+###< IDE & OS Files ###
+
+###> Temporary Files ###
+*.tmp
+*.bak
+*.backup
+.phpstorm.meta.php
+###< Temporary Files ###

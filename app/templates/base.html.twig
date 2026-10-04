@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}CN95 Plongée{% endblock %}</title>
+        {% block stylesheets %}<link rel="stylesheet" href="{{ asset('styles/app.css') }}">{% endblock %}
+        {% block javascripts %}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
+        {% endblock %}
+    </head>
+    <body>
+        <nav class="nav">
+            <a class="nav-brand" href="{{ path('app_home') }}">🤿 CN95 Plongée</a>
+            <div class="nav-links">
+                {% if is_granted('ROLE_USER') %}
+                    <a href="{{ path('app_member') }}">Espace adhérent</a>
+                    <span>{{ app.user.userIdentifier }}</span>
+                    <a href="{{ path('app_logout') }}">Déconnexion</a>
+                {% else %}
+                    <a href="{{ path('app_login') }}">Connexion</a>
+                {% endif %}
+            </div>
+        </nav>
+        {% for message in app.flashes('success') %}
+            <div class="container" style="padding-bottom:0"><div class="alert alert-success">{{ message }}</div></div>
+        {% endfor %}
+        {% block body %}{% endblock %}
+    </body>
+</html>

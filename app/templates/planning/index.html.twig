@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+{% block title %}Planning – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container planning" data-controller="planning-filter">
+    <h1 class="header-title">Planning</h1>
+
+    <div class="week-nav">
+        {% if precedente %}
+            <a class="week-btn" href="{{ path('app_planning', {date: precedente|date('Y-m-d')}) }}" aria-label="Semaine précédente">‹</a>
+        {% else %}
+            <span class="week-btn disabled" aria-hidden="true">‹</span>
+        {% endif %}
+        <div class="week-title">
+            <strong>Semaine {{ lundi|date('W') }}</strong>
+            <span>du {{ lundi|date('d/m') }} au {{ lundi|date_modify('+4 days')|date('d/m/Y') }}</span>
+            {% if estCourante %}<em>Cette semaine</em>{% endif %}
+        </div>
+        {% if suivante %}
+            <a class="week-btn" href="{{ path('app_planning', {date: suivante|date('Y-m-d')}) }}" aria-label="Semaine suivante">›</a>
+        {% else %}
+            <span class="week-btn disabled" aria-hidden="true">›</span>
+        {% endif %}
+    </div>
+
+    {% if not semaine %}
+        <div class="card planning-empty">Le planning de cette semaine n'est pas encore publié.</div>
+    {% elseif semaine.fermee %}
+        <div class="card planning-empty">Pas d'entraînement cette semaine{% if semaine.motif %} : {{ semaine.motif }}{% endif %}.</div>
+    {% elseif not jours %}
+        <div class="card planning-empty">Aucune activité renseignée pour cette semaine.</div>
+    {% else %}
+        <div class="filters" role="group" aria-label="Filtrer par aptitude">
+            <button type="button" class="filter is-active" data-planning-filter-target="button" data-action="planning-filter#select" data-code="">Toutes</button>
+            {% for a in aptitudes %}
+                <button type="button" class="filter apt-{{ a.code }}" data-planning-filter-target="button" data-action="planning-filter#select" data-code="{{ a.code }}">{{ a.code }}</button>
+            {% endfor %}
+        </div>
+
+        {% for j in jours %}
+            <section class="jour" data-planning-filter-target="jour">
+                <h2 class="jour-titre">
+                    {{ j.jour.label }} {{ j.date|date('d/m') }}
+                    <small>{{ constant('App\\Enum\\Jour::HORAIRE') }}</small>
+                </h2>
+                {% if semaine.dp %}
+                    <p class="dp">DP : <strong>{{ semaine.dp.nomComplet }}</strong></p>
+                {% endif %}
+                {% for l in j.lieux %}
+                    <div class="lieu" data-planning-filter-target="lieu">
+                        <h3 class="lieu-titre">{{ l.lieu.label }}</h3>
+                        {% for c in l.creneaux %}
+                            <div class="creneau" data-planning-filter-target="creneau" data-aptitudes="{{ c.aptitudes|map(a => a.code)|join(' ') }}">
+                                <div class="creneau-main">
+                                    <span class="activite">{{ c.activitesLabel }}</span>
+                                    {% if c.libelle %}<span class="creneau-libelle">{{ c.libelle }}</span>{% endif %}
+                                </div>
+                                <div class="creneau-meta">
+                                    {% if c.lignes %}<span class="lignes">Lignes {{ c.lignes }}</span>{% endif %}
+                                    {% for a in c.aptitudes %}<span class="apt apt-{{ a.code }}">{{ a.code }}</span>{% else %}<span class="apt apt-tous">Tous niveaux</span>{% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </section>
+        {% endfor %}
+        <p class="filter-empty" data-planning-filter-target="vide" hidden>Aucune activité pour cette aptitude cette semaine.</p>
+    {% endif %}
+</div>
+{% endblock %}

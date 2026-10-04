@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+{% block title %}Espace adhérent – CN95 Plongée{% endblock %}
+{% macro item(icon, label, desc, url = null) %}
+    {% if url %}<a class="bandeau" href="{{ url }}">{% else %}<div class="bandeau disabled">{% endif %}
+        <div class="bandeau-icon">{{ icon }}</div>
+        <div class="bandeau-content">
+            <div class="bandeau-label">{{ label }}</div>
+            <div class="bandeau-description">{{ desc }}{% if not url %} (à venir){% endif %}</div>
+        </div>
+    {% if url %}</a>{% else %}</div>{% endif %}
+{% endmacro %}
+{% import _self as m %}
+{% block body %}
+<div class="container">
+    <div class="section">
+        <div class="section-title">Communication</div>
+        {{ m.item('📋', 'Inscription à la fosse', 'S\'inscrire aux séances de fosse') }}
+    </div>
+    <div class="section">
+        <div class="section-title">Sondages</div>
+        {{ m.item('📝', 'Inscrits fosse', 'Consulter les inscrits à la fosse') }}
+    </div>
+    {% if is_granted('ROLE_ADMIN') %}
+    <div class="section">
+        <div class="section-title">Gestion utilisateur</div>
+        {{ m.item('👥', 'Liste des utilisateurs', 'Consulter tous les utilisateurs', path('admin_user_index')) }}
+        {{ m.item('➕', 'Ajout d\'un utilisateur', 'Créer un nouvel utilisateur', path('admin_user_new')) }}
+        {{ m.item('📅', 'Gestion du planning', 'Créer, modifier et dupliquer les semaines', path('admin_planning_index')) }}
+        {{ m.item('💬', 'Communication générale', 'Envoyer des communications générales') }}
+        {{ m.item('📊', 'Gestion des sondages', 'Gérer les sondages et résultats') }}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

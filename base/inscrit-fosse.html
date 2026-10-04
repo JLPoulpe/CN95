@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscrit Fosse</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .header-back {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            margin-right: 16px;
+            color: #3b82f6;
+        }
+
+        .header-back:hover {
+            color: #1d4ed8;
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .search-bar input {
+            padding: 10px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 300px;
+        }
+
+        .table-wrapper {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            padding: 16px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #1f2937;
+        }
+
+        tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .badge-pn1 {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-n1 {
+            background-color: #fecaca;
+            color: #991b1b;
+        }
+
+        .badge-pe40 {
+            background-color: #c7d2fe;
+            color: #3730a3;
+        }
+
+        .badge-n2 {
+            background-color: #fcd34d;
+            color: #92400e;
+        }
+
+        .badge-pe60 {
+            background-color: #a7f3d0;
+            color: #065f46;
+        }
+
+        .badge-n3 {
+            background-color: #fbcfe8;
+            color: #831843;
+        }
+
+        .badge-mf1 {
+            background-color: #fed7aa;
+            color: #92400e;
+        }
+
+        .badge-tout {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .footer {
+            margin-top: 20px;
+            padding: 16px;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        .timestamp {
+            font-size: 13px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <button class="header-back" onclick="goBack()">←</button>
+                <h1 class="header-title">Inscrit Fosse</h1>
+            </div>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Rechercher par nom, prénom..." onkeyup="filterTable()">
+        </div>
+
+        <div class="table-wrapper">
+            <table id="inscritsTable">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Prénom</th>
+                        <th>Date et Heure d'Inscription</th>
+                        <th>Niveau</th>
+                    </tr>
+                </thead>
+                <tbody id="inscritsTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            <span id="recordCount">Affichage de 20 inscrits</span>
+        </div>
+    </div>
+
+    <script>
+        const inscrits = [
+            { nom: 'Martin', prenom: 'Jean', datetime: '2026-09-16T08:30:00', niveau: 'PN1' },
+            { nom: 'Dupont', prenom: 'Marie', datetime: '2026-09-16T08:45:00', niveau: 'N1' },
+            { nom: 'Bernard', prenom: 'Pierre', datetime: '2026-09-16T09:15:00', niveau: 'PE40' },
+            { nom: 'Dubois', prenom: 'Sophie', datetime: '2026-09-16T09:30:00', niveau: 'N2' },
+            { nom: 'Laurent', prenom: 'Philippe', datetime: '2026-09-16T10:00:00', niveau: 'PE60' },
+            { nom: 'Simon', prenom: 'Nathalie', datetime: '2026-09-16T10:30:00', niveau: 'N3' },
+            { nom: 'Michel', prenom: 'François', datetime: '2026-09-16T11:00:00', niveau: 'MF1' },
+            { nom: 'Garcia', prenom: 'Anne', datetime: '2026-09-16T11:30:00', niveau: 'PN1' },
+            { nom: 'Martinez', prenom: 'Jacques', datetime: '2026-09-16T12:00:00', niveau: 'N1' },
+            { nom: 'Rodriguez', prenom: 'Christine', datetime: '2026-09-16T12:30:00', niveau: 'PE40' },
+            { nom: 'Hernandez', prenom: 'Luc', datetime: '2026-09-16T13:00:00', niveau: 'N2' },
+            { nom: 'Lopez', prenom: 'Sandrine', datetime: '2026-09-16T13:30:00', niveau: 'PE60' },
+            { nom: 'Gonzalez', prenom: 'Patrick', datetime: '2026-09-16T14:00:00', niveau: 'N3' },
+            { nom: 'Perez', prenom: 'Isabelle', datetime: '2026-09-16T14:30:00', niveau: 'MF1' },
+            { nom: 'Sanchez', prenom: 'Bernard', datetime: '2026-09-16T15:00:00', niveau: 'PN1' },
+            { nom: 'Moreno', prenom: 'Véronique', datetime: '2026-09-16T15:30:00', niveau: 'N1' },
+            { nom: 'Jimenez', prenom: 'Alain', datetime: '2026-09-16T16:00:00', niveau: 'PE40' },
+            { nom: 'Castro', prenom: 'Martine', datetime: '2026-09-16T16:30:00', niveau: 'N2' },
+            { nom: 'Ruiz', prenom: 'Dominique', datetime: '2026-09-16T17:00:00', niveau: 'PE60' },
+            { nom: 'Flores', prenom: 'Michèle', datetime: '2026-09-16T17:30:00', niveau: 'N3' }
+        ];
+
+        function geteBadgeClass(niveau) {
+            const map = {
+                'PN1': 'badge-pn1',
+                'N1': 'badge-n1',
+                'PE40': 'badge-pe40',
+                'N2': 'badge-n2',
+                'PE60': 'badge-pe60',
+                'N3': 'badge-n3',
+                'MF1': 'badge-mf1',
+                'Tout le monde': 'badge-tout'
+            };
+            return map[niveau] || 'badge-tout';
+        }
+
+        function formatDateTime(dateTimeString) {
+            const date = new Date(dateTimeString);
+            const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            return date.toLocaleString('fr-FR', options);
+        }
+
+        function populateTable() {
+            const tbody = document.getElementById('inscritsTableBody');
+            tbody.innerHTML = '';
+
+            inscrits.forEach((inscrit) => {
+                const row = document.createElement('tr');
+                const badgeClass = geteBadgeClass(inscrit.niveau);
+                row.innerHTML = `
+                    <td class="user-name">${inscrit.nom}</td>
+                    <td>${inscrit.prenom}</td>
+                    <td class="timestamp">${formatDateTime(inscrit.datetime)}</td>
+                    <td><span class="badge ${badgeClass}">${inscrit.niveau}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('recordCount').textContent = `Affichage de ${inscrits.length} inscrit(s)`;
+        }
+
+        function filterTable() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#inscritsTableBody tr');
+            let count = 0;
+
+            rows.forEach(row => {
+                const nom = row.cells[0].textContent.toLowerCase();
+                const prenom = row.cells[1].textContent.toLowerCase();
+
+                if (nom.includes(searchInput) || prenom.includes(searchInput)) {
+                    row.style.display = '';
+                    count++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('recordCount').textContent = `Affichage de ${count} inscrit(s)`;
+        }
+
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+
+        // Initialiser le tableau au chargement
+        document.addEventListener('DOMContentLoaded', populateTable);
+    </script>
+</body>
+</html>
