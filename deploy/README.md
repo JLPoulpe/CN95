@@ -15,7 +15,7 @@ Une **cible** = un hébergement (`deploy/targets/<cible>.conf`, ignoré par git)
 deploy/deploy.sh prod --dry-run   # simulation, ni envoi ni tag
 deploy/deploy.sh prod             # déploiement incrémental depuis le dernier tag de la cible
 ```
-Options : `--first-run` (déploiement complet), `--init-server` (réécrit `.env.local`, ex. mot de passe changé), `--skip-db`, `--seed` (rejoue `app:seed`), `--no-tag`.
+Options : `--first-run` (déploiement complet), `--init-server` (réécrit `.env.local`, ex. mot de passe changé), `--skip-db`, `--create-admin` (crée le compte admin, mot de passe généré et affiché une seule fois dans le terminal ; sans effet si le compte existe), `--seed` (rejoue `app:seed`), `--no-tag`.
 
 L'outil affiche une URL `_migrate_<id>.php?token=...` : l'ouvrir dans le navigateur applique les migrations puis supprime le script. Le tag n'est créé qu'après votre confirmation.
 

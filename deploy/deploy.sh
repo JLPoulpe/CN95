@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Déploiement CN95 : build local, rsync vers l'hébergement, script web de migration, tag git.
-# Usage : deploy/deploy.sh [cible] [--dry-run] [--first-run] [--skip-db] [--seed] [--no-tag] [--init-server]
+# Usage : deploy/deploy.sh [cible] [--dry-run] [--first-run] [--skip-db] [--seed] [--no-tag] [--init-server] [--create-admin]
 # cible = deploy/targets/<cible>.conf (défaut : prod)
 set -euo pipefail
 
@@ -9,7 +9,7 @@ DEPLOY_DIR="$ROOT/deploy"
 BUILD="$DEPLOY_DIR/.build"
 TARGET="prod"
 
-DRY_RUN=0; FIRST_RUN=0; SKIP_DB=0; SEED=0; NO_TAG=0; INIT_SERVER=0
+DRY_RUN=0; FIRST_RUN=0; SKIP_DB=0; SEED=0; NO_TAG=0; INIT_SERVER=0; CREATE_ADMIN=0
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
@@ -18,6 +18,7 @@ for arg in "$@"; do
     --seed) SEED=1 ;;
     --no-tag) NO_TAG=1 ;;
     --init-server) INIT_SERVER=1 ;;
+    --create-admin) CREATE_ADMIN=1 ;;
     -h|--help) sed -n '2,4p' "$0"; exit 0 ;;
     -*) echo "Option inconnue : $arg" >&2; exit 2 ;;
     *) TARGET="$arg" ;;
@@ -34,8 +35,22 @@ TAG_PREFIX="deploy/$TARGET/"
 # shellcheck disable=SC1090
 source "$CONF"
 : "${SSH_TARGET:?}" "${REMOTE_DIR:?}" "${PUBLIC_URL:?}" "${DB_HOST:?}" "${DB_USER:?}"
-: "${PUBLIC_SUBPATH=/public}" "${DB_PORT:=3306}" "${DB_VERSION:=11.8.0-MariaDB}" "${BRANCH:=master}" "${BUILD_IMAGE:=cn95-web}" "${DB_NAME:=}"
+: "${PUBLIC_SUBPATH=/public}" "${DB_PORT:=3306}" "${DB_VERSION:=11.8.0-MariaDB}" "${BRANCH:=master}" "${BUILD_IMAGE:=cn95-web}" "${DB_NAME:=}" "${PHP_CLI:=php8.4}" "${ADMIN_USERNAME:=admin}"
 info "Cible : $TARGET ($SSH_TARGET)"
+
+create_admin() {
+  # Mot de passe généré ici, transmis par stdin (jamais en argument), affiché une seule fois.
+  local pw
+  pw="$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-20)"
+  info "Création du compte admin '$ADMIN_USERNAME' (app:seed, $PHP_CLI)"
+  printf '%s\n' "$pw" | ssh "$SSH_TARGET" \
+    "IFS= read -r ADMIN_PASSWORD; export ADMIN_PASSWORD; cd $REMOTE_DIR && $PHP_CLI bin/console app:seed --admin-username=$ADMIN_USERNAME --env=prod --no-interaction" \
+    || die "création de l'admin impossible (migrations appliquées ? $PHP_CLI disponible ?)."
+  echo
+  echo "    Identifiant  : $ADMIN_USERNAME"
+  echo "    Mot de passe : $pw   (affiché une seule fois ; ignoré si le compte existait déjà)"
+  echo
+}
 
 for cmd in git rsync ssh docker openssl; do
   command -v "$cmd" >/dev/null || die "commande requise absente : $cmd"
@@ -68,6 +83,7 @@ echo "${NEW_MIGRATIONS:-(aucune)}"
 
 if [[ $FULL -eq 0 && -z "$CHANGED_FILES" ]]; then
   info "Rien à déployer depuis $LAST_TAG."
+  [[ $CREATE_ADMIN -eq 1 && $DRY_RUN -eq 0 ]] && create_admin
   exit 0
 fi
 [[ -z "$NEW_MIGRATIONS" ]] && SKIP_DB=1
@@ -172,6 +188,9 @@ if [[ -n "$MIGRATE_URL" ]]; then
   read -r -p "Migration terminée avec succès ? [o/N] " ans
   [[ "$ans" =~ ^[oOyY]$ ]] || die "déploiement non finalisé : aucun tag créé. Relancez après correction."
 fi
+
+# --- 6b. Compte admin ---------------------------------------------------------
+[[ $CREATE_ADMIN -eq 1 ]] && create_admin
 
 # --- 7. Tag -------------------------------------------------------------------
 if [[ $NO_TAG -eq 0 ]]; then

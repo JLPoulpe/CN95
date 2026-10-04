@@ -16,3 +16,5 @@ DB_VERSION="11.8.0-MariaDB"
 
 BRANCH="master"
 BUILD_IMAGE="cn95-web"                      # image Docker locale avec php 8.4 + composer
+PHP_CLI="php8.4"                            # binaire PHP CLI du serveur (le défaut peut être trop ancien)
+ADMIN_USERNAME="admin"                      # identifiant créé par --create-admin
