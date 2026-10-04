@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+{% block title %}Aptitudes – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Liste des aptitudes</h1>
+    <div class="search-bar">
+        <a class="btn" href="{{ path('admin_aptitude_new') }}">Ajouter</a>
+    </div>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Ordre</th><th>Code</th><th>Libellé</th><th></th></tr></thead>
+            <tbody>
+            {% for a in aptitudes %}
+                <tr>
+                    <td>{{ a.ordre }}</td>
+                    <td><span class="badge">{{ a.code }}</span></td>
+                    <td>{{ a.libelle }}</td>
+                    <td>
+                        <a href="{{ path('admin_aptitude_edit', {id: a.id}) }}">Modifier</a>
+                        <form method="post" action="{{ path('admin_aptitude_delete', {id: a.id}) }}" onsubmit="return confirm('Supprimer cette aptitude ?')" style="display:inline">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete_aptitude_' ~ a.id) }}">
+                            <button type="submit" class="btn" style="margin-left:8px">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4">Aucune aptitude.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p style="margin-top:12px;color:#6b7280;font-size:13px">{{ aptitudes|length }} aptitude(s)</p>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouvelle aptitude – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Ajout d'une aptitude</h1>
+    <div class="card">
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <button class="btn" type="submit">Créer</button>
+            <a href="{{ path('admin_aptitude_index') }}" style="margin-left:12px">Annuler</a>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
