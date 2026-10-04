@@ -34,12 +34,13 @@ $app = new Application($kernel);
 $app->setAutoExit(false);
 
 $steps = [
+    ['cache:clear', '--no-warmup' => true],
     ['doctrine:migrations:migrate', '--no-interaction' => true, '--allow-no-migration' => true],
 ];
 if (WITH_SEED) {
     $steps[] = ['app:seed'];
 }
-$steps[] = ['cache:clear', '--no-warmup' => true];
+$steps[] = ['cache:warm-up'];
 
 $ok = true;
 echo '<!doctype html><meta charset="utf-8"><title>Migration CN95</title><body style="font-family:monospace">';
