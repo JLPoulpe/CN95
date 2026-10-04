@@ -125,6 +125,8 @@ init_server() {
   [[ -n "$pass" ]] || die "mot de passe vide."
   pass_enc="$(printf '%s' "$pass" | docker run --rm -i "$BUILD_IMAGE" php -r 'echo rawurlencode(stream_get_contents(STDIN));')"
   unset pass
+  # doctrine.yaml utilise %env(resolve:DATABASE_URL)% : chaque % doit être doublé
+  pass_enc="${pass_enc//%/%%}"
   secret="$(openssl rand -hex 32)"
   ssh "$SSH_TARGET" "mkdir -p $REMOTE_DIR/var && umask 077 && cat > $REMOTE_DIR/.env.local && chmod 600 $REMOTE_DIR/.env.local" <<EOF
 APP_ENV=prod
