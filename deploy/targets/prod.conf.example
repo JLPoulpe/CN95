@@ -1,0 +1,17 @@
+# Copier vers deploy/targets/prod.conf (ignoré par git) et adapter.
+# Une cible = un hébergement. Pour un nouvel hébergement : copier ce fichier
+# (ex. targets/ovh.conf), l'adapter, puis lancer : deploy/deploy.sh ovh --init-server
+# Le mot de passe DB n'est JAMAIS stocké ici : il est demandé au terminal par --init-server.
+
+SSH_TARGET="su1137297@access-5021453058.webspace-host.com"
+REMOTE_DIR="~/public/projet/CN95"          # racine du projet Symfony sur le serveur
+PUBLIC_URL="https://example.com/projet/CN95/public"   # URL publique de public/ (sans / final)
+
+DB_HOST="db5021570487.hosting-data.io"
+DB_PORT="3306"
+DB_USER="dbu1181418"
+DB_NAME=""                                  # nom de la base (panneau de l'hébergeur) ; demandé si vide
+DB_VERSION="11.8.0-MariaDB"
+
+BRANCH="master"
+BUILD_IMAGE="cn95-web"                      # image Docker locale avec php 8.4 + composer
