@@ -90,11 +90,18 @@ a.week-btn:hover { background: #eff6ff; color: #1f2937; }
     .search-bar input { width: 100%; }
     .table-wrapper { overflow-x: auto; }
     .btn { min-height: 44px; }
+    .btn.btn-sm { min-height: 36px; }
 }
 
 /* Admin planning */
 .actions { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .link-danger { background: none; border: none; color: #dc2626; cursor: pointer; font: inherit; padding: 0; }
+.btn-sm { padding: 6px 14px; font-size: 13px; min-height: 0; line-height: 1.4; text-decoration: none; }
+.btn-secondary { background: #fff; color: #1f2937; border: 1px solid #d1d5db; }
+.btn-secondary:hover { background: #f3f4f6; color: #1f2937; }
+.btn-danger { background: #dc2626; }
+.btn-danger:hover { background: #b91c1c; }
+.actions form { margin: 0; display: inline-flex; }
 .badge-grey { background: #e5e7eb; color: #374151; }
 .badge-yellow { background: #fef3c7; color: #92400e; }
 

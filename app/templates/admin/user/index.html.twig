@@ -21,7 +21,7 @@
                     <td><span class="badge">{{ u.aptitude }}</span></td>
                     <td>{% if u.aptitudePreparee %}<span class="badge">{{ u.aptitudePreparee }}</span>{% endif %}</td>
                     <td>{% for r in u.userRoles %}<span class="badge">{{ r }}</span> {% endfor %}</td>
-                    <td><a href="{{ path('admin_user_edit', {id: u.id}) }}">Modifier</a></td>
+                    <td><a class="btn btn-sm btn-secondary" href="{{ path('admin_user_edit', {id: u.id}) }}">Modifier</a></td>
                 </tr>
             {% else %}
                 <tr><td colspan="8">Aucun utilisateur.</td></tr>

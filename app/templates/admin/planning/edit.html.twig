@@ -26,10 +26,10 @@
                     {% for a in c.aptitudes %}<span class="apt apt-{{ a.code }}">{{ a.code }}</span>{% else %}<span class="apt apt-tous">Tous niveaux</span>{% endfor %}
                 </div>
                 <div class="actions">
-                    <a href="{{ path('admin_planning_creneau_edit', {id: c.id}) }}">Modifier</a>
-                    <form method="post" action="{{ path('admin_planning_creneau_delete', {id: c.id}) }}" onsubmit="return confirm('Supprimer ce créneau ?')" style="display:inline">
+                    <a class="btn btn-sm btn-secondary" href="{{ path('admin_planning_creneau_edit', {id: c.id}) }}">Modifier</a>
+                    <form method="post" action="{{ path('admin_planning_creneau_delete', {id: c.id}) }}" onsubmit="return confirm('Supprimer ce créneau ?')">
                         <input type="hidden" name="_token" value="{{ csrf_token('delete_creneau_' ~ c.id) }}">
-                        <button type="submit" class="link-danger">Supprimer</button>
+                        <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
                     </form>
                 </div>
             </div>

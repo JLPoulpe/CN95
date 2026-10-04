@@ -15,11 +15,11 @@
                     <td>{{ a.ordre }}</td>
                     <td><span class="badge">{{ a.code }}</span></td>
                     <td>{{ a.libelle }}</td>
-                    <td>
-                        <a href="{{ path('admin_aptitude_edit', {id: a.id}) }}">Modifier</a>
-                        <form method="post" action="{{ path('admin_aptitude_delete', {id: a.id}) }}" onsubmit="return confirm('Supprimer cette aptitude ?')" style="display:inline">
+                    <td class="actions">
+                        <a class="btn btn-sm btn-secondary" href="{{ path('admin_aptitude_edit', {id: a.id}) }}">Modifier</a>
+                        <form method="post" action="{{ path('admin_aptitude_delete', {id: a.id}) }}" onsubmit="return confirm('Supprimer cette aptitude ?')">
                             <input type="hidden" name="_token" value="{{ csrf_token('delete_aptitude_' ~ a.id) }}">
-                            <button type="submit" class="btn" style="margin-left:8px">Supprimer</button>
+                            <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
                         </form>
                     </td>
                 </tr>
