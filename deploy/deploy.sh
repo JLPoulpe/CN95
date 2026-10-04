@@ -34,7 +34,7 @@ TAG_PREFIX="deploy/$TARGET/"
 # shellcheck disable=SC1090
 source "$CONF"
 : "${SSH_TARGET:?}" "${REMOTE_DIR:?}" "${PUBLIC_URL:?}" "${DB_HOST:?}" "${DB_USER:?}"
-: "${DB_PORT:=3306}" "${DB_VERSION:=11.8.0-MariaDB}" "${BRANCH:=master}" "${BUILD_IMAGE:=cn95-web}" "${DB_NAME:=}"
+: "${PUBLIC_SUBPATH=/public}" "${DB_PORT:=3306}" "${DB_VERSION:=11.8.0-MariaDB}" "${BRANCH:=master}" "${BUILD_IMAGE:=cn95-web}" "${DB_NAME:=}"
 info "Cible : $TARGET ($SSH_TARGET)"
 
 for cmd in git rsync ssh docker openssl; do
@@ -108,7 +108,7 @@ if [[ $SKIP_DB -eq 0 ]]; then
       -e "s/__WITH_SEED__/$([[ $SEED -eq 1 ]] && echo true || echo false)/" \
       -e "s/__MIGRATIONS__/${MIGRATIONS_LIST% }/" \
       "$DEPLOY_DIR/templates/migrate.php.tpl" > "$APP/public/$MIGRATE_NAME"
-  MIGRATE_URL="${PUBLIC_URL%/}/$MIGRATE_NAME?token=$TOKEN"
+  MIGRATE_URL="${PUBLIC_URL%/}${PUBLIC_SUBPATH}/$MIGRATE_NAME?token=$TOKEN"
 fi
 
 # --- 5. Synchronisation -------------------------------------------------------
@@ -133,7 +133,7 @@ APP_ENV=prod
 APP_DEBUG=0
 APP_SECRET=$secret
 DATABASE_URL='mysql://$DB_USER:$pass_enc@$DB_HOST:$DB_PORT/$DB_NAME?serverVersion=$DB_VERSION&charset=utf8mb4'
-DEFAULT_URI=${PUBLIC_URL%/}
+DEFAULT_URI=${PUBLIC_URL%/}${PUBLIC_SUBPATH}
 MESSENGER_TRANSPORT_DSN=sync://
 EOF
   unset pass_enc secret

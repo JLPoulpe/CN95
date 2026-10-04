@@ -5,7 +5,8 @@
 
 SSH_TARGET="su1137297@access-5021453058.webspace-host.com"
 REMOTE_DIR="~/public/projet/CN95"          # racine du projet Symfony sur le serveur
-PUBLIC_URL="https://example.com/projet/CN95/public"   # URL publique de public/ (sans / final)
+PUBLIC_URL="https://example.com/projet/CN95"   # URL de REMOTE_DIR (sans / final)
+PUBLIC_SUBPATH="/public"                    # chemin de public/ depuis PUBLIC_URL ; "" si le domaine pointe déjà sur public/
 
 DB_HOST="db5021570487.hosting-data.io"
 DB_PORT="3306"
