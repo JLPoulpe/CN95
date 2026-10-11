@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+{% block title %}Inscrits – {{ invitation.activite.libelle }} – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <p><a href="{{ path('admin_invitation_show', {id: invitation.id}) }}">← {{ invitation.activite.libelle }} du {{ invitation.date|date('d/m/Y') }}</a></p>
+    <h1 class="header-title">Inscrits – {{ invitation.activite.libelle }} du {{ invitation.date|date('d/m/Y') }}</h1>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Membre</th><th>Aptitude</th><th>Réponse</th><th>Date de réponse</th></tr></thead>
+            <tbody>
+            {% for reponse in reponses %}
+                <tr>
+                    <td>{{ reponse.user.prenom }} {{ reponse.user.nom }}</td>
+                    <td>{{ reponse.user.aptitude }}</td>
+                    <td>{{ reponse.statut.label }}</td>
+                    <td>{{ reponse.repondueAt ? reponse.repondueAt|date('d/m/Y H:i') : '–' }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4">Aucun membre ciblé.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

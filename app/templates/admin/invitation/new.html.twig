@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouvelle invitation – {{ activiteExterne.libelle }} – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Nouvelle invitation – {{ activiteExterne.libelle }}</h1>
+    <div class="card">
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <p style="margin:12px 0">Un mail sera envoyé à chaque membre ayant une des aptitudes sélectionnées.</p>
+            <button class="btn" type="submit">Créer et envoyer</button>
+            <a href="{{ path('admin_invitation_index', {activiteExterneId: activiteExterne.id}) }}" style="margin-left:12px">Annuler</a>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

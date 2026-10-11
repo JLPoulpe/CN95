@@ -1,0 +1,59 @@
+{% extends 'base.html.twig' %}
+{% block title %}Configuration des mails – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Configuration des mails</h1>
+    <div class="card">
+        {# Turbo refuse une réponse 200 sans redirection : la page doit être soumise sans Turbo pour afficher le résultat du test #}
+        <form method="post" action="{{ path('admin_mail_config') }}" data-turbo="false">
+            <input type="hidden" name="_token" value="{{ csrf_token('mail_config') }}">
+
+            <div class="form-row">
+                <label for="plugin">Système d'envoi</label>
+                <select id="plugin" name="plugin">
+                    {% for code, plugin in plugins %}
+                        <option value="{{ code }}" {% if code == codeSelectionne %}selected{% endif %}>{{ plugin.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-row">
+                <label for="expediteur_nom">Nom de l'expéditeur</label>
+                <input id="expediteur_nom" name="expediteur_nom" value="{{ expediteurNom }}" required>
+            </div>
+
+            <div class="form-row">
+                <label for="expediteur_email">Email de l'expéditeur</label>
+                <input id="expediteur_email" type="email" name="expediteur_email" value="{{ expediteurEmail }}" required>
+            </div>
+
+            {% for champ, definition in champs %}
+                {% set secret = definition.secret ?? false %}
+                <div class="form-row">
+                    <label for="config_{{ champ }}">{{ definition.label }}</label>
+                    <input id="config_{{ champ }}" type="{{ secret ? 'password' : 'text' }}" name="config[{{ champ }}]"
+                           value="{{ secret ? '' : (valeurs[champ] ?? '') }}" autocomplete="off"
+                           placeholder="{{ secret and configure ? 'Laisser vide pour conserver la valeur actuelle' : '' }}">
+                </div>
+            {% endfor %}
+
+            <button class="btn" type="submit" name="enregistrer" value="1">Enregistrer</button>
+            <button class="btn btn-secondary" type="submit" name="tester" value="1" style="margin-left:8px">Tester la connexion</button>
+            <a href="{{ path('app_member') }}" style="margin-left:12px">Retour</a>
+        </form>
+    </div>
+</div>
+
+{% if resultatTest %}
+    <dialog id="resultat-test" aria-labelledby="resultat-test-titre" style="max-width:420px;width:90%;border:none;border-radius:8px;padding:24px">
+        <h2 id="resultat-test-titre" style="margin-top:0">{{ resultatTest.succes ? 'Connexion réussie' : 'Connexion échouée' }}</h2>
+        <div class="alert {{ resultatTest.succes ? 'alert-success' : 'alert-danger' }}">{{ resultatTest.message }}</div>
+        <form method="dialog" style="text-align:right">
+            <button class="btn" type="submit">Fermer</button>
+        </form>
+    </dialog>
+    <script>
+        document.getElementById('resultat-test').showModal();
+    </script>
+{% endif %}
+{% endblock %}

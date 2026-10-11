@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+{% block title %}Activités – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Liste des activités</h1>
+    <div class="search-bar">
+        <a class="btn" href="{{ path('admin_activite_new') }}">Ajouter</a>
+    </div>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Ordre</th><th>Code</th><th>Libellé</th><th></th></tr></thead>
+            <tbody>
+            {% for a in activites %}
+                <tr>
+                    <td>{{ a.ordre }}</td>
+                    <td><span class="badge">{{ a.code }}</span></td>
+                    <td>{{ a.libelle }}</td>
+                    <td class="actions">
+                        <a class="btn btn-sm btn-secondary" href="{{ path('admin_activite_edit', {id: a.id}) }}">Modifier</a>
+                        <form method="post" action="{{ path('admin_activite_delete', {id: a.id}) }}" onsubmit="return confirm('Supprimer cette activité ?')">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete_activite_' ~ a.id) }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4">Aucune activité.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p style="margin-top:12px;color:#6b7280;font-size:13px">{{ activites|length }} activité(s)</p>
+</div>
+{% endblock %}

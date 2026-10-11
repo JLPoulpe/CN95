@@ -1,0 +1,9 @@
+{% macro item(icon, label, desc, url = null) %}
+    {% if url %}<a class="bandeau" href="{{ url }}">{% else %}<div class="bandeau disabled">{% endif %}
+        <div class="bandeau-icon">{{ icon }}</div>
+        <div class="bandeau-content">
+            <div class="bandeau-label">{{ label }}</div>
+            <div class="bandeau-description">{{ desc }}{% if not url %} (à venir){% endif %}</div>
+        </div>
+    {% if url %}</a>{% else %}</div>{% endif %}
+{% endmacro %}

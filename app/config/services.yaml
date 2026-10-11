@@ -19,5 +19,10 @@ services:
     App\:
         resource: '../src/'
 
+    # Tous les plugins d'envoi de mails sont enregistrés automatiquement
+    _instanceof:
+        App\Mail\Plugin\MailPluginInterface:
+            tags: ['app.mail_plugin']
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

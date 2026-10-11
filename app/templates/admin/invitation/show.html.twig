@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+{% block title %}Invitation – {{ invitation.activite.libelle }} – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <p><a href="{{ path('admin_invitation_index', {activiteExterneId: invitation.activite.id}) }}">← {{ invitation.activite.libelle }}</a></p>
+    <h1 class="header-title">{{ invitation.activite.libelle }} du {{ invitation.date|date('d/m/Y') }}</h1>
+
+    <div class="card">
+        <p><strong>Activité :</strong> {{ invitation.activite }}</p>
+        <p><strong>Date :</strong> {{ invitation.date|date('d/m/Y') }}</p>
+        <p><strong>Aptitudes conviées :</strong> {{ invitation.aptitudes|map(a => a.code)|join(', ') }}</p>
+        <p><strong>État :</strong>
+            {% if invitation.annulee %}<span class="badge badge-grey">Annulée</span>
+            {% elseif invitation.passee %}<span class="badge badge-grey">Passée</span>
+            {% else %}<span class="badge badge-yellow">Active</span>{% endif %}
+        </p>
+        <p><strong>Réponses :</strong>
+            {{ compte.inscrits }} inscrit(s) · {{ compte.refus }} ne participe pas · {{ compte.desistements }} désistement(s) · {{ compte.sans_reponse }} sans réponse
+        </p>
+        <p><strong>Commentaire :</strong> {{ invitation.commentaire ?: '–' }}</p>
+
+        {% if invitation.envoyable %}
+            {{ form_start(editForm) }}
+                {% if invitation.activite.necessiteResponsable %}{{ form_row(editForm.dp) }}{% endif %}
+                {{ form_row(editForm.commentaire) }}
+                <button class="btn btn-sm" type="submit">Enregistrer les modifications</button>
+            {{ form_end(editForm) }}
+        {% elseif invitation.activite.necessiteResponsable %}
+            <p><strong>Responsable :</strong> {% if invitation.dp %}{{ invitation.dp.prenom }} {{ invitation.dp.nom }}{% else %}<em>Aucun</em>{% endif %}</p>
+        {% endif %}
+    </div>
+
+    <div class="actions" style="margin-top:20px">
+        <a class="btn btn-secondary" href="{{ path('admin_invitation_inscrits', {id: invitation.id}) }}">Voir les inscrits</a>
+        <a class="btn btn-secondary" href="{{ path('admin_invitation_interactions', {id: invitation.id}) }}">Voir les membres ayant répondu</a>
+
+        {% if invitation.envoyable %}
+            <form method="post" action="{{ path('admin_invitation_relancer', {id: invitation.id}) }}" style="display:inline"
+                  onsubmit="return confirm('Renvoyer l\'invitation aux membres sans réponse ?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('invitation_relancer_' ~ invitation.id) }}">
+                <button class="btn btn-secondary" type="submit" {% if compte.sans_reponse == 0 %}disabled{% endif %}>Renvoyer les invitations</button>
+            </form>
+
+            <form method="post" action="{{ path('admin_invitation_annuler', {id: invitation.id}) }}" style="display:inline"
+                  onsubmit="return confirm('Annuler cette invitation ? Les membres ayant répondu seront prévenus.')">
+                <input type="hidden" name="_token" value="{{ csrf_token('invitation_annuler_' ~ invitation.id) }}">
+                <button class="btn btn-danger" type="submit">Annuler l'invitation</button>
+            </form>
+        {% endif %}
+
+        <form method="post" action="{{ path('admin_invitation_delete', {id: invitation.id}) }}" style="display:inline"
+              onsubmit="return confirm('Supprimer définitivement cette invitation et toutes ses réponses ?')">
+            <input type="hidden" name="_token" value="{{ csrf_token('invitation_delete_' ~ invitation.id) }}">
+            <button class="btn btn-danger" type="submit">Supprimer l'invitation</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

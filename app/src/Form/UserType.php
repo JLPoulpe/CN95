@@ -9,19 +9,15 @@ use App\Repository\AptitudeRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
-use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Count;
-use Symfony\Component\Validator\Constraints\Length;
-use Symfony\Component\Validator\Constraints\NotBlank;
 
 class UserType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $isEdit = $options['data']?->getId() !== null;
         $ordered = fn (AptitudeRepository $r) => $r->createQueryBuilder('a')->orderBy('a.ordre');
 
         $builder
@@ -42,12 +38,7 @@ class UserType extends AbstractType
                 'placeholder' => 'Aucune',
             ])
             ->add('username', null, ['label' => 'Identifiant'])
-            ->add('plainPassword', PasswordType::class, [
-                'label' => $isEdit ? 'Nouveau mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe',
-                'mapped' => false,
-                'required' => !$isEdit,
-                'constraints' => $isEdit ? [new Length(min: 8)] : [new NotBlank(), new Length(min: 8)],
-            ])
+            // Pas de mot de passe ici : l'utilisateur le choisit lui-même via le lien d'activation
             ->add('userRoles', EntityType::class, [
                 'class' => Role::class,
                 'label' => 'Rôles',

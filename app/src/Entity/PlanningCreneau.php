@@ -2,15 +2,14 @@
 
 namespace App\Entity;
 
-use App\Enum\Activite;
 use App\Enum\Jour;
 use App\Enum\Lieu;
 use App\Repository\PlanningCreneauRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: PlanningCreneauRepository::class)]
 class PlanningCreneau
@@ -32,13 +31,18 @@ class PlanningCreneau
     #[Assert\NotNull]
     private ?Lieu $lieu = null;
 
-    #[ORM\Column(length: 30, nullable: true)]
-    private ?string $lignes = null;
+    /** @var Collection<int, LigneEau> */
+    #[ORM\ManyToMany(targetEntity: LigneEau::class)]
+    #[ORM\JoinTable(name: 'planning_creneau_ligne_eau')]
+    #[ORM\OrderBy(['numero' => 'ASC'])]
+    private Collection $lignes;
 
-    /** @var list<Activite> */
-    #[ORM\Column(type: Types::JSON, enumType: Activite::class)]
+    /** @var Collection<int, Activite> */
+    #[ORM\ManyToMany(targetEntity: Activite::class)]
+    #[ORM\JoinTable(name: 'planning_creneau_activite')]
+    #[ORM\OrderBy(['ordre' => 'ASC'])]
     #[Assert\Count(min: 1, minMessage: 'Choisir au moins une activité.')]
-    private array $activites = [];
+    private Collection $activites;
 
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $libelle = null;
@@ -52,6 +56,19 @@ class PlanningCreneau
     public function __construct()
     {
         $this->aptitudes = new ArrayCollection();
+        $this->activites = new ArrayCollection();
+        $this->lignes = new ArrayCollection();
+    }
+
+    #[Assert\Callback]
+    public function validate(ExecutionContextInterface $context): void
+    {
+        foreach ($this->lignes as $ligne) {
+            if ($ligne->getLieu() !== $this->lieu) {
+                $context->buildViolation('Les lignes doivent appartenir au lieu du créneau.')->atPath('lignes')->addViolation();
+                break;
+            }
+        }
     }
 
     public function getId(): ?int
@@ -95,35 +112,58 @@ class PlanningCreneau
         return $this;
     }
 
-    public function getLignes(): ?string
+    /** @return Collection<int, LigneEau> */
+    public function getLignes(): Collection
     {
         return $this->lignes;
     }
 
-    public function setLignes(?string $lignes): static
+    public function addLigne(LigneEau $ligne): static
     {
-        $this->lignes = $lignes;
+        if (!$this->lignes->contains($ligne)) {
+            $this->lignes->add($ligne);
+        }
 
         return $this;
     }
 
-    /** @return list<Activite> */
-    public function getActivites(): array
+    public function removeLigne(LigneEau $ligne): static
+    {
+        $this->lignes->removeElement($ligne);
+
+        return $this;
+    }
+
+    public function getLignesLabel(): string
+    {
+        return implode('/', array_map(fn (LigneEau $l) => (string) $l->getNumero(), $this->lignes->toArray()));
+    }
+
+    /** @return Collection<int, Activite> */
+    public function getActivites(): Collection
     {
         return $this->activites;
     }
 
-    /** @param list<Activite> $activites */
-    public function setActivites(array $activites): static
+    public function addActivite(Activite $activite): static
     {
-        $this->activites = array_values($activites);
+        if (!$this->activites->contains($activite)) {
+            $this->activites->add($activite);
+        }
+
+        return $this;
+    }
+
+    public function removeActivite(Activite $activite): static
+    {
+        $this->activites->removeElement($activite);
 
         return $this;
     }
 
     public function getActivitesLabel(): string
     {
-        return implode(' + ', array_map(fn (Activite $a) => $a->label(), $this->activites));
+        return implode(' + ', array_map(fn (Activite $a) => $a->getLibelle(), $this->activites->toArray()));
     }
 
     public function getLibelle(): ?string
@@ -165,5 +205,7 @@ class PlanningCreneau
         $this->id = null;
         $this->semaine = null;
         $this->aptitudes = new ArrayCollection($this->aptitudes->toArray());
+        $this->activites = new ArrayCollection($this->activites->toArray());
+        $this->lignes = new ArrayCollection($this->lignes->toArray());
     }
 }

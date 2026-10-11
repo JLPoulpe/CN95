@@ -5,6 +5,7 @@ namespace App\Controller\Admin;
 use App\Entity\Role;
 use App\Entity\User;
 use App\Form\UserType;
+use App\Mail\CompteMailer;
 use App\Repository\RoleRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -13,6 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 #[Route('/admin/users')]
 class UserController extends AbstractController
@@ -29,7 +31,7 @@ class UserController extends AbstractController
     }
 
     #[Route('/new', name: 'admin_user_new')]
-    public function new(Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher, RoleRepository $roles): Response
+    public function new(Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher, RoleRepository $roles, CompteMailer $comptes): Response
     {
         $user = new User();
         if ($adherent = $roles->findOneBy(['code' => Role::ADHERENT])) {
@@ -39,10 +41,13 @@ class UserController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $user->setPassword($hasher->hashPassword($user, $form->get('plainPassword')->getData()));
+            // Mot de passe aléatoire inutilisable : le compte ne se connecte qu'après activation
+            $user->setPassword($hasher->hashPassword($user, bin2hex(random_bytes(32))));
+            $jeton = $user->genererActivation(new \DateTimeImmutable());
             $em->persist($user);
             $em->flush();
-            $this->addFlash('success', 'Utilisateur créé.');
+            $comptes->activation($user, $this->lienActivation($jeton));
+            $this->addFlash('success', 'Utilisateur créé. Un lien d\'activation lui a été envoyé par mail.');
 
             return $this->redirectToRoute('admin_user_index');
         }
@@ -50,16 +55,36 @@ class UserController extends AbstractController
         return $this->render('admin/user/new.html.twig', ['form' => $form]);
     }
 
+    /** Renvoie un lien d'activation ; le précédent n'est plus valable. */
+    #[Route('/{id}/activation', name: 'admin_user_activation', requirements: ['id' => '\\d+'], methods: ['POST'])]
+    public function activation(User $user, Request $request, EntityManagerInterface $em, CompteMailer $comptes): Response
+    {
+        if (!$this->isCsrfTokenValid('user_activation_'.$user->getId(), $request->request->getString('_token'))) {
+            $this->addFlash('error', 'Session expirée, merci de réessayer.');
+        } elseif (!$user->activationEnAttente()) {
+            $this->addFlash('error', 'Ce compte est déjà activé.');
+        } else {
+            $jeton = $user->genererActivation(new \DateTimeImmutable());
+            $em->flush();
+            $comptes->activation($user, $this->lienActivation($jeton));
+            $this->addFlash('success', 'Nouveau lien d\'activation envoyé.');
+        }
+
+        return $this->redirectToRoute('admin_user_edit', ['id' => $user->getId()]);
+    }
+
+    private function lienActivation(string $jeton): string
+    {
+        return $this->generateUrl('compte_activation', ['token' => $jeton], UrlGeneratorInterface::ABSOLUTE_URL);
+    }
+
     #[Route('/{id}/edit', name: 'admin_user_edit', requirements: ['id' => '\\d+'])]
-    public function edit(User $user, Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher): Response
+    public function edit(User $user, Request $request, EntityManagerInterface $em): Response
     {
         $form = $this->createForm(UserType::class, $user);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            if ($plain = $form->get('plainPassword')->getData()) {
-                $user->setPassword($hasher->hashPassword($user, $plain));
-            }
             $em->flush();
             $this->addFlash('success', 'Utilisateur modifié.');
 

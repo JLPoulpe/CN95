@@ -3,12 +3,12 @@
 namespace App\Tests\Unit;
 
 use App\Controller\PlanningController;
+use App\Entity\Activite;
 use App\Entity\Aptitude;
 use App\Entity\PlanningCreneau;
 use App\Entity\PlanningSemaine;
 use App\Entity\Role;
 use App\Entity\User;
-use App\Enum\Activite;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Symfony\Component\Validator\Violation\ConstraintViolationBuilderInterface;
@@ -64,7 +64,10 @@ class PlanningTest extends TestCase
     public function testCloneDeCreneauConserveLesAptitudesSansLesPartager(): void
     {
         $semaine = new PlanningSemaine();
-        $creneau = (new PlanningCreneau())->setActivites([Activite::Pmt, Activite::Bloc])->addAptitude((new Aptitude())->setCode('N1'));
+        $creneau = (new PlanningCreneau())
+            ->addActivite((new Activite())->setCode('PMT'))
+            ->addActivite((new Activite())->setCode('BLOC'))
+            ->addAptitude((new Aptitude())->setCode('N1'));
         $semaine->addCreneau($creneau);
 
         $copie = clone $creneau;
@@ -73,5 +76,6 @@ class PlanningTest extends TestCase
         $this->assertNull($copie->getSemaine());
         $this->assertCount(2, $copie->getAptitudes());
         $this->assertCount(1, $creneau->getAptitudes());
+        $this->assertCount(2, $copie->getActivites());
     }
 }

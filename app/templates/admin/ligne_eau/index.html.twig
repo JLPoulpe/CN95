@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+{% block title %}Lignes d'eau – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Lignes d'eau</h1>
+    <div class="search-bar">
+        <a class="btn" href="{{ path('admin_ligne_eau_new') }}">Ajouter</a>
+    </div>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Lieu</th><th>Numéro</th><th></th></tr></thead>
+            <tbody>
+            {% for l in lignes %}
+                <tr>
+                    <td>{{ l.lieu.label }}</td>
+                    <td>{{ l.numero }}</td>
+                    <td class="actions">
+                        <a class="btn btn-sm btn-secondary" href="{{ path('admin_ligne_eau_edit', {id: l.id}) }}">Modifier</a>
+                        <form method="post" action="{{ path('admin_ligne_eau_delete', {id: l.id}) }}" onsubmit="return confirm('Supprimer cette ligne d\'eau ?')">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete_ligne_eau_' ~ l.id) }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="3">Aucune ligne d'eau.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p style="margin-top:12px;color:#6b7280;font-size:13px">{{ lignes|length }} ligne(s)</p>
+</div>
+{% endblock %}

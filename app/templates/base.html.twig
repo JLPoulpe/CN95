@@ -14,7 +14,7 @@
             <a class="nav-brand" href="{{ path('app_home') }}">🤿 CN95 Plongée</a>
             <div class="nav-links">
                 {% if is_granted('ROLE_USER') %}
-                    <a href="{{ path('app_member') }}">Espace adhérent</a>
+                    <a href="{{ path('app_member') }}">Espace administrateur</a>
                     <span>{{ app.user.userIdentifier }}</span>
                     <a href="{{ path('app_logout') }}">Déconnexion</a>
                 {% else %}

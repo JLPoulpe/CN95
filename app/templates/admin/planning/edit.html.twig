@@ -22,7 +22,7 @@
                 </div>
                 <div class="creneau-meta">
                     <span>{{ c.jour.label }} · {{ c.lieu.label }}</span>
-                    {% if c.lignes %}<span class="lignes">Lignes {{ c.lignes }}</span>{% endif %}
+                    {% if c.lignes|length %}<span class="lignes">Lignes {{ c.lignesLabel }}</span>{% endif %}
                     {% for a in c.aptitudes %}<span class="apt apt-{{ a.code }}">{{ a.code }}</span>{% else %}<span class="apt apt-tous">Tous niveaux</span>{% endfor %}
                 </div>
                 <div class="actions">

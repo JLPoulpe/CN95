@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -57,6 +58,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column]
     private ?string $password = null;
+
+    /** Hash SHA-256 du jeton d'activation en attente (le jeton clair n'est jamais stocké). */
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $activationTokenHash = null;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $activationExpireLe = null;
 
     public function __construct()
     {
@@ -221,6 +229,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->password = $password;
 
         return $this;
+    }
+
+    /** Crée un lien d'activation valable 7 jours et retourne le jeton à envoyer par mail. */
+    public function genererActivation(\DateTimeImmutable $maintenant): string
+    {
+        $jeton = bin2hex(random_bytes(32));
+        $this->activationTokenHash = hash('sha256', $jeton);
+        $this->activationExpireLe = $maintenant->modify('+7 days');
+
+        return $jeton;
+    }
+
+    public function activationEnAttente(): bool
+    {
+        return null !== $this->activationTokenHash;
+    }
+
+    public function activationValide(string $jeton, \DateTimeImmutable $maintenant): bool
+    {
+        return $this->activationEnAttente()
+            && hash_equals($this->activationTokenHash, hash('sha256', $jeton))
+            && $this->activationExpireLe > $maintenant;
+    }
+
+    public function terminerActivation(string $motDePasseHache): void
+    {
+        $this->password = $motDePasseHache;
+        $this->activationTokenHash = null;
+        $this->activationExpireLe = null;
     }
 
     public function eraseCredentials(): void

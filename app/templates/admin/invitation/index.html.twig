@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+{% block title %}Invitations – {{ activiteExterne.libelle }} – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container container-wide">
+    <nav class="tab-bar" aria-label="Activités externes">
+        {% for a in activites %}
+            <a class="tab{{ a.id == activiteExterne.id ? ' is-active' : '' }}" href="{{ path('admin_invitation_index', {activiteExterneId: a.id}) }}">{{ a.libelle }}</a>
+        {% endfor %}
+        <a class="tab tab-secondary" href="{{ path('admin_activite_externe_index') }}">⚙ Gérer les activités externes</a>
+    </nav>
+    <h1 class="header-title">Invitations – {{ activiteExterne.libelle }}</h1>
+    <p style="margin-bottom:20px"><a class="btn" href="{{ path('admin_invitation_new', {activiteExterneId: activiteExterne.id}) }}">Créer une invitation</a></p>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Aptitudes conviées</th>
+                    {% if activiteExterne.necessiteResponsable %}<th>Responsable</th>{% endif %}
+                    <th>État</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for invitation in invitations %}
+                <tr>
+                    <td><strong>{{ invitation.date|date('d/m/Y') }}</strong></td>
+                    <td>{{ invitation.aptitudes|map(a => a.code)|join(', ') }}</td>
+                    {% if activiteExterne.necessiteResponsable %}
+                        <td>{{ invitation.dp ? invitation.dp.prenom ~ ' ' ~ invitation.dp.nom : '–' }}</td>
+                    {% endif %}
+                    <td>
+                        {% if invitation.annulee %}
+                            <span class="badge badge-grey">Annulée</span>
+                        {% elseif invitation.passee %}
+                            <span class="badge badge-grey">Passée</span>
+                        {% else %}
+                            <span class="badge badge-yellow">Active</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        <a class="btn btn-sm btn-secondary" href="{{ path('admin_invitation_show', {id: invitation.id}) }}">Ouvrir</a>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5">Aucune invitation à venir.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -30,6 +30,25 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->flush();
     }
 
+    /**
+     * Membres dont l'aptitude principale figure dans la liste.
+     *
+     * @param Aptitude[] $aptitudes
+     *
+     * @return User[]
+     */
+    public function findByAptitudePrincipale(array $aptitudes): array
+    {
+        if (!$aptitudes) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('u')
+            ->where('u.aptitude IN (:aptitudes)')->setParameter('aptitudes', $aptitudes)
+            ->orderBy('u.nom', 'ASC')->addOrderBy('u.prenom', 'ASC')
+            ->getQuery()->getResult();
+    }
+
     /** @return User[] */
     public function search(?string $term): array
     {

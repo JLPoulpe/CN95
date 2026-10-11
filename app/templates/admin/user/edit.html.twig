@@ -10,5 +10,16 @@
             <a href="{{ path('admin_user_index') }}" style="margin-left:12px">Annuler</a>
         {{ form_end(form) }}
     </div>
+
+    {% if user.activationEnAttente %}
+    <div class="card" style="margin-top:20px">
+        <p>Ce compte n'est pas encore activé. L'utilisateur doit choisir son mot de passe via le lien reçu par mail.</p>
+        <form method="post" action="{{ path('admin_user_activation', {id: user.id}) }}"
+              onsubmit="return confirm('Envoyer un nouveau lien d\'activation ? L\'ancien ne sera plus valable.')">
+            <input type="hidden" name="_token" value="{{ csrf_token('user_activation_' ~ user.id) }}">
+            <button class="btn btn-secondary" type="submit">Renvoyer le lien d'activation</button>
+        </form>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

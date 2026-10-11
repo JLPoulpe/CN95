@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+{% block title %}Activités externes – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container container-wide">
+    <h1 class="header-title">Activités externes</h1>
+    <p style="margin-bottom:20px"><a class="btn" href="{{ path('admin_activite_externe_new') }}">Ajouter</a></p>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Code</th><th>Libellé</th><th>Responsable requis</th><th></th></tr></thead>
+            <tbody>
+            {% for a in activites %}
+                <tr>
+                    <td><span class="badge">{{ a.code }}</span></td>
+                    <td>{{ a.libelle }}</td>
+                    <td>{{ a.necessiteResponsable ? 'Oui' : 'Non' }}</td>
+                    <td class="actions">
+                        <a class="btn btn-sm btn-secondary" href="{{ path('admin_invitation_index', {activiteExterneId: a.id}) }}">Invitations →</a>
+                        <a class="btn btn-sm btn-secondary" href="{{ path('admin_activite_externe_edit', {id: a.id}) }}">Modifier</a>
+                        <form method="post" action="{{ path('admin_activite_externe_delete', {id: a.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer cette activité externe ?')">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete_activite_externe_' ~ a.id) }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4">Aucune activité externe.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

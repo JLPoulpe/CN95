@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+{% block title %}Planning – {{ activite.libelle }} – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container container-wide">
+    <p><a href="{{ path('admin_planning_index') }}">← Gestion du planning</a></p>
+    <h1 class="header-title">Créneaux – {{ activite.libelle }}</h1>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Semaine</th><th>Jour</th><th>Lieu</th><th>Lignes</th><th>Précision</th></tr></thead>
+            <tbody>
+            {% for c in creneaux %}
+                <tr>
+                    <td>S{{ c.semaine.lundi|date('W') }} ({{ c.semaine.lundi|date('d/m/Y') }})</td>
+                    <td>{{ c.jour.label }}</td>
+                    <td>{{ c.lieu.label }}</td>
+                    <td>{% if c.lignes|length %}{{ c.lignesLabel }}{% else %}–{% endif %}</td>
+                    <td>{{ c.libelle ?? '–' }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5">Aucun créneau pour cette activité.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

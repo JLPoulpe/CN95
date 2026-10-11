@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+{% block title %}Activation du compte – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Activation du compte</h1>
+    <div class="card">
+        {% if valide %}
+            <p>Bonjour {{ user.prenom }}, choisissez votre mot de passe pour activer votre compte.</p>
+            {{ form_start(form) }}
+                {{ form_widget(form) }}
+                <button class="btn" type="submit">Activer mon compte</button>
+            {{ form_end(form) }}
+        {% else %}
+            <p>Ce lien d'activation n'est pas valable : il est incorrect, expiré ou a déjà été remplacé.</p>
+            <p>Demandez à un administrateur de vous renvoyer un lien d'activation.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

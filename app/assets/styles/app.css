@@ -118,3 +118,10 @@ a.week-btn:hover { background: #eff6ff; color: #1f2937; }
 .check-row { display: flex; flex-direction: row-reverse; justify-content: flex-end; align-items: center; gap: 10px; }
 .check-row label { margin: 0; }
 [hidden] { display: none !important; }
+
+/* Barre d'onglets (ex: une activité externe par onglet) */
+.tab-bar { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 2px solid #e5e7eb; margin-bottom: 20px; padding-bottom: 0; }
+.tab-bar .tab { padding: 10px 16px; border-radius: 8px 8px 0 0; background: #f3f4f6; color: #374151; font-weight: 500; text-decoration: none; border: 1px solid transparent; border-bottom: none; }
+.tab-bar .tab:hover { background: #e5e7eb; }
+.tab-bar .tab.is-active { background: #fff; color: #1f2937; border-color: #e5e7eb; border-bottom: 2px solid #fff; margin-bottom: -2px; }
+.tab-bar .tab-secondary { margin-left: auto; background: transparent; color: #6b7280; font-size: 13px; }

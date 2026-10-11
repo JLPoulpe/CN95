@@ -3,7 +3,19 @@
 {% block body %}
 <div class="container container-wide">
     <h1 class="header-title">Gestion du planning</h1>
-    <p style="margin-bottom:20px"><a class="btn" href="{{ path('admin_planning_new') }}">Nouvelle semaine</a></p>
+    <p style="margin-bottom:20px">
+        <a class="btn" href="{{ path('admin_planning_new') }}">Nouvelle semaine</a>
+    </p>
+    {% if activites|length %}
+    <div class="section">
+        <div class="section-title">Voir les créneaux par activité</div>
+        <p>
+        {% for a in activites %}
+            <a class="btn btn-sm btn-secondary" href="{{ path('admin_planning_par_activite', {id: a.id}) }}">{{ a.libelle }}</a>
+        {% endfor %}
+        </p>
+    </div>
+    {% endif %}
     <div class="table-wrapper">
         <table>
             <thead><tr><th>Semaine</th><th>Du lundi</th><th>DP</th><th>État</th><th></th></tr></thead>

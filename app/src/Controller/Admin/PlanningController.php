@@ -3,11 +3,14 @@
 namespace App\Controller\Admin;
 
 use App\Controller\PlanningController as PublicPlanningController;
+use App\Entity\Activite;
 use App\Entity\PlanningCreneau;
 use App\Entity\PlanningSemaine;
 use App\Form\PlanningCreneauType;
 use App\Form\PlanningDuplicationType;
 use App\Form\PlanningSemaineType;
+use App\Repository\ActiviteRepository;
+use App\Repository\PlanningCreneauRepository;
 use App\Repository\PlanningSemaineRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,11 +22,21 @@ use Symfony\Component\Routing\Attribute\Route;
 class PlanningController extends AbstractController
 {
     #[Route('', name: 'admin_planning_index')]
-    public function index(PlanningSemaineRepository $semaines): Response
+    public function index(PlanningSemaineRepository $semaines, ActiviteRepository $activites): Response
     {
         return $this->render('admin/planning/index.html.twig', [
             'semaines' => $semaines->findAllDesc(),
             'courante' => PublicPlanningController::lundiDe(new \DateTimeImmutable('today')),
+            'activites' => $activites->findBy([], ['ordre' => 'ASC']),
+        ]);
+    }
+
+    #[Route('/activite/{id}', name: 'admin_planning_par_activite', requirements: ['id' => '\\d+'])]
+    public function parActivite(Activite $activite, PlanningCreneauRepository $creneaux): Response
+    {
+        return $this->render('admin/planning/par_activite.html.twig', [
+            'activite' => $activite,
+            'creneaux' => $creneaux->findByActivite($activite),
         ]);
     }
 

@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+{% import 'member/_bandeau.html.twig' as m %}
+{% block title %}Configuration des activités – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <p><a href="{{ path('app_member') }}">← Espace administrateur</a></p>
+    <div class="section">
+        <div class="section-title">Configuration des activités</div>
+        {{ m.item('🎓', 'Gestion des aptitudes', 'Créer, modifier et supprimer les aptitudes', path('admin_aptitude_index')) }}
+        {{ m.item('🏊', 'Gestion des activités', 'Créer, modifier et supprimer les activités du planning', path('admin_activite_index')) }}
+        {{ m.item('🌊', 'Lignes d\'eau', 'Gérer les lignes d\'eau par bassin', path('admin_ligne_eau_index')) }}
+        {{ m.item('📅', 'Gestion du planning', 'Créer, modifier et dupliquer les semaines', path('admin_planning_index')) }}
+        {{ m.item('📊', 'Gestion des sondages', 'Gérer les sondages et résultats') }}
+    </div>
+</div>
+{% endblock %}
