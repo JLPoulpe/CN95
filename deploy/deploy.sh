@@ -52,18 +52,100 @@ create_admin() {
   echo
 }
 
+generate_migration() {
+  # Rejoue les migrations déjà déployées (celles présentes au dernier tag) dans une
+  # base MariaDB jetable, puis lance doctrine:migrations:diff contre les entités
+  # actuelles : ça consolide tous les changements de mapping depuis le dernier
+  # déploiement en UN SEUL fichier de migration, sans jamais toucher à la vraie base.
+  local baseline stray f dbc i new_migration tmp_var
+  baseline="$(git ls-tree -r --name-only "$LAST_TAG" -- app/migrations/ | grep -E 'Version[0-9]+\.php$' || true)"
+
+  stray=""
+  for f in app/migrations/Version*.php; do
+    [[ -e "$f" ]] || continue
+    grep -qxF "$f" <<<"$baseline" || stray+="$f"$'\n'
+  done
+  if [[ -n "$stray" ]]; then
+    info "Suppression des migrations créées manuellement depuis $LAST_TAG :"
+    echo "$stray" | sed '/^$/d;s/^/    /'
+    echo "$stray" | sed '/^$/d' | xargs rm -f
+  fi
+
+  info "Génération de la migration consolidée (base jetable)"
+  dbc="cn95_migrate_$$"
+  # Sous $DEPLOY_DIR/.build (pas /tmp) : Docker en snap confine les montages
+  # hors du home/projet, ce qui corrompt l'appartenance des fichiers montés.
+  tmp_var="$DEPLOY_DIR/.build/migrate-var-$$"
+  mkdir -p "$tmp_var"
+  trap 'docker rm -f "$dbc" >/dev/null 2>&1 || true; rm -rf "$tmp_var"' EXIT RETURN
+
+  docker run -d --rm --name "$dbc" \
+      -e MARIADB_ROOT_PASSWORD=root -e MARIADB_DATABASE=baseline \
+      mariadb:11 >/dev/null || die "impossible de démarrer la base jetable."
+
+  info "Attente de la base jetable"
+  for i in $(seq 1 30); do
+    docker exec "$dbc" healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1 && break
+    [[ $i -eq 30 ]] && die "la base jetable n'a pas démarré à temps."
+    sleep 1
+  done
+
+  local RUN_TMP=(docker run --rm -u "$(id -u):$(id -g)"
+    -v "$ROOT/app":/var/www/html -v "$tmp_var":/var/www/html/var
+    -w /var/www/html --network "container:$dbc"
+    -e APP_ENV=dev -e APP_SECRET=build
+    -e "DATABASE_URL=mysql://root:root@127.0.0.1:3306/baseline?serverVersion=11.4.0-MariaDB&charset=utf8mb4"
+    "$BUILD_IMAGE")
+
+  "${RUN_TMP[@]}" php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration \
+      || die "échec du rejeu des migrations de référence dans la base jetable."
+
+  find app/migrations -maxdepth 1 -name 'Version*.php' | sort > "$tmp_var/.before"
+  "${RUN_TMP[@]}" php bin/console doctrine:migrations:diff --no-interaction \
+      || die "échec de la génération de la migration (doctrine:migrations:diff)."
+  find app/migrations -maxdepth 1 -name 'Version*.php' | sort > "$tmp_var/.after"
+  new_migration="$(comm -13 "$tmp_var/.before" "$tmp_var/.after" || true)"
+
+  docker rm -f "$dbc" >/dev/null 2>&1 || true
+  rm -rf "$tmp_var"
+  trap - EXIT RETURN
+
+  if [[ -z "$new_migration" ]]; then
+    info "Aucun changement de mapping détecté : pas de nouvelle migration."
+    return 0
+  fi
+
+  info "Migration générée : $new_migration"
+  cat "$new_migration"
+  read -r -p "Valider et committer cette migration ? [o/N] " ans
+  if [[ ! "$ans" =~ ^[oOyY]$ ]]; then
+    rm -f "$new_migration"
+    die "annulé : corrigez les entités ou la migration, puis relancez."
+  fi
+  git add "$new_migration"
+  git commit -m "Migration : $(basename "$new_migration")" >/dev/null
+  info "Migration committée."
+}
+
 for cmd in git rsync ssh docker openssl; do
   command -v "$cmd" >/dev/null || die "commande requise absente : $cmd"
 done
 
 cd "$ROOT"
 
+LAST_TAG="$(git tag --list "${TAG_PREFIX}*" --sort=-creatordate | head -n1 || true)"
+
+if [[ $SKIP_DB -eq 0 && $DRY_RUN -eq 0 && -n "$LAST_TAG" && $FIRST_RUN -eq 0 ]]; then
+  generate_migration
+elif [[ $DRY_RUN -eq 1 && $SKIP_DB -eq 0 && -n "$LAST_TAG" && $FIRST_RUN -eq 0 ]]; then
+  info "--dry-run : génération de migration ignorée (aucune écriture/commit en dry-run)."
+fi
+
 # --- 1. Vérifications git -----------------------------------------------------
 [[ "$(git rev-parse --abbrev-ref HEAD)" == "$BRANCH" ]] || die "il faut être sur la branche $BRANCH."
 [[ -z "$(git status --porcelain --untracked-files=no)" ]] || die "arbre git modifié : commitez d'abord (le tag doit refléter ce qui est envoyé)."
 
 # --- 2. Différences depuis le dernier tag ------------------------------------
-LAST_TAG="$(git tag --list "${TAG_PREFIX}*" --sort=-creatordate | head -n1 || true)"
 if [[ -z "$LAST_TAG" || $FIRST_RUN -eq 1 ]]; then
   info "Déploiement complet (aucun tag précédent ou --first-run)."
   CHANGED_FILES="$(git ls-tree -r --name-only HEAD -- app/)"
