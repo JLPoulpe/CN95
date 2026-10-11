@@ -135,14 +135,15 @@ cd "$ROOT"
 
 LAST_TAG="$(git tag --list "${TAG_PREFIX}*" --sort=-creatordate | head -n1 || true)"
 
+# --- 1. Vérifications git -----------------------------------------------------
+[[ "$(git rev-parse --abbrev-ref HEAD)" == "$BRANCH" ]] || die "il faut être sur la branche $BRANCH."
+
 if [[ $SKIP_DB -eq 0 && $DRY_RUN -eq 0 && -n "$LAST_TAG" && $FIRST_RUN -eq 0 ]]; then
   generate_migration
 elif [[ $DRY_RUN -eq 1 && $SKIP_DB -eq 0 && -n "$LAST_TAG" && $FIRST_RUN -eq 0 ]]; then
   info "--dry-run : génération de migration ignorée (aucune écriture/commit en dry-run)."
 fi
 
-# --- 1. Vérifications git -----------------------------------------------------
-[[ "$(git rev-parse --abbrev-ref HEAD)" == "$BRANCH" ]] || die "il faut être sur la branche $BRANCH."
 [[ -z "$(git status --porcelain --untracked-files=no)" ]] || die "arbre git modifié : commitez d'abord (le tag doit refléter ce qui est envoyé)."
 
 # --- 2. Différences depuis le dernier tag ------------------------------------
