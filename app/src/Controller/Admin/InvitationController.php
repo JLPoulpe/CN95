@@ -73,15 +73,17 @@ class InvitationController extends AbstractController
             }
             $em->flush();
 
+            $echecs = 0;
             foreach ($reponses as $reponse) {
-                $mailer->invitation($reponse);
+                $mailer->invitation($reponse) || ++$echecs;
             }
 
-            $this->addFlash('success', sprintf(
-                '%d mail(s) envoyé(s) pour l\'activité « %s » du %s.',
-                count($reponses),
+            $this->addFlash($echecs > 0 ? 'error' : 'success', sprintf(
+                '%d mail(s) envoyé(s) pour l\'activité « %s » du %s.%s',
+                count($reponses) - $echecs,
                 $activiteExterne->getLibelle(),
                 $invitation->getDate()->format('d/m/Y'),
+                $echecs > 0 ? sprintf(' %d échec(s) d\'envoi.', $echecs) : '',
             ));
 
             return $this->redirectToRoute('admin_invitation_show', ['id' => $invitation->getId()]);
@@ -212,13 +214,13 @@ class InvitationController extends AbstractController
                 $this->addFlash('error', 'Cette invitation ne peut plus recevoir d\'envois.');
             } else {
                 $relances = 0;
+                $echecs = 0;
                 foreach ($invitation->getReponses() as $reponse) {
                     if (StatutReponseFosse::EnAttente === $reponse->getStatut()) {
-                        $mailer->invitation($reponse, relance: true);
-                        ++$relances;
+                        $mailer->invitation($reponse, relance: true) ? ++$relances : ++$echecs;
                     }
                 }
-                $this->addFlash('success', sprintf('%d relance(s) envoyée(s).', $relances));
+                $this->addFlash($echecs > 0 ? 'error' : 'success', sprintf('%d relance(s) envoyée(s).', $relances).($echecs > 0 ? sprintf(' %d échec(s) d\'envoi.', $echecs) : ''));
             }
         }
 
@@ -236,13 +238,13 @@ class InvitationController extends AbstractController
                 $em->flush();
 
                 $annulations = 0;
+                $echecs = 0;
                 foreach ($invitation->getReponses() as $reponse) {
                     if ($reponse->aRepondu()) {
-                        $mailer->annulation($reponse);
-                        ++$annulations;
+                        $mailer->annulation($reponse) ? ++$annulations : ++$echecs;
                     }
                 }
-                $this->addFlash('success', sprintf('Invitation annulée. %d mail(s) d\'annulation mis en file d\'attente.', $annulations));
+                $this->addFlash($echecs > 0 ? 'error' : 'success', sprintf('Invitation annulée. %d mail(s) d\'annulation envoyé(s).', $annulations).($echecs > 0 ? sprintf(' %d échec(s) d\'envoi.', $echecs) : ''));
             }
         }
 

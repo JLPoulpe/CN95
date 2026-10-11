@@ -14,9 +14,10 @@ class CompteMailer
     ) {
     }
 
-    public function activation(User $user, string $lien): void
+    /** @return bool Faux si l'envoi a échoué (voir MailSender::envoyer) */
+    public function activation(User $user, string $lien): bool
     {
-        $this->sender->envoyer(new MailMessage(
+        return $this->sender->envoyer(new MailMessage(
             $user->getEmail(),
             $user->getPrenom().' '.$user->getNom(),
             'Activation de votre compte CN95 Plongée',

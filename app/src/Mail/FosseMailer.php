@@ -20,12 +20,13 @@ class FosseMailer
     ) {
     }
 
-    public function invitation(ReponseFosse $reponse, bool $relance = false): void
+    /** @return bool Faux si l'envoi a échoué (voir MailSender::envoyer) */
+    public function invitation(ReponseFosse $reponse, bool $relance = false): bool
     {
         $date = $reponse->getInvitation()->getDate()->format('d/m/Y');
         $libelle = $reponse->getInvitation()->getActivite()->getLibelle();
 
-        $this->envoyer(
+        return $this->envoyer(
             $reponse->getUser(),
             ($relance ? 'Rappel : ' : 'Invitation : ').$libelle.' du '.$date,
             'mail/fosse/invitation.html.twig',
@@ -42,26 +43,31 @@ class FosseMailer
         );
     }
 
-    public function annulation(ReponseFosse $reponse): void
+    /** @return bool Faux si l'envoi a échoué (voir MailSender::envoyer) */
+    public function annulation(ReponseFosse $reponse): bool
     {
         $date = $reponse->getInvitation()->getDate()->format('d/m/Y');
         $libelle = $reponse->getInvitation()->getActivite()->getLibelle();
 
-        $this->envoyer($reponse->getUser(), 'Annulation : '.$libelle.' du '.$date, 'mail/fosse/annulation.html.twig', ['libelle' => $libelle, 'date' => $date]);
+        return $this->envoyer($reponse->getUser(), 'Annulation : '.$libelle.' du '.$date, 'mail/fosse/annulation.html.twig', ['libelle' => $libelle, 'date' => $date]);
     }
 
-    /** Prévient le responsable qu'un membre inscrit ne peut plus participer. */
-    public function desistementDp(ReponseFosse $reponse): void
+    /**
+     * Prévient le responsable qu'un membre inscrit ne peut plus participer.
+     *
+     * @return bool Faux s'il n'y a pas de responsable ou si l'envoi a échoué
+     */
+    public function desistementDp(ReponseFosse $reponse): bool
     {
         $invitation = $reponse->getInvitation();
         $dp = $invitation->getDp();
         if (null === $dp) {
-            return;
+            return false;
         }
 
         $libelle = $invitation->getActivite()->getLibelle();
 
-        $this->envoyer($dp, 'Désistement : '.$libelle.' du '.$invitation->getDate()->format('d/m/Y'), 'mail/fosse/desistement_dp.html.twig', [
+        return $this->envoyer($dp, 'Désistement : '.$libelle.' du '.$invitation->getDate()->format('d/m/Y'), 'mail/fosse/desistement_dp.html.twig', [
             'libelle' => $libelle,
             'membre' => $reponse->getUser(),
             'date' => $invitation->getDate()->format('d/m/Y'),
@@ -69,9 +75,9 @@ class FosseMailer
     }
 
     /** @param array<string, mixed> $variables */
-    private function envoyer(User $destinataire, string $sujet, string $template, array $variables): void
+    private function envoyer(User $destinataire, string $sujet, string $template, array $variables): bool
     {
-        $this->sender->envoyer(new MailMessage(
+        return $this->sender->envoyer(new MailMessage(
             $destinataire->getEmail(),
             $destinataire->getPrenom().' '.$destinataire->getNom(),
             $sujet,

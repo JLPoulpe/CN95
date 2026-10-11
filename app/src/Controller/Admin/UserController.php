@@ -46,8 +46,11 @@ class UserController extends AbstractController
             $jeton = $user->genererActivation(new \DateTimeImmutable());
             $em->persist($user);
             $em->flush();
-            $comptes->activation($user, $this->lienActivation($jeton));
-            $this->addFlash('success', 'Utilisateur créé. Un lien d\'activation lui a été envoyé par mail.');
+            if ($comptes->activation($user, $this->lienActivation($jeton))) {
+                $this->addFlash('success', 'Utilisateur créé. Un lien d\'activation lui a été envoyé par mail.');
+            } else {
+                $this->addFlash('error', 'Utilisateur créé, mais l\'envoi du mail d\'activation a échoué. Réessayez depuis sa fiche.');
+            }
 
             return $this->redirectToRoute('admin_user_index');
         }
@@ -66,8 +69,11 @@ class UserController extends AbstractController
         } else {
             $jeton = $user->genererActivation(new \DateTimeImmutable());
             $em->flush();
-            $comptes->activation($user, $this->lienActivation($jeton));
-            $this->addFlash('success', 'Nouveau lien d\'activation envoyé.');
+            if ($comptes->activation($user, $this->lienActivation($jeton))) {
+                $this->addFlash('success', 'Nouveau lien d\'activation envoyé.');
+            } else {
+                $this->addFlash('error', 'L\'envoi du nouveau lien d\'activation a échoué.');
+            }
         }
 
         return $this->redirectToRoute('admin_user_edit', ['id' => $user->getId()]);
