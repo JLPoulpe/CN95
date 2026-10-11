@@ -53,25 +53,13 @@ create_admin() {
 }
 
 generate_migration() {
-  # Rejoue les migrations déjà déployées (celles présentes au dernier tag) dans une
+  # Rejoue TOUTES les migrations déjà présentes (déployées + en attente) dans une
   # base MariaDB jetable, puis lance doctrine:migrations:diff contre les entités
-  # actuelles : ça consolide tous les changements de mapping depuis le dernier
-  # déploiement en UN SEUL fichier de migration, sans jamais toucher à la vraie base.
-  local baseline stray f dbc i new_migration tmp_var
-  baseline="$(git ls-tree -r --name-only "$LAST_TAG" -- app/migrations/ | grep -E 'Version[0-9]+\.php$' || true)"
-
-  stray=""
-  for f in app/migrations/Version*.php; do
-    [[ -e "$f" ]] || continue
-    grep -qxF "$f" <<<"$baseline" || stray+="$f"$'\n'
-  done
-  if [[ -n "$stray" ]]; then
-    info "Suppression des migrations créées manuellement depuis $LAST_TAG :"
-    echo "$stray" | sed '/^$/d;s/^/    /'
-    echo "$stray" | sed '/^$/d' | xargs rm -f
-  fi
-
-  info "Génération de la migration consolidée (base jetable)"
+  # actuelles. Idempotent : si une migration en attente couvre déjà l'état des
+  # entités, rien n'est recréé ni supprimé (sinon chaque relance avant le tag
+  # suivant régénérerait un nouveau fichier et committerait en boucle).
+  local dbc i new_migration tmp_var
+  info "Vérification des migrations (base jetable)"
   dbc="cn95_migrate_$$"
   # Sous $DEPLOY_DIR/.build (pas /tmp) : Docker en snap confine les montages
   # hors du home/projet, ce qui corrompt l'appartenance des fichiers montés.
@@ -98,11 +86,20 @@ generate_migration() {
     "$BUILD_IMAGE")
 
   "${RUN_TMP[@]}" php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration \
-      || die "échec du rejeu des migrations de référence dans la base jetable."
+      || die "échec du rejeu des migrations dans la base jetable."
 
   find app/migrations -maxdepth 1 -name 'Version*.php' | sort > "$tmp_var/.before"
-  "${RUN_TMP[@]}" php bin/console doctrine:migrations:diff --no-interaction \
-      || die "échec de la génération de la migration (doctrine:migrations:diff)."
+  local diff_output diff_rc=0
+  diff_output="$("${RUN_TMP[@]}" php bin/console doctrine:migrations:diff --no-interaction 2>&1)" || diff_rc=$?
+  if [[ $diff_rc -ne 0 ]]; then
+    # "No changes detected" sort avec un code non nul : pas un échec, rien à générer.
+    if ! grep -q "No changes detected" <<<"$diff_output"; then
+      echo "$diff_output" >&2
+      die "échec de la génération de la migration (doctrine:migrations:diff)."
+    fi
+  else
+    echo "$diff_output"
+  fi
   find app/migrations -maxdepth 1 -name 'Version*.php' | sort > "$tmp_var/.after"
   new_migration="$(comm -13 "$tmp_var/.before" "$tmp_var/.after" || true)"
 
@@ -111,7 +108,7 @@ generate_migration() {
   trap - EXIT RETURN
 
   if [[ -z "$new_migration" ]]; then
-    info "Aucun changement de mapping détecté : pas de nouvelle migration."
+    info "Migrations à jour avec les entités : rien à générer."
     return 0
   fi
 
