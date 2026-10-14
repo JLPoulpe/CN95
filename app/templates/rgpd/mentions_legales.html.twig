@@ -2,23 +2,34 @@
 {% block title %}Mentions légales – CN95 Plongée{% endblock %}
 {% block body %}
 <div class="container">
-    <div class="card">
+    <article class="card rgpd-doc">
         <h1 class="header-title">Mentions légales</h1>
 
-        <h2>Éditeur du site</h2>
-        <p>CN95 Plongée, association loi 1901, déclarée à la préfecture de [DÉPARTEMENT] (n° RNA : [N° RNA]).<br>
-        Siège social : [ADRESSE DU SIÈGE]<br>
-        Courriel : <a href="mailto:plongee.cn95@gmail.com">plongee.cn95@gmail.com</a><br>
-        Site internet : <a href="https://www.cn95plongee.fr/2017/index.php" target="_blank" rel="noopener">cn95plongee.fr</a></p>
+        <section class="rgpd-section">
+            <h2>Éditeur du site</h2>
+            <p>CERCLE NAUTIQUE 95 (CN 95), association loi 1901, déclarée à la préfecture du Val d'Oise.</p>
+            <p>Siège social : PISCINE LES ORANGISTES ROUTE DE DOMONT 95460 EZANVILLE <br>
+            Courriel : <a href="mailto:plongee.cn95@gmail.com">plongee.cn95@gmail.com</a><br>
+            Site internet : <a href="https://www.cn95plongee.fr/2017/index.php" target="_blank" rel="noopener">cn95plongee.fr</a></p>
+        </section>
 
-        <h2>Responsable de la publication</h2>
-        <p>[NOM DU PRÉSIDENT], président de CN95 Plongée.</p>
+        <section class="rgpd-section">
+            <h2>Responsable de la publication</h2>
+            <p>Pierre Leduc, président de CN95 Plongée.</p>
+        </section>
 
-        <h2>Hébergement</h2>
-        <p>[NOM ET ADRESSE DE L'HÉBERGEUR].</p>
+        <section class="rgpd-section">
+            <h2>Hébergement</h2>
+            <p>IONOS SARL 7, place de la Gare <br>                                                                                     
+            BP 70109 <br>                                                                                            
+            57200 Sarreguemines Cedex <br>
+            France.</p>
+        </section>
 
-        <h2>Protection des données personnelles</h2>
-        <p>Les modalités de traitement de vos données, vos droits et les coordonnées du référent sont décrits dans la <a href="{{ path('app_confidentialite') }}">politique de confidentialité</a>.</p>
-    </div>
+        <section class="rgpd-section">
+            <h2>Protection des données personnelles</h2>
+            <p>Les modalités de traitement de vos données, vos droits et les coordonnées du référent sont décrits dans la <a href="{{ path('app_confidentialite') }}">politique de confidentialité</a>.</p>
+        </section>
+    </article>
 </div>
 {% endblock %}
