@@ -4,12 +4,25 @@ import { Controller } from '@hotwired/stimulus';
 // Un créneau sans aptitude (data-aptitudes vide) reste toujours visible quel que soit le filtre d'aptitude.
 export default class extends Controller {
     static targets = ['aptitudeButton', 'creneau', 'lieu', 'jour', 'vide'];
+    // Aptitude appliquée à l'ouverture (adhérent connecté) ; vide = pas de filtre
+    static values = { defaut: String };
 
     aptitude = '';
 
+    connect() {
+        const bouton = this.aptitudeButtonTargets.find((b) => b.dataset.code === this.defautValue);
+        if (this.defautValue && bouton) {
+            this.selectionner(bouton);
+        }
+    }
+
     selectAptitude(event) {
-        this.aptitude = event.currentTarget.dataset.code;
-        this.aptitudeButtonTargets.forEach((b) => b.classList.toggle('is-active', b === event.currentTarget));
+        this.selectionner(event.currentTarget);
+    }
+
+    selectionner(bouton) {
+        this.aptitude = bouton.dataset.code;
+        this.aptitudeButtonTargets.forEach((b) => b.classList.toggle('is-active', b === bouton));
         this.apply();
     }
 

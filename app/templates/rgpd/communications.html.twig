@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+{% block title %}Communications – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <div class="card">
+        <h1 class="header-title">Communications facultatives</h1>
+        <p>Souhaitez-vous recevoir les communications de CN95 Plongée qui ne concernent pas le planning (newsletter, événements, sollicitations de bénévolat ou de dons) ?</p>
+        <p>Ce choix est libre. Vous pouvez le modifier à tout moment en utilisant à nouveau ce lien. Le planning des plongées ne dépend pas de ce choix.</p>
+
+        {% if demande.repondueLe %}
+            <p><strong>Votre choix actuel : {{ demande.accord ? 'communications acceptées' : 'communications refusées' }}</strong> (enregistré le {{ demande.repondueLe|date('d/m/Y') }}).</p>
+        {% endif %}
+
+        <form method="post" action="{{ path('rgpd_communications', {jeton: jeton}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('rgpd_communications') }}">
+            <button type="submit" name="choix" value="accepter" class="btn"{{ preselection == 'accepter' ? ' autofocus' : '' }}>J'accepte les communications</button>
+            <button type="submit" name="choix" value="refuser" class="btn"{{ preselection == 'refuser' ? ' autofocus' : '' }}>Je refuse</button>
+        </form>
+
+        <p style="font-size:13px;margin-top:16px">Pour en savoir plus : <a href="{{ path('app_confidentialite') }}">politique de confidentialité</a>.</p>
+    </div>
+</div>
+{% endblock %}

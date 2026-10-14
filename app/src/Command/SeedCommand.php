@@ -3,9 +3,12 @@
 namespace App\Command;
 
 use App\Entity\Aptitude;
+use App\Entity\MailTemplate;
 use App\Entity\Role;
 use App\Entity\User;
+use App\Mail\MailTemplateDefaults;
 use App\Repository\AptitudeRepository;
+use App\Repository\MailTemplateRepository;
 use App\Repository\RoleRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -43,6 +46,7 @@ class SeedCommand extends Command
         private RoleRepository $roles,
         private UserRepository $users,
         private UserPasswordHasherInterface $hasher,
+        private MailTemplateRepository $mailTemplates,
     ) {
         parent::__construct();
     }
@@ -74,6 +78,23 @@ class SeedCommand extends Command
         }
         $this->em->flush();
         $io->success(count(self::ROLES).' rôles synchronisés.');
+
+        // Les modèles de mails existants ne sont jamais modifiés : seuls les modèles manquants sont créés
+        $crees = 0;
+        foreach (MailTemplateDefaults::tous() as $defaut) {
+            if (null !== $this->mailTemplates->findOneBy(['nom' => $defaut['nom']])) {
+                continue;
+            }
+            $template = (new MailTemplate())
+                ->setNom($defaut['nom'])
+                ->setType($defaut['type'])
+                ->setContenu($defaut['contenu'])
+                ->setParDefaut(null === $this->mailTemplates->parDefaut($defaut['type']));
+            $this->em->persist($template);
+            ++$crees;
+        }
+        $this->em->flush();
+        $io->success($crees.' modèle(s) de mail créé(s).');
 
         $username = $input->getOption('admin-username');
         if ($username && !$this->users->findOneBy(['username' => $username])) {

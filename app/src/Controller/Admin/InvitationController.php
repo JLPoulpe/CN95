@@ -6,16 +6,27 @@ use App\Controller\PlanningController as PublicPlanningController;
 use App\Entity\ActiviteExterne;
 use App\Entity\InvitationFosse;
 use App\Entity\ReponseFosse;
+use App\Entity\Role;
+use App\Entity\User;
 use App\Enum\StatutInvitationFosse;
 use App\Enum\StatutReponseFosse;
+use App\Enum\TypeMailTemplate;
 use App\Form\InvitationFosseType;
+use App\Mail\ContenuMailSanitizer;
 use App\Mail\FosseMailer;
+use App\Mail\MailMessage;
+use App\Mail\MailSender;
+use App\Mail\MailTemplateRenderer;
 use App\Repository\ActiviteExterneRepository;
 use App\Repository\InvitationFosseRepository;
+use App\Repository\MailTemplateRepository;
 use App\Repository\UserRepository;
+use App\Security\Voter\InvitationVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
@@ -29,9 +40,10 @@ class InvitationController extends AbstractController
     {
         $premiere = $activites->findOneBy([], ['libelle' => 'ASC']);
         if (null === $premiere) {
-            $this->addFlash('error', 'Aucune activité externe n\'existe encore : commencez par en créer une.');
+            $this->addFlash('error', 'Aucune activité externe n\'existe encore.');
 
-            return $this->redirectToRoute('admin_activite_externe_index');
+            // La gestion des activités externes fait partie de la configuration des activités
+            return $this->redirectToRoute($this->isGranted('PERM_CONFIG_ACTIVITES') ? 'admin_activite_externe_index' : 'app_member');
         }
 
         return $this->redirectToRoute('admin_invitation_index', ['activiteExterneId' => $premiere->getId()]);
@@ -46,7 +58,7 @@ class InvitationController extends AbstractController
         return $this->render('admin/invitation/index.html.twig', [
             'activiteExterne' => $activiteExterne,
             'activites' => $activites->findBy([], ['libelle' => 'ASC']),
-            'invitations' => $invitations->findAffichables(PublicPlanningController::lundiDe(new \DateTimeImmutable('today')), $activiteExterne),
+            'invitations' => $invitations->findAffichables(PublicPlanningController::lundiDe(new \DateTimeImmutable('today')), $activiteExterne, $this->codesRolesVisibles()),
         ]);
     }
 
@@ -57,12 +69,24 @@ class InvitationController extends AbstractController
         EntityManagerInterface $em,
         UserRepository $users,
         FosseMailer $mailer,
+        MailTemplateRepository $templates,
+        ContenuMailSanitizer $sanitizer,
     ): Response {
-        $invitation = (new InvitationFosse())->setActivite($activiteExterne);
+        $utilisateur = $this->utilisateur();
+        $invitation = (new InvitationFosse())->setActivite($activiteExterne)->setMailTemplate($templates->parDefaut(TypeMailTemplate::Invitation));
+        // Par défaut, l'invitation est visible par les rôles de son créateur (hors adhérent et administrateur)
+        foreach ($utilisateur->getUserRoles() as $role) {
+            if (!in_array($role->getCode(), [Role::ADHERENT, Role::ADMIN], true)) {
+                $invitation->addRole($role);
+            }
+        }
         $form = $this->createForm(InvitationFosseType::class, $invitation, ['activiteExterne' => $activiteExterne]);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($form->isSubmitted() && $form->isValid() && !$invitation->estGerablePar($utilisateur)) {
+            $form->addError(new FormError('Choisir au moins un de vos rôles : sinon vous ne verriez plus cette invitation.'));
+        } elseif ($form->isSubmitted() && $form->isValid()) {
+            $invitation->setCommentaire($sanitizer->commentaire($invitation->getCommentaire()));
             $em->persist($invitation);
 
             $reponses = [];
@@ -92,9 +116,64 @@ class InvitationController extends AbstractController
         return $this->render('admin/invitation/new.html.twig', ['form' => $form, 'activiteExterne' => $activiteExterne]);
     }
 
+    /** Envoi d'un mail d'essai avec les valeurs saisies dans le formulaire de création, sans rien enregistrer. */
+    #[Route('/activite/{activiteExterneId}/test-mail', name: 'admin_invitation_test_mail', requirements: ['activiteExterneId' => '\\d+'], methods: ['POST'])]
+    public function testMail(
+        #[MapEntity(id: 'activiteExterneId')] ActiviteExterne $activiteExterne,
+        Request $request,
+        MailTemplateRepository $templates,
+        MailTemplateRenderer $renderer,
+        MailSender $sender,
+    ): JsonResponse {
+        if (!$this->isCsrfTokenValid('invitation_test_mail', $request->request->getString('_token'))) {
+            return new JsonResponse(['succes' => false, 'message' => 'Session expirée, rechargez la page.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $saisie = $request->request->all('invitation_fosse');
+        $template = $templates->find((int) ($saisie['mailTemplate'] ?? 0));
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', (string) ($saisie['date'] ?? ''));
+        $email = $request->request->getString('email');
+
+        if (null === $template || TypeMailTemplate::Invitation !== $template->getType()) {
+            return new JsonResponse(['succes' => false, 'message' => 'Choisir un modèle de mail d\'invitation.'], Response::HTTP_BAD_REQUEST);
+        }
+        if (false === $date) {
+            return new JsonResponse(['succes' => false, 'message' => 'Renseigner une date pour générer l\'aperçu.'], Response::HTTP_BAD_REQUEST);
+        }
+        if (false === filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return new JsonResponse(['succes' => false, 'message' => 'Adresse mail invalide.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $utilisateur = $this->utilisateur();
+        $libelle = $activiteExterne->getLibelle();
+        $dateAffichee = $date->format('d/m/Y');
+        $html = $renderer->rendre(
+            $template,
+            ['date' => $dateAffichee, 'activite' => $libelle, 'prenom' => (string) $utilisateur->getPrenom(), 'nom' => (string) $utilisateur->getNom(), 'membre' => $utilisateur->getNomComplet()],
+            (string) ($saisie['commentaire'] ?? ''),
+            [
+                'intro' => 'Merci d\'indiquer votre choix :',
+                'items' => [
+                    'Je m\'inscris à cette activité' => '#',
+                    'Je ne participe pas à cette activité' => '#',
+                    'Je suis inscrit(e) mais je ne peux plus participer' => '#',
+                ],
+            ],
+        );
+
+        $envoye = $sender->envoyer(new MailMessage($email, null, '[Test] Invitation : '.$libelle.' du '.$dateAffichee, $html));
+
+        return new JsonResponse(
+            ['succes' => $envoye, 'message' => $envoye ? 'Mail de test mis en file d\'envoi.' : 'L\'envoi du mail de test a échoué.'],
+            $envoye ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR,
+        );
+    }
+
     #[Route('/{id}', name: 'admin_invitation_show', requirements: ['id' => '\\d+'])]
-    public function show(InvitationFosse $invitation): Response
+    public function show(InvitationFosse $invitation, ContenuMailSanitizer $sanitizer): Response
     {
+        $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
+
         $editForm = $this->createForm(InvitationFosseType::class, $invitation, [
             'editionLimitee' => true,
             'activiteExterne' => $invitation->getActivite(),
@@ -105,12 +184,15 @@ class InvitationController extends AbstractController
             'invitation' => $invitation,
             'editForm' => $editForm,
             'compte' => $this->compter($invitation),
+            'commentaire' => $sanitizer->commentaire($invitation->getCommentaire()),
         ]);
     }
 
     #[Route('/{id}/edit', name: 'admin_invitation_edit', requirements: ['id' => '\\d+'], methods: ['POST'])]
-    public function edit(InvitationFosse $invitation, Request $request, EntityManagerInterface $em): Response
+    public function edit(InvitationFosse $invitation, Request $request, EntityManagerInterface $em, ContenuMailSanitizer $sanitizer): Response
     {
+        $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
+
         if (!$invitation->isEnvoyable()) {
             $this->addFlash('error', 'Cette invitation ne peut plus être modifiée.');
 
@@ -121,6 +203,7 @@ class InvitationController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $invitation->setCommentaire($sanitizer->commentaire($invitation->getCommentaire()));
             $em->flush();
             $this->addFlash('success', 'Invitation modifiée.');
         } else {
@@ -133,6 +216,8 @@ class InvitationController extends AbstractController
     #[Route('/{id}/supprimer', name: 'admin_invitation_delete', requirements: ['id' => '\\d+'], methods: ['POST'])]
     public function delete(InvitationFosse $invitation, Request $request, EntityManagerInterface $em): Response
     {
+        $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
+
         $activiteExterneId = $invitation->getActivite()->getId();
 
         if ($this->isCsrfTokenValid('invitation_delete_'.$invitation->getId(), $request->request->getString('_token'))) {
@@ -147,6 +232,8 @@ class InvitationController extends AbstractController
     #[Route('/{id}/inscrits', name: 'admin_invitation_inscrits', requirements: ['id' => '\\d+'])]
     public function inscrits(InvitationFosse $invitation): Response
     {
+        $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
+
         $reponses = $invitation->getReponses()->toArray();
         usort($reponses, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getUser()->getNom(), $a->getUser()->getPrenom()] <=> [$b->getUser()->getNom(), $b->getUser()->getPrenom()]);
 
@@ -159,6 +246,8 @@ class InvitationController extends AbstractController
     #[Route('/{id}/interactions', name: 'admin_invitation_interactions', requirements: ['id' => '\\d+'])]
     public function interactions(InvitationFosse $invitation): Response
     {
+        $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
+
         $reponses = array_values(array_filter($invitation->getReponses()->toArray(), fn (ReponseFosse $r) => $r->aRepondu()));
         usort($reponses, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getUser()->getNom(), $a->getUser()->getPrenom()] <=> [$b->getUser()->getNom(), $b->getUser()->getPrenom()]);
 
@@ -172,6 +261,8 @@ class InvitationController extends AbstractController
     #[Route('/{id}/export-inscrits', name: 'admin_invitation_export_inscrits', requirements: ['id' => '\\d+'])]
     public function exportInscrits(InvitationFosse $invitation): Response
     {
+        $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
+
         $inscrits = array_values(array_filter($invitation->getReponses()->toArray(), fn (ReponseFosse $r) => StatutReponseFosse::Inscrit === $r->getStatut()));
         usort($inscrits, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getUser()->getNom(), $a->getUser()->getPrenom()] <=> [$b->getUser()->getNom(), $b->getUser()->getPrenom()]);
 
@@ -209,6 +300,8 @@ class InvitationController extends AbstractController
     #[Route('/{id}/relancer', name: 'admin_invitation_relancer', requirements: ['id' => '\\d+'], methods: ['POST'])]
     public function relancer(InvitationFosse $invitation, Request $request, FosseMailer $mailer): Response
     {
+        $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
+
         if ($this->isCsrfTokenValid('invitation_relancer_'.$invitation->getId(), $request->request->getString('_token'))) {
             if (!$invitation->isEnvoyable()) {
                 $this->addFlash('error', 'Cette invitation ne peut plus recevoir d\'envois.');
@@ -230,6 +323,8 @@ class InvitationController extends AbstractController
     #[Route('/{id}/annuler', name: 'admin_invitation_annuler', requirements: ['id' => '\\d+'], methods: ['POST'])]
     public function annuler(InvitationFosse $invitation, Request $request, EntityManagerInterface $em, FosseMailer $mailer): Response
     {
+        $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
+
         if ($this->isCsrfTokenValid('invitation_annuler_'.$invitation->getId(), $request->request->getString('_token'))) {
             if (!$invitation->isEnvoyable()) {
                 $this->addFlash('error', 'Cette invitation ne peut plus être annulée.');
@@ -249,6 +344,25 @@ class InvitationController extends AbstractController
         }
 
         return $this->redirectToRoute('admin_invitation_show', ['id' => $invitation->getId()]);
+    }
+
+    private function utilisateur(): User
+    {
+        $utilisateur = $this->getUser();
+        \assert($utilisateur instanceof User);
+
+        return $utilisateur;
+    }
+
+    /** @return list<string>|null Codes des rôles qui limitent les invitations visibles ; null pour un administrateur (toutes) */
+    private function codesRolesVisibles(): ?array
+    {
+        $utilisateur = $this->utilisateur();
+        if ($utilisateur->hasRole(Role::ADMIN)) {
+            return null;
+        }
+
+        return array_values(array_map(fn (Role $role) => $role->getCode(), $utilisateur->getUserRoles()->toArray()));
     }
 
     /** @return array{sans_reponse: int, inscrits: int, refus: int, desistements: int} */

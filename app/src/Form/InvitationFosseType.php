@@ -5,9 +5,13 @@ namespace App\Form;
 use App\Entity\ActiviteExterne;
 use App\Entity\Aptitude;
 use App\Entity\InvitationFosse;
+use App\Entity\MailTemplate;
 use App\Entity\Role;
 use App\Entity\User;
+use App\Enum\TypeMailTemplate;
 use App\Repository\AptitudeRepository;
+use App\Repository\MailTemplateRepository;
+use App\Repository\RoleRepository;
 use App\Repository\UserRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
@@ -38,6 +42,26 @@ class InvitationFosseType extends AbstractType
                     'by_reference' => false,
                     'query_builder' => fn (AptitudeRepository $r) => $r->createQueryBuilder('a')->orderBy('a.ordre'),
                     'attr' => ['class' => 'choices-inline'],
+                ])
+                ->add('mailTemplate', EntityType::class, [
+                    'class' => MailTemplate::class,
+                    'label' => 'Modèle du mail',
+                    'query_builder' => fn (MailTemplateRepository $r) => $r->createQueryBuilder('m')
+                        ->where('m.type = :type')->setParameter('type', TypeMailTemplate::Invitation)
+                        ->orderBy('m.nom'),
+                ])
+                ->add('roles', EntityType::class, [
+                    'class' => Role::class,
+                    'label' => 'Visible et gérée par',
+                    'help' => 'Les membres ayant un de ces rôles voient et gèrent l\'invitation.',
+                    'multiple' => true,
+                    'expanded' => true,
+                    'by_reference' => false,
+                    // ADMIN voit déjà toutes les invitations : inutile de le proposer
+                    'query_builder' => fn (RoleRepository $r) => $r->createQueryBuilder('r')
+                        ->where('r.code NOT IN (:exclus)')->setParameter('exclus', [Role::ADHERENT, Role::ADMIN])
+                        ->orderBy('r.code'),
+                    'attr' => ['class' => 'choices-inline'],
                 ]);
         }
 
@@ -55,9 +79,11 @@ class InvitationFosseType extends AbstractType
             ]);
         }
 
+        // Éditeur riche (Stimulus « wysiwyg ») : le HTML est nettoyé par le contrôleur avant enregistrement
         $builder->add('commentaire', TextareaType::class, [
             'label' => 'Commentaire',
             'required' => false,
+            'attr' => ['rows' => 4, 'data-controller' => 'wysiwyg', 'class' => 'wysiwyg-pleine-largeur'],
         ]);
     }
 

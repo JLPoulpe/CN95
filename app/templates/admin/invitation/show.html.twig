@@ -1,5 +1,9 @@
 {% extends 'base.html.twig' %}
 {% block title %}Invitation – {{ invitation.activite.libelle }} – CN95 Plongée{% endblock %}
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('vendor/quill/dist/quill.snow.css') }}">
+{% endblock %}
 {% block body %}
 <div class="container">
     <p><a href="{{ path('admin_invitation_index', {activiteExterneId: invitation.activite.id}) }}">← {{ invitation.activite.libelle }}</a></p>
@@ -9,6 +13,8 @@
         <p><strong>Activité :</strong> {{ invitation.activite }}</p>
         <p><strong>Date :</strong> {{ invitation.date|date('d/m/Y') }}</p>
         <p><strong>Aptitudes conviées :</strong> {{ invitation.aptitudes|map(a => a.code)|join(', ') }}</p>
+        <p><strong>Visible par :</strong> {{ invitation.roles|map(r => r.libelle)|join(', ') }}</p>
+        <p><strong>Modèle du mail :</strong> {{ invitation.mailTemplate.nom }}</p>
         <p><strong>État :</strong>
             {% if invitation.annulee %}<span class="badge badge-grey">Annulée</span>
             {% elseif invitation.passee %}<span class="badge badge-grey">Passée</span>
@@ -17,7 +23,7 @@
         <p><strong>Réponses :</strong>
             {{ compte.inscrits }} inscrit(s) · {{ compte.refus }} ne participe pas · {{ compte.desistements }} désistement(s) · {{ compte.sans_reponse }} sans réponse
         </p>
-        <p><strong>Commentaire :</strong> {{ invitation.commentaire ?: '–' }}</p>
+        <div><strong>Commentaire :</strong> {{ commentaire ? commentaire|raw : '–' }}</div>
 
         {% if invitation.envoyable %}
             {{ form_start(editForm) }}

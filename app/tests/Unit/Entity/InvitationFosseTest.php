@@ -63,4 +63,27 @@ class InvitationFosseTest extends TestCase
         $invitation->setDp($moniteur);
         $this->assertSame(0, $violations($invitation));
     }
+
+    public function testGerableParUnAdministrateurOuUnMembreAyantUnRoleDeLInvitation(): void
+    {
+        $role = fn (string $code) => (new Role())->setCode($code)->setLibelle($code);
+        $invitation = (new InvitationFosse())->addRole($role(Role::BUREAU));
+
+        $admin = (new User())->addUserRole($role(Role::ADMIN));
+        $bureau = (new User())->addUserRole($role(Role::BUREAU));
+        $moniteur = (new User())->addUserRole($role(Role::MONITEUR));
+
+        $this->assertTrue($invitation->estGerablePar($admin), 'Un administrateur gère toute invitation.');
+        $this->assertTrue($invitation->estGerablePar($bureau), 'Un membre partageant un rôle gère l\'invitation.');
+        $this->assertFalse($invitation->estGerablePar($moniteur), 'Sans rôle commun, pas de gestion.');
+    }
+
+    public function testUnMembreAvecPlusieursRolesVoitUneInvitationPartagee(): void
+    {
+        $role = fn (string $code) => (new Role())->setCode($code)->setLibelle($code);
+        $invitation = (new InvitationFosse())->addRole($role(Role::MONITEUR))->addRole($role(Role::BUREAU));
+        $membre = (new User())->addUserRole($role(Role::MONITEUR))->addUserRole($role(Role::BUREAU));
+
+        $this->assertTrue($invitation->estGerablePar($membre));
+    }
 }

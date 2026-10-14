@@ -52,10 +52,52 @@ class InvitationFosse
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $commentaire = null;
 
+    /**
+     * Rôles qui voient et gèrent l'invitation (en plus des administrateurs).
+     *
+     * @var Collection<int, Role>
+     */
+    #[ORM\ManyToMany(targetEntity: Role::class)]
+    #[ORM\JoinTable(name: 'invitation_fosse_role')]
+    #[Assert\Count(min: 1, minMessage: 'Choisir au moins un rôle.')]
+    private Collection $roles;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'Choisir un modèle de mail.')]
+    private ?MailTemplate $mailTemplate = null;
+
+    /** Date de création de l'invitation, utilisée par la purge annuelle (app:rgpd:purger). */
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, options: ['default' => 'CURRENT_TIMESTAMP'])]
+    private \DateTimeImmutable $createdAt;
+
     public function __construct()
     {
         $this->aptitudes = new ArrayCollection();
         $this->reponses = new ArrayCollection();
+        $this->roles = new ArrayCollection();
+        $this->createdAt = new \DateTimeImmutable();
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    /** Un administrateur gère toute invitation ; les autres membres seulement celles partageant un de leurs rôles. */
+    public function estGerablePar(User $user): bool
+    {
+        if ($user->hasRole(Role::ADMIN)) {
+            return true;
+        }
+
+        foreach ($this->roles as $role) {
+            if ($user->hasRole($role->getCode())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     #[Assert\Callback]
@@ -185,6 +227,40 @@ class InvitationFosse
     public function setCommentaire(?string $commentaire): static
     {
         $this->commentaire = $commentaire;
+
+        return $this;
+    }
+
+    /** @return Collection<int, Role> */
+    public function getRoles(): Collection
+    {
+        return $this->roles;
+    }
+
+    public function addRole(Role $role): static
+    {
+        if (!$this->roles->contains($role)) {
+            $this->roles->add($role);
+        }
+
+        return $this;
+    }
+
+    public function removeRole(Role $role): static
+    {
+        $this->roles->removeElement($role);
+
+        return $this;
+    }
+
+    public function getMailTemplate(): ?MailTemplate
+    {
+        return $this->mailTemplate;
+    }
+
+    public function setMailTemplate(?MailTemplate $mailTemplate): static
+    {
+        $this->mailTemplate = $mailTemplate;
 
         return $this;
     }

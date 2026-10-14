@@ -2,8 +2,9 @@
 
 namespace App\Controller;
 
-use App\Enum\Jour;
-use App\Enum\Lieu;
+use App\Entity\Role;
+use App\Entity\User;
+use App\Planning\VuePlanning;
 use App\Repository\AptitudeRepository;
 use App\Repository\PlanningSemaineRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,7 +17,7 @@ class PlanningController extends AbstractController
     private const HORIZON_SEMAINES = 52;
 
     #[Route('/planning/{date}', name: 'app_planning', requirements: ['date' => '\\d{4}-\\d{2}-\\d{2}'], defaults: ['date' => null])]
-    public function index(?string $date, PlanningSemaineRepository $semaines, AptitudeRepository $aptitudes): Response
+    public function index(?string $date, PlanningSemaineRepository $semaines, AptitudeRepository $aptitudes, VuePlanning $vue): Response
     {
         $courante = self::lundiDe(new \DateTimeImmutable('today'));
         $lundi = $courante;
@@ -35,22 +36,7 @@ class PlanningController extends AbstractController
 
         $semaine = $semaines->findByLundi($lundi);
 
-        // Regroupement jour > lieu, dans l'ordre des enums
-        $jours = [];
-        if ($semaine && !$semaine->isFermee()) {
-            foreach (Jour::cases() as $jour) {
-                foreach (Lieu::cases() as $lieu) {
-                    $liste = $semaine->getCreneaux()->filter(fn ($c) => $c->getJour() === $jour && $c->getLieu() === $lieu)->getValues();
-                    if ($liste) {
-                        $jours[$jour->value]['lieux'][$lieu->value] = ['lieu' => $lieu, 'creneaux' => $liste];
-                    }
-                }
-                if (isset($jours[$jour->value])) {
-                    $jours[$jour->value]['jour'] = $jour;
-                    $jours[$jour->value]['date'] = $lundi->modify('+'.$jour->decalage().' days');
-                }
-            }
-        }
+        $jours = $vue->jours($semaine, $lundi);
 
         return $this->render('planning/index.html.twig', [
             'lundi' => $lundi,
@@ -60,7 +46,26 @@ class PlanningController extends AbstractController
             'precedente' => $lundi > $courante ? $lundi->modify('-1 week') : null,
             'suivante' => $lundi < $limite ? $lundi->modify('+1 week') : null,
             'estCourante' => $lundi == $courante,
+            'aptitudeDefaut' => $this->aptitudeDefaut(),
         ]);
+    }
+
+    /**
+     * Pour un adhérent dont c'est le seul rôle, le planning s'ouvre filtré sur son aptitude (le filtre reste désactivable).
+     */
+    private function aptitudeDefaut(): ?string
+    {
+        $utilisateur = $this->getUser();
+        if (!$utilisateur instanceof User) {
+            return null;
+        }
+
+        $codesRoles = array_map(fn (Role $role) => $role->getCode(), $utilisateur->getUserRoles()->toArray());
+        if ([Role::ADHERENT] !== $codesRoles) {
+            return null;
+        }
+
+        return $utilisateur->getAptitude()?->getCode();
     }
 
     public static function lundiDe(\DateTimeImmutable $d): \DateTimeImmutable

@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ template.id ? 'Modifier le modèle' : 'Nouveau modèle' }} – CN95 Plongée{% endblock %}
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('vendor/quill/dist/quill.snow.css') }}">
+{% endblock %}
+{% block body %}
+<div class="container">
+    <p><a href="{{ path('admin_mail_template_index') }}">← Modèles de mails</a></p>
+    <h1 class="header-title">{{ template.id ? 'Modifier « ' ~ template.nom ~ ' »' : 'Nouveau modèle de mail' }}</h1>
+    <div class="card">
+        {{ form_start(form) }}
+            {{ form_errors(form) }}
+            {{ form_row(form.nom) }}
+            {{ form_row(form.type) }}
+            {{ form_row(form.contenu) }}
+            <p style="margin:0 0 20px;font-size:14px;color:#4b5563">
+                Variables : <code>{{ '{{date}}' }}</code>, <code>{{ '{{activite}}' }}</code>, <code>{{ '{{prenom}}' }}</code>, <code>{{ '{{nom}}' }}</code>, <code>{{ '{{membre}}' }}</code>.
+                Les liens de réponse sont ajoutés automatiquement, juste après « Bonjour à toutes et à tous, » ; pour les placer ailleurs dans le texte, écrire <code>{{ '{{liens}}' }}</code> à l'endroit voulu. Le commentaire de l'invitation n'est pas à écrire ici.
+            </p>
+            {{ form_row(form.parDefaut) }}
+            <button class="btn" type="submit">Enregistrer</button>
+            <a href="{{ path('admin_mail_template_index') }}" style="margin-left:12px">Annuler</a>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

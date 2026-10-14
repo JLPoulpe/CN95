@@ -1,0 +1,19 @@
+<p>Il reste <strong>{{ jours }} jour{{ jours > 1 ? 's' : '' }}</strong> avant la purge annuelle des données du site CN95 Plongée, prévue le <strong>{{ limite }}</strong>.</p>
+
+<p>À cette date seront supprimés, définitivement :</p>
+<ul>
+    <li><strong>{{ compte.utilisateurs }}</strong> compte{{ compte.utilisateurs > 1 ? 's' : '' }} utilisateur{{ compte.utilisateurs > 1 ? 's' : '' }} (administrateurs exclus)</li>
+    <li><strong>{{ compte.invitations }}</strong> invitation{{ compte.invitations > 1 ? 's' : '' }}</li>
+    <li><strong>{{ compte.reponses }}</strong> réponse{{ compte.reponses > 1 ? 's' : '' }} aux invitations</li>
+    <li><strong>{{ compte.demandes }}</strong> demande{{ compte.demandes > 1 ? 's' : '' }} RGPD</li>
+</ul>
+
+<p>Ces chiffres sont ceux du moment : ils peuvent évoluer d'ici la purge.</p>
+
+<p><strong>Ce que vous pouvez faire avant cette date :</strong></p>
+<ul>
+    <li>exporter ou noter ce dont le club a besoin pour son bilan de saison (plannings, participations) ;</li>
+    <li>vérifier auprès des membres concernés qu'ils ne souhaitent pas être supprimés (ils devront alors être recréés au besoin).</li>
+</ul>
+
+<p>Les comptes administrateurs sont conservés pour permettre la reprise du site.</p>

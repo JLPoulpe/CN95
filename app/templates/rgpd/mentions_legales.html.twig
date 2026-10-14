@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mentions légales – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <div class="card">
+        <h1 class="header-title">Mentions légales</h1>
+
+        <h2>Éditeur du site</h2>
+        <p>CN95 Plongée, association loi 1901, déclarée à la préfecture de [DÉPARTEMENT] (n° RNA : [N° RNA]).<br>
+        Siège social : [ADRESSE DU SIÈGE]<br>
+        Courriel : <a href="mailto:plongee.cn95@gmail.com">plongee.cn95@gmail.com</a><br>
+        Site internet : <a href="https://www.cn95plongee.fr/2017/index.php" target="_blank" rel="noopener">cn95plongee.fr</a></p>
+
+        <h2>Responsable de la publication</h2>
+        <p>[NOM DU PRÉSIDENT], président de CN95 Plongée.</p>
+
+        <h2>Hébergement</h2>
+        <p>[NOM ET ADRESSE DE L'HÉBERGEUR].</p>
+
+        <h2>Protection des données personnelles</h2>
+        <p>Les modalités de traitement de vos données, vos droits et les coordonnées du référent sont décrits dans la <a href="{{ path('app_confidentialite') }}">politique de confidentialité</a>.</p>
+    </div>
+</div>
+{% endblock %}

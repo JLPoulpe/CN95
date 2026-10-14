@@ -6,7 +6,9 @@
         {% for a in activites %}
             <a class="tab{{ a.id == activiteExterne.id ? ' is-active' : '' }}" href="{{ path('admin_invitation_index', {activiteExterneId: a.id}) }}">{{ a.libelle }}</a>
         {% endfor %}
+        {% if is_granted('PERM_CONFIG_ACTIVITES') %}
         <a class="tab tab-secondary" href="{{ path('admin_activite_externe_index') }}">⚙ Gérer les activités externes</a>
+        {% endif %}
     </nav>
     <h1 class="header-title">Invitations – {{ activiteExterne.libelle }}</h1>
     <p style="margin-bottom:20px"><a class="btn" href="{{ path('admin_invitation_new', {activiteExterneId: activiteExterne.id}) }}">Créer une invitation</a></p>

@@ -14,7 +14,10 @@
             <a class="nav-brand" href="{{ path('app_home') }}">🤿 CN95 Plongée</a>
             <div class="nav-links">
                 {% if is_granted('ROLE_USER') %}
-                    <a href="{{ path('app_member') }}">Espace administrateur</a>
+                    {# Réservé aux membres ayant un rôle au-delà d'adhérent #}
+                    {% if is_granted('ROLE_MONITEUR') or is_granted('ROLE_BUREAU') or is_granted('ROLE_ADMIN') %}
+                        <a href="{{ path('app_member') }}">Espace administrateur</a>
+                    {% endif %}
                     <span>{{ app.user.userIdentifier }}</span>
                     <a href="{{ path('app_logout') }}">Déconnexion</a>
                 {% else %}
@@ -29,5 +32,9 @@
             <div class="container" style="padding-bottom:0"><div class="alert alert-success">{{ message }}</div></div>
         {% endfor %}
         {% block body %}{% endblock %}
+        <footer class="footer" style="text-align:center;font-size:13px;padding:24px 16px">
+            <a href="{{ path('app_confidentialite') }}">Politique de confidentialité</a> ·
+            <a href="{{ path('app_mentions_legales') }}">Mentions légales</a>
+        </footer>
     </body>
 </html>

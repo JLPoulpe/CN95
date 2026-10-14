@@ -3,6 +3,10 @@ security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
+    # L'administrateur a tous les rôles. Les droits fins par fonctionnalité sont dans App\Security\Permission.
+    role_hierarchy:
+        ROLE_ADMIN: [ROLE_BUREAU, ROLE_MONITEUR, ROLE_ADHERENT]
+
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         app_user_provider:
@@ -33,7 +37,10 @@ security:
             # switch_user: true
 
     # Note: Only the *first* matching rule is applied
+    # Les permissions PERM_* et les rôles qui les accordent sont définis dans App\Security\Permission.
     access_control:
+        - { path: ^/admin/invitations, allow_if: "is_granted('PERM_INVITATIONS') or is_granted('PERM_ACTIVITES_EXTERNES')" }
+        - { path: ^/admin/(aptitudes|activites|activites-externes|lignes-eau|planning), allow_if: "is_granted('PERM_CONFIG_ACTIVITES')" }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/membre, roles: ROLE_USER }
 

@@ -10,6 +10,10 @@
             <div class="bandeau-description">Lundi et vendredi, 21h00 – 22h30 : lieux, lignes d'eau et aptitudes</div>
         </div>
     </a>
+    <h2 class="section-title" style="margin-top:8px">Cette semaine (du {{ lundi|date('d/m') }} au {{ lundi|date_modify('+4 days')|date('d/m/Y') }})</h2>
+    <div class="planning">
+        {% include 'planning/_semaine.html.twig' %}
+    </div>
     <div class="card">
         <p>Retrouvez ici les informations publiques du club. Les adhérents peuvent se connecter pour accéder à l'espace privé (inscriptions à la fosse, communications, sondages).</p>
         {% if not is_granted('ROLE_USER') %}

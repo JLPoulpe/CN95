@@ -2,10 +2,12 @@
 
 namespace App\Mail;
 
+use App\Entity\MailTemplate;
 use App\Entity\ReponseFosse;
 use App\Entity\User;
+use App\Enum\TypeMailTemplate;
+use App\Repository\MailTemplateRepository;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Twig\Environment;
 
 /**
  * Construit les mails de la fosse. Les liens sont générés ici, dans le contexte de la requête web,
@@ -15,7 +17,8 @@ class FosseMailer
 {
     public function __construct(
         private readonly MailSender $sender,
-        private readonly Environment $twig,
+        private readonly MailTemplateRenderer $renderer,
+        private readonly MailTemplateRepository $templates,
         private readonly UrlGeneratorInterface $urls,
     ) {
     }
@@ -23,21 +26,27 @@ class FosseMailer
     /** @return bool Faux si l'envoi a échoué (voir MailSender::envoyer) */
     public function invitation(ReponseFosse $reponse, bool $relance = false): bool
     {
-        $date = $reponse->getInvitation()->getDate()->format('d/m/Y');
-        $libelle = $reponse->getInvitation()->getActivite()->getLibelle();
+        $invitation = $reponse->getInvitation();
+        $template = $invitation->getMailTemplate();
+        if (null === $template) {
+            return false;
+        }
+
+        $date = $invitation->getDate()->format('d/m/Y');
+        $libelle = $invitation->getActivite()->getLibelle();
 
         return $this->envoyer(
             $reponse->getUser(),
             ($relance ? 'Rappel : ' : 'Invitation : ').$libelle.' du '.$date,
-            'mail/fosse/invitation.html.twig',
+            $template,
+            ['date' => $date, 'activite' => $libelle],
+            $invitation->getCommentaire(),
             [
-                'libelle' => $libelle,
-                'date' => $date,
-                'commentaire' => $reponse->getInvitation()->getCommentaire(),
-                'liens' => [
-                    'inscription' => $this->lien($reponse, 'inscription'),
-                    'refus' => $this->lien($reponse, 'refus'),
-                    'desistement' => $this->lien($reponse, 'desistement'),
+                'intro' => 'Merci d\'indiquer votre choix :',
+                'items' => [
+                    'Je m\'inscris à cette activité' => $this->lien($reponse, 'inscription'),
+                    'Je ne participe pas à cette activité' => $this->lien($reponse, 'refus'),
+                    'Je suis inscrit(e) mais je ne peux plus participer' => $this->lien($reponse, 'desistement'),
                 ],
             ],
         );
@@ -49,7 +58,12 @@ class FosseMailer
         $date = $reponse->getInvitation()->getDate()->format('d/m/Y');
         $libelle = $reponse->getInvitation()->getActivite()->getLibelle();
 
-        return $this->envoyer($reponse->getUser(), 'Annulation : '.$libelle.' du '.$date, 'mail/fosse/annulation.html.twig', ['libelle' => $libelle, 'date' => $date]);
+        return $this->envoyerParDefaut(
+            TypeMailTemplate::Annulation,
+            $reponse->getUser(),
+            'Annulation : '.$libelle.' du '.$date,
+            ['date' => $date, 'activite' => $libelle],
+        );
     }
 
     /**
@@ -66,22 +80,38 @@ class FosseMailer
         }
 
         $libelle = $invitation->getActivite()->getLibelle();
+        $date = $invitation->getDate()->format('d/m/Y');
 
-        return $this->envoyer($dp, 'Désistement : '.$libelle.' du '.$invitation->getDate()->format('d/m/Y'), 'mail/fosse/desistement_dp.html.twig', [
-            'libelle' => $libelle,
-            'membre' => $reponse->getUser(),
-            'date' => $invitation->getDate()->format('d/m/Y'),
-        ]);
+        return $this->envoyerParDefaut(
+            TypeMailTemplate::DesistementResponsable,
+            $dp,
+            'Désistement : '.$libelle.' du '.$date,
+            ['date' => $date, 'activite' => $libelle, 'membre' => $reponse->getUser()->getNomComplet()],
+        );
     }
 
-    /** @param array<string, mixed> $variables */
-    private function envoyer(User $destinataire, string $sujet, string $template, array $variables): bool
+    /** @param array<string, string> $variables */
+    private function envoyerParDefaut(TypeMailTemplate $type, User $destinataire, string $sujet, array $variables): bool
+    {
+        $template = $this->templates->parDefaut($type);
+        if (null === $template) {
+            return false;
+        }
+
+        return $this->envoyer($destinataire, $sujet, $template, $variables);
+    }
+
+    /**
+     * @param array<string, string>                                   $variables
+     * @param array{intro: string, items: array<string, string>}|null $liens
+     */
+    private function envoyer(User $destinataire, string $sujet, MailTemplate $template, array $variables, ?string $commentaire = null, ?array $liens = null): bool
     {
         return $this->sender->envoyer(new MailMessage(
             $destinataire->getEmail(),
             $destinataire->getPrenom().' '.$destinataire->getNom(),
             $sujet,
-            $this->twig->render($template, ['destinataire' => $destinataire] + $variables),
+            $this->renderer->rendre($template, $variables, $commentaire, $liens),
         ));
     }
 

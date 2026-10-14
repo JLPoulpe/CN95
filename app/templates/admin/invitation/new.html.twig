@@ -1,15 +1,38 @@
 {% extends 'base.html.twig' %}
 {% block title %}Nouvelle invitation – {{ activiteExterne.libelle }} – CN95 Plongée{% endblock %}
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('vendor/quill/dist/quill.snow.css') }}">
+{% endblock %}
 {% block body %}
 <div class="container">
     <h1 class="header-title">Nouvelle invitation – {{ activiteExterne.libelle }}</h1>
-    <div class="card">
+    <div class="card" data-controller="mail-test"
+         data-mail-test-url-value="{{ path('admin_invitation_test_mail', {activiteExterneId: activiteExterne.id}) }}"
+         data-mail-test-token-value="{{ csrf_token('invitation_test_mail') }}">
         {{ form_start(form) }}
             {{ form_widget(form) }}
             <p style="margin:12px 0">Un mail sera envoyé à chaque membre ayant une des aptitudes sélectionnées.</p>
             <button class="btn" type="submit">Créer et envoyer</button>
+            <button class="btn btn-secondary" type="button" style="margin-left:12px" data-action="mail-test#ouvrir">Envoyer un mail test</button>
             <a href="{{ path('admin_invitation_index', {activiteExterneId: activiteExterne.id}) }}" style="margin-left:12px">Annuler</a>
         {{ form_end(form) }}
+
+        <dialog data-mail-test-target="dialog" aria-labelledby="mail-test-titre" style="max-width:460px;width:90%;border:none;border-radius:12px;padding:24px">
+            <h2 id="mail-test-titre" style="margin-top:0;font-size:20px">Envoyer un mail test</h2>
+            <p style="margin-bottom:12px;font-size:14px;color:#4b5563">Le mail est envoyé avec le modèle, le commentaire et la date saisis. Rien n'est enregistré.</p>
+            <form data-action="submit->mail-test#envoyer" data-turbo="false" style="margin:0">
+                <div class="form-row">
+                    <label for="mail-test-email">Adresse de test</label>
+                    <input id="mail-test-email" type="email" required data-mail-test-target="email">
+                </div>
+                <div class="alert" data-mail-test-target="feedback" hidden role="status"></div>
+                <div class="actions" style="justify-content:flex-end">
+                    <button class="btn btn-secondary" type="button" data-action="mail-test#fermer">Fermer</button>
+                    <button class="btn" type="submit" data-mail-test-target="submit">Envoyer</button>
+                </div>
+            </form>
+        </dialog>
     </div>
 </div>
 {% endblock %}
