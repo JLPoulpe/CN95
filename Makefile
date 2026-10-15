@@ -1,4 +1,7 @@
-.PHONY: help up down restart build logs ps shell db-shell tools clean
+.PHONY: help up down restart build logs ps shell db-shell tools clean cache-clear
+
+TARGET ?= prod
+export TARGET
 
 help: ## Affiche l'aide
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -31,3 +34,6 @@ tools: ## Démarre aussi Adminer (http://localhost:8081)
 
 clean: ## Arrête et SUPPRIME aussi les volumes (perte des données)
 	docker compose --profile tools down -v
+
+cache-clear: ## Supprime le cache distant (TARGET=prod, fichier deploy/targets/<cible>.conf)
+	bash deploy/cache-clear.sh "$$TARGET"

@@ -259,6 +259,9 @@ if [[ $DRY_RUN -eq 1 ]]; then
   exit 0
 fi
 
+# Le cache précédent peut empêcher le démarrage du nouveau kernel, même sans migration.
+bash "$DEPLOY_DIR/cache-clear.sh" "$TARGET"
+
 # --- 6. Migration web ---------------------------------------------------------
 if [[ -n "$MIGRATE_URL" ]]; then
   echo

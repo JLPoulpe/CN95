@@ -45,6 +45,7 @@ $steps = [
 if (WITH_SEED) {
     $steps[] = ['app:seed'];
 }
+$steps[] = ['cache:clear', '--no-warmup' => true];
 $steps[] = ['cache:warmup'];
 
 $ok = true;

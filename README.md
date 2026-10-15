@@ -65,6 +65,7 @@ make shell        # Accès au shell du container web
 make db-shell     # Accès à la CLI MariaDB
 make tools        # Démarre aussi Adminer (http://127.0.0.1:8081)
 make clean        # Arrête et supprime les volumes (données perdues!)
+make cache-clear TARGET=prod # Supprime le cache distant de deploy/targets/prod.conf
 ```
 
 ## 👥 Rôles et droits

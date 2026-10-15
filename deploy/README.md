@@ -19,6 +19,26 @@ Options : `--first-run` (déploiement complet), `--init-server` (réécrit `.env
 
 L'outil affiche une URL `_migrate_<id>.php?token=...` : l'ouvrir dans le navigateur applique les migrations puis supprime le script. Le tag n'est créé qu'après votre confirmation.
 
+### Suppression du cache
+
+Après chaque synchronisation effective des fichiers, le déploiement supprime
+`var/cache` sur le serveur, y compris avec `--skip-db` ou sans nouvelle migration.
+Le cache est reconstruit à la prochaine requête. Le script web de migration vide
+également le cache après les migrations et le seed éventuel, puis le préchauffe.
+En `--dry-run` ou lorsqu'il n'y a rien à déployer, le cache reste intact.
+
+Pour supprimer uniquement le cache d'une cible, sans déployer ni modifier la base :
+
+```bash
+make cache-clear TARGET=prod    # charge deploy/targets/prod.conf
+make cache-clear TARGET=ovh     # charge deploy/targets/ovh.conf
+bash deploy/cache-clear.sh prod # équivalent sans Make
+```
+
+La cible par défaut est `prod`. Cette commande utilise SSH et supprime uniquement
+`var/cache` dans `REMOTE_DIR` ; les logs et les autres données de `var/` sont conservés.
+Une erreur de suppression interrompt le déploiement avant la création du tag.
+
 ### Génération de la migration
 
 Ne créez plus de migration à la main pendant le développement (`doctrine:migrations:diff`). À chaque exécution de `deploy/deploy.sh` (hors `--dry-run`, `--skip-db`, `--first-run`), le script :
