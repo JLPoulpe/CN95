@@ -13,7 +13,7 @@
 
     {% if is_granted('PERM_INVITATIONS') and activitesExternes|length > 0 %}
     <details class="section"{{ ouvrir ? ' open' : '' }}>
-        <summary class="section-title">Parcourir les invitations</summary>
+        <summary class="section-title">Invitations aux activités externes</summary>
         {% for activite in activitesExternes %}
             {{ m.item('📝', activite.libelle, 'Consulter et gérer les invitations', path('admin_invitation_index', {activiteExterneId: activite.id})) }}
         {% endfor %}
@@ -45,7 +45,6 @@
         {{ m.item('🏊', 'Gestion des activités', 'Créer, modifier et supprimer les activités du planning', path('admin_activite_index')) }}
         {{ m.item('🤿', 'Activités externes', 'Créer et modifier les activités externes (fosse, sorties…)', path('admin_activite_externe_index')) }}
         {{ m.item('🌊', 'Lignes d\'eau', 'Gérer les lignes d\'eau par bassin', path('admin_ligne_eau_index')) }}
-        {{ m.item('📊', 'Gestion des sondages', 'Gérer les sondages et résultats') }}
     </details>
     {% set ouvrir = false %}
     {% endif %}

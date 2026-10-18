@@ -18,13 +18,14 @@
     {% endif %}
     <div class="table-wrapper">
         <table>
-            <thead><tr><th>Semaine</th><th>Du lundi</th><th>DP</th><th>État</th><th></th></tr></thead>
+            <thead><tr><th>Semaine</th><th>Du lundi</th><th>DP lundi</th><th>DP vendredi</th><th>État</th><th></th></tr></thead>
             <tbody>
             {% for s in semaines %}
                 <tr>
                     <td><strong>S{{ s.lundi|date('W') }}</strong>{% if s.lundi < courante %} <span class="badge badge-grey">passée</span>{% endif %}</td>
                     <td>{{ s.lundi|date('d/m/Y') }}</td>
                     <td>{{ s.dp ?? '–' }}</td>
+                    <td>{{ s.dpVendredi ?? 'Identique au lundi' }}</td>
                     <td>{% if s.fermee %}<span class="badge badge-yellow">Fermée{% if s.motif %} – {{ s.motif }}{% endif %}</span>{% else %}{{ s.creneaux|length }} créneau(x){% endif %}</td>
                     <td class="actions">
                         <a class="btn btn-sm btn-secondary" href="{{ path('admin_planning_edit', {id: s.id}) }}">Modifier</a>
@@ -36,7 +37,7 @@
                     </td>
                 </tr>
             {% else %}
-                <tr><td colspan="5">Aucune semaine.</td></tr>
+                <tr><td colspan="6">Aucune semaine.</td></tr>
             {% endfor %}
             </tbody>
         </table>

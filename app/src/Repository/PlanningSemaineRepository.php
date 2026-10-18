@@ -20,6 +20,7 @@ class PlanningSemaineRepository extends ServiceEntityRepository
             ->leftJoin('s.creneaux', 'c')->addSelect('c')
             ->leftJoin('c.aptitudes', 'a')->addSelect('a')
             ->leftJoin('s.dp', 'dp')->addSelect('dp')
+            ->leftJoin('s.dpVendredi', 'dpVendredi')->addSelect('dpVendredi')
             ->where('s.lundi = :lundi')->setParameter('lundi', $lundi->format('Y-m-d'))
             ->getQuery()->getOneOrNullResult();
     }
@@ -29,6 +30,7 @@ class PlanningSemaineRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('s')
             ->leftJoin('s.dp', 'dp')->addSelect('dp')
+            ->leftJoin('s.dpVendredi', 'dpVendredi')->addSelect('dpVendredi')
             ->orderBy('s.lundi', 'DESC')
             ->getQuery()->getResult();
     }

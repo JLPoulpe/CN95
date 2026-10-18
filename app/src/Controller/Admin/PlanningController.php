@@ -106,7 +106,7 @@ class PlanningController extends AbstractController
                 }
                 $em->persist($copie);
                 $em->flush();
-                $this->addFlash('success', 'Semaine dupliquée (le DP n\'est pas repris, à choisir).');
+                $this->addFlash('success', 'Semaine dupliquée (les DP ne sont pas repris, à choisir).');
 
                 return $this->redirectToRoute('admin_planning_edit', ['id' => $copie->getId()]);
             }

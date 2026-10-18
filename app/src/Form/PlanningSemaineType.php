@@ -25,9 +25,19 @@ class PlanningSemaineType extends AbstractType
             ])
             ->add('dp', EntityType::class, [
                 'class' => User::class,
-                'label' => 'DP',
+                'label' => 'DP du lundi',
                 'required' => false,
                 'placeholder' => 'Aucun',
+                'query_builder' => fn (UserRepository $r) => $r->createQueryBuilder('u')
+                    ->join('u.userRoles', 'r')->where('r.code = :code')->setParameter('code', Role::MONITEUR)
+                    ->orderBy('u.nom')->addOrderBy('u.prenom'),
+            ])
+            ->add('dpVendredi', EntityType::class, [
+                'class' => User::class,
+                'label' => 'DP du vendredi',
+                'help' => 'Laisser vide pour reprendre le DP du lundi.',
+                'required' => false,
+                'placeholder' => 'Identique au lundi',
                 'query_builder' => fn (UserRepository $r) => $r->createQueryBuilder('u')
                     ->join('u.userRoles', 'r')->where('r.code = :code')->setParameter('code', Role::MONITEUR)
                     ->orderBy('u.nom')->addOrderBy('u.prenom'),

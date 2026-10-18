@@ -83,11 +83,11 @@ Les droits fonctionnels sont centralisés dans `app/src/Security/Permission.php`
 
 | Élément de la page `/membre` | Permission | Rôles |
 |---|---|---|
-| Parcourir les invitations (une entrée par activité externe) | `PERM_INVITATIONS` | ADMIN, BUREAU, MONITEUR |
+| Invitations aux activités externes (une entrée par activité externe) | `PERM_INVITATIONS` | ADMIN, BUREAU, MONITEUR |
 | Communication → Activités externes | `PERM_ACTIVITES_EXTERNES` | ADMIN, BUREAU, MONITEUR |
 | Communication → Communication générale, Réseaux sociaux | `PERM_COMMUNICATION` | ADMIN, BUREAU, MONITEUR |
 | Communication → Gestion du planning | `PERM_CONFIG_ACTIVITES` | ADMIN, BUREAU |
-| Configuration des activités (aptitudes, activités, activités externes, lignes d'eau, planning, sondages) | `PERM_CONFIG_ACTIVITES` | ADMIN, BUREAU |
+| Configuration des activités (aptitudes, activités, activités externes, lignes d'eau, planning) | `PERM_CONFIG_ACTIVITES` | ADMIN, BUREAU |
 | Gestion des utilisateurs (liste, ajout) | `PERM_UTILISATEURS` | ADMIN |
 | Configuration de l'outil (configuration des mails, modèles de mails) | `PERM_CONFIG_OUTIL` | ADMIN |
 

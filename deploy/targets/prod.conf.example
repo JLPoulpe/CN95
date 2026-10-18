@@ -4,17 +4,24 @@
 # Le mot de passe DB n'est JAMAIS stocké ici : il est demandé au terminal par --init-server.
 
 SSH_TARGET="su1137297@access-5021453058.webspace-host.com"
-REMOTE_DIR="~/public/projet/CN95"          # racine du projet Symfony sur le serveur
-PUBLIC_URL="https://example.com/projet/CN95"   # URL de REMOTE_DIR (sans / final)
-PUBLIC_SUBPATH="/public"                    # chemin de public/ depuis PUBLIC_URL ; "" si le domaine pointe déjà sur public/
+# racine du projet Symfony sur le serveur
+REMOTE_DIR="~/public/projet/CN95"
+# URL de REMOTE_DIR (sans / final)
+PUBLIC_URL="https://example.com/projet/CN95"
+# chemin de public/ depuis PUBLIC_URL ; "" si le domaine pointe déjà sur public/
+PUBLIC_SUBPATH="/public"
 
 DB_HOST="db5021570487.hosting-data.io"
 DB_PORT="3306"
 DB_USER="dbu1181418"
-DB_NAME=""                                  # nom de la base (panneau de l'hébergeur) ; demandé si vide
+# nom de la base (panneau de l'hébergeur) ; demandé si vide
+DB_NAME=""
 DB_VERSION="11.8.0-MariaDB"
 
 BRANCH="master"
-BUILD_IMAGE="cn95-web"                      # image Docker locale avec php 8.4 + composer
-PHP_CLI="php8.4"                            # binaire PHP CLI du serveur (le défaut peut être trop ancien)
-ADMIN_USERNAME="admin"                      # identifiant créé par --create-admin
+# image Docker locale avec php 8.4 + composer
+BUILD_IMAGE="cn95-web"
+# binaire PHP CLI du serveur (le défaut peut être trop ancien)
+PHP_CLI="php8.4"
+# identifiant créé par --create-admin
+ADMIN_USERNAME="admin"

@@ -20,8 +20,9 @@
                     {{ j.jour.label }} {{ j.date|date('d/m') }}
                     <small>{{ constant('App\\Enum\\Jour::HORAIRE') }}</small>
                 </h2>
-                {% if semaine.dp %}
-                    <p class="dp">DP : <strong>{{ semaine.dp.nomComplet }}</strong></p>
+                {% set dpJour = semaine.getDpPour(j.jour) %}
+                {% if dpJour %}
+                    <p class="dp">DP : <strong>{{ dpJour.nomComplet }}</strong></p>
                 {% endif %}
                 {% for l in j.lieux %}
                     <div class="lieu" data-planning-filter-target="lieu">

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\Jour;
 use App\Repository\PlanningSemaineRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -30,9 +31,15 @@ class PlanningSemaine
     #[ORM\Column(length: 150, nullable: true)]
     private ?string $motif = null;
 
+    /** DP du lundi. */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(onDelete: 'SET NULL')]
     private ?User $dp = null;
+
+    /** DP du vendredi, s'il diffère de celui du lundi. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?User $dpVendredi = null;
 
     /** @var Collection<int, PlanningCreneau> */
     #[ORM\OneToMany(targetEntity: PlanningCreneau::class, mappedBy: 'semaine', cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -52,7 +59,10 @@ class PlanningSemaine
             $context->buildViolation('La date doit être un lundi.')->atPath('lundi')->addViolation();
         }
         if ($this->dp && !$this->dp->hasRole(Role::MONITEUR)) {
-            $context->buildViolation('Le DP doit être un moniteur.')->atPath('dp')->addViolation();
+            $context->buildViolation('Le DP du lundi doit être un moniteur.')->atPath('dp')->addViolation();
+        }
+        if ($this->dpVendredi && !$this->dpVendredi->hasRole(Role::MONITEUR)) {
+            $context->buildViolation('Le DP du vendredi doit être un moniteur.')->atPath('dpVendredi')->addViolation();
         }
     }
 
@@ -112,6 +122,24 @@ class PlanningSemaine
         $this->dp = $dp;
 
         return $this;
+    }
+
+    public function getDpVendredi(): ?User
+    {
+        return $this->dpVendredi;
+    }
+
+    public function setDpVendredi(?User $dpVendredi): static
+    {
+        $this->dpVendredi = $dpVendredi;
+
+        return $this;
+    }
+
+    /** DP d'un jour de la semaine : celui du vendredi s'il est renseigné, sinon celui du lundi. */
+    public function getDpPour(Jour $jour): ?User
+    {
+        return Jour::Vendredi === $jour ? $this->dpVendredi : $this->dp;
     }
 
     /** @return Collection<int, PlanningCreneau> */
