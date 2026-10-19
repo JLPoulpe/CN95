@@ -1,0 +1,7 @@
+{# Phrase d'introduction suivie d'une liste de liens. Variables : intro (texte), liens (libellé => URL). #}
+<p>{{ intro }}</p>
+<ul>
+{% for libelle, url in liens %}
+    <li><a href="{{ url }}">{{ libelle }}</a></li>
+{% endfor %}
+</ul>

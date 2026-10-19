@@ -4,6 +4,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\ActiviteExterne;
 use App\Form\ActiviteExterneType;
+use App\Mail\ContenuMailSanitizer;
 use App\Repository\ActiviteExterneRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,7 +25,7 @@ class ActiviteExterneController extends AbstractController
     }
 
     #[Route('/new', name: 'admin_activite_externe_new')]
-    public function new(Request $request, EntityManagerInterface $em, ActiviteExterneRepository $activites): Response
+    public function new(Request $request, EntityManagerInterface $em, ActiviteExterneRepository $activites, ContenuMailSanitizer $sanitizer): Response
     {
         $activite = new ActiviteExterne();
         $form = $this->createForm(ActiviteExterneType::class, $activite);
@@ -34,6 +35,7 @@ class ActiviteExterneController extends AbstractController
             if ($this->codeExists($activites, $activite)) {
                 $form->get('code')->addError(new FormError('Ce code existe déjà.'));
             } else {
+                $activite->setTexteParDefaut($this->texteNettoye($sanitizer, $activite));
                 $em->persist($activite);
                 $em->flush();
                 $this->addFlash('success', 'Activité externe créée.');
@@ -46,7 +48,7 @@ class ActiviteExterneController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'admin_activite_externe_edit', requirements: ['id' => '\\d+'])]
-    public function edit(ActiviteExterne $activite, Request $request, EntityManagerInterface $em, ActiviteExterneRepository $activites): Response
+    public function edit(ActiviteExterne $activite, Request $request, EntityManagerInterface $em, ActiviteExterneRepository $activites, ContenuMailSanitizer $sanitizer): Response
     {
         $form = $this->createForm(ActiviteExterneType::class, $activite);
         $form->handleRequest($request);
@@ -55,6 +57,7 @@ class ActiviteExterneController extends AbstractController
             if ($this->codeExists($activites, $activite)) {
                 $form->get('code')->addError(new FormError('Ce code existe déjà.'));
             } else {
+                $activite->setTexteParDefaut($this->texteNettoye($sanitizer, $activite));
                 $em->flush();
                 $this->addFlash('success', 'Activité externe modifiée.');
 
@@ -80,6 +83,13 @@ class ActiviteExterneController extends AbstractController
         }
 
         return $this->redirectToRoute('admin_activite_externe_index');
+    }
+
+    private function texteNettoye(ContenuMailSanitizer $sanitizer, ActiviteExterne $activite): ?string
+    {
+        $texte = $sanitizer->commentaire($activite->getTexteParDefaut());
+
+        return '' === $texte ? null : $texte;
     }
 
     private function codeExists(ActiviteExterneRepository $activites, ActiviteExterne $activite): bool

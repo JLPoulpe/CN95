@@ -1,7 +1,8 @@
 DirectoryIndex index.php
 
-# Front controller sans mod_rewrite (la réécriture renvoyait un 500 sur IONOS)
-FallbackResource /index.php
+# Front controller sans mod_rewrite (la réécriture renvoyait un 500 sur IONOS).
+# Chemin depuis la racine du site, rempli par deploy.sh (ex. /projet/CN95/public/index.php)
+FallbackResource __FRONT_CONTROLLER__
 
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"

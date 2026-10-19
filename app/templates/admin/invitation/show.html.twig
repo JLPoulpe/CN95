@@ -14,7 +14,6 @@
         <p><strong>Date :</strong> {{ invitation.date|date('d/m/Y') }}</p>
         <p><strong>Aptitudes conviées :</strong> {{ invitation.aptitudes|map(a => a.code)|join(', ') }}</p>
         <p><strong>Visible par :</strong> {{ invitation.roles|map(r => r.libelle)|join(', ') }}</p>
-        <p><strong>Modèle du mail :</strong> {{ invitation.mailTemplate.nom }}</p>
         <p><strong>État :</strong>
             {% if invitation.annulee %}<span class="badge badge-grey">Annulée</span>
             {% elseif invitation.passee %}<span class="badge badge-grey">Passée</span>

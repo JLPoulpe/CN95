@@ -3,25 +3,24 @@
 namespace App\Mail;
 
 use App\Entity\User;
-use Twig\Environment;
 
 /**
- * Mails RGPD : information des membres (accusé de lecture et choix sur les communications) et rappels de purge au bureau.
+ * Mails RGPD : information des membres (accusé de lecture) et rappels de purge au bureau.
  * Les liens sont générés par l'appelant (commandes de la console) avec les jetons des demandes.
  */
 class RgpdMailer
 {
     /** Version du texte d'information. À incrémenter avec le texte, pour garder la preuve de ce qui a été affiché. */
-    public const VERSION_TEXTE = '2026-10';
+    public const VERSION_TEXTE = '2026-10-19';
 
     public function __construct(
         private readonly MailSender $sender,
-        private readonly Environment $twig,
+        private readonly MailRenderer $renderer,
     ) {
     }
 
     /**
-     * @param array{accuse: string, accepter: string, refuser: string, politique: string} $liens
+     * @param array{accuse: string, politique: string} $liens
      *
      * @return bool Faux si l'envoi a échoué (voir MailSender::envoyer)
      */
@@ -59,16 +58,14 @@ class RgpdMailer
     /** @param array<string, mixed> $contexte */
     private function envoyer(User $user, string $sujet, string $gabarit, array $contexte): bool
     {
-        $contenu = $this->twig->render($gabarit, $contexte + [
-            'prenom' => (string) $user->getPrenom(),
-            'nom' => (string) $user->getNom(),
-        ]);
-
         return $this->sender->envoyer(new MailMessage(
             $user->getEmail(),
             $user->getPrenom().' '.$user->getNom(),
             $sujet,
-            $this->twig->render('mail/_base.html.twig', ['contenu' => $contenu]),
+            $this->renderer->rendre($gabarit, $contexte + [
+                'prenom' => (string) $user->getPrenom(),
+                'nom' => (string) $user->getNom(),
+            ]),
         ));
     }
 }

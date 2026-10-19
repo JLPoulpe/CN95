@@ -52,3 +52,17 @@ S'il n'y a aucun changement d'entité, aucune migration n'est créée.
 ## Nouvel hébergement
 1. `cp deploy/targets/prod.conf.example deploy/targets/<nom>.conf` et adapter (SSH, chemin, URL, DB).
 2. `deploy/deploy.sh <nom>` : aucun tag pour cette cible, donc déploiement complet avec toutes les migrations, puis création de `.env.local` sur le nouveau serveur.
+
+### Clé API Brevo des environnements
+
+La configuration d'envoi de mails (clé API Brevo) est chiffrée en base avec le `APP_SECRET` de chaque environnement. Pour l'afficher en clair :
+
+```bash
+bash deploy/brevo-key.sh                    # local (Docker) puis toutes les cibles de deploy/targets/*.conf
+bash deploy/brevo-key.sh ionos cn95         # cibles choisies
+bash deploy/brevo-key.sh local --masquer    # ne montre que les 4 derniers caractères
+make brevo-key ENVS="local ionos" MASQUER=1 # équivalent via Make
+```
+
+Le script lance `php bin/console app:mail:afficher-config` sur chaque environnement (Docker en local, SSH pour une cible). La commande doit donc avoir été déployée sur la cible. Si `APP_SECRET` a changé depuis l'enregistrement de la clé, la configuration est illisible : il faut la ressaisir dans **Configuration de l'outil → Configuration des mails**. Le résultat contient un secret : ne pas le copier dans un ticket ou une conversation.
+

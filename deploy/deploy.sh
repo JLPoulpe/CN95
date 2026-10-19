@@ -141,7 +141,11 @@ elif [[ $DRY_RUN -eq 1 && $SKIP_DB -eq 0 && -n "$LAST_TAG" && $FIRST_RUN -eq 0 ]
   info "--dry-run : génération de migration ignorée (aucune écriture/commit en dry-run)."
 fi
 
-[[ -z "$(git status --porcelain --untracked-files=no)" ]] || die "arbre git modifié : commitez d'abord (le tag doit refléter ce qui est envoyé)."
+# Seul le contenu commité (HEAD) est envoyé : les modifications non commitées sont ignorées, on l'indique seulement.
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+  echo "ATTENTION : modifications non commitées, NON déployées (seul HEAD est envoyé) :"
+  git status --short --untracked-files=no
+fi
 
 # --- 2. Différences depuis le dernier tag ------------------------------------
 if [[ -z "$LAST_TAG" || $FIRST_RUN -eq 1 ]]; then
@@ -192,7 +196,9 @@ info "Assets (importmap:install + asset-map:compile)"
 "${DOCKER_RUN[@]}" php bin/console asset-map:compile --no-interaction
 rm -rf "$APP/var"
 
-cp "$DEPLOY_DIR/templates/htaccess" "$APP/public/.htaccess"
+# FallbackResource attend un chemin depuis la racine du site : on y inscrit le chemin du front controller
+URL_PATH="$(printf '%s' "${PUBLIC_URL%/}${PUBLIC_SUBPATH}" | sed -E 's#^[a-zA-Z]+://[^/]+##')"
+sed "s#__FRONT_CONTROLLER__#${URL_PATH}/index.php#" "$DEPLOY_DIR/templates/htaccess" > "$APP/public/.htaccess"
 
 # --- 4. Script web de migration ----------------------------------------------
 MIGRATE_URL=""

@@ -62,11 +62,6 @@ class InvitationFosse
     #[Assert\Count(min: 1, minMessage: 'Choisir au moins un rôle.')]
     private Collection $roles;
 
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
-    #[Assert\NotNull(message: 'Choisir un modèle de mail.')]
-    private ?MailTemplate $mailTemplate = null;
-
     /** Date de création de l'invitation, utilisée par la purge annuelle (app:rgpd:purger). */
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, options: ['default' => 'CURRENT_TIMESTAMP'])]
     private \DateTimeImmutable $createdAt;
@@ -249,18 +244,6 @@ class InvitationFosse
     public function removeRole(Role $role): static
     {
         $this->roles->removeElement($role);
-
-        return $this;
-    }
-
-    public function getMailTemplate(): ?MailTemplate
-    {
-        return $this->mailTemplate;
-    }
-
-    public function setMailTemplate(?MailTemplate $mailTemplate): static
-    {
-        $this->mailTemplate = $mailTemplate;
 
         return $this;
     }

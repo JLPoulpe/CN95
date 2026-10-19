@@ -1,0 +1,4 @@
+{# Variables : activite, date, commentaire (HTML déjà nettoyé), liens (libellé => URL). #}
+<p>Vous êtes invité(e) à l'activité <strong>{{ activite }}</strong> du <strong>{{ date }}</strong>.</p>
+{{ commentaire|raw }}
+{% include 'mail/_liens.html.twig' with {intro: 'Merci d\'indiquer votre choix :', liens: liens} only %}

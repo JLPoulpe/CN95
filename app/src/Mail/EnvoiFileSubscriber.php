@@ -2,10 +2,10 @@
 
 namespace App\Mail;
 
+use Symfony\Component\Console\ConsoleEvents;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\Event\TerminateEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Messenger\Event\WorkerRunningEvent;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -13,9 +13,9 @@ use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Worker;
 
 /**
- * Envoie la file des mails une fois la réponse HTTP partie (kernel.terminate) : pas de worker permanent ni de cron.
- * Le traitement s'arrête dès que la file est vide. Un mail en échec reste en file et est repris à la prochaine
- * requête qui ajoute un mail.
+ * Envoie la file des mails une fois la réponse HTTP partie (kernel.terminate), ou à la fin d'une commande de la console
+ * (console.terminate) : pas de worker permanent ni de cron dédié. Le traitement s'arrête dès que la file est vide.
+ * Un mail en échec reste en file et est repris à la prochaine requête ou commande qui ajoute un mail.
  */
 final class EnvoiFileSubscriber implements EventSubscriberInterface
 {
@@ -28,10 +28,13 @@ final class EnvoiFileSubscriber implements EventSubscriberInterface
 
     public static function getSubscribedEvents(): array
     {
-        return [KernelEvents::TERMINATE => 'onTerminate'];
+        return [
+            KernelEvents::TERMINATE => 'onTerminate',
+            ConsoleEvents::TERMINATE => 'onTerminate',
+        ];
     }
 
-    public function onTerminate(TerminateEvent $event): void
+    public function onTerminate(): void
     {
         if (!$this->sender->aEnvoisEnAttente()) {
             return;

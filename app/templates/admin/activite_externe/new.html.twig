@@ -1,5 +1,9 @@
 {% extends 'base.html.twig' %}
 {% block title %}Nouvelle activité externe – CN95 Plongée{% endblock %}
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('vendor/quill/dist/quill.snow.css') }}">
+{% endblock %}
 {% block body %}
 <div class="container">
     <h1 class="header-title">Ajout d'une activité externe</h1>

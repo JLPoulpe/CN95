@@ -79,17 +79,19 @@ Quatre rôles (table `role`, créés par `app:seed`). ADMIN hérite de tous les 
 | `BUREAU` | Membre du bureau. Gère les invitations, la communication et la configuration des activités. |
 | `ADMIN` | Administrateur. Accès à tout, y compris la configuration de l'outil. |
 
-Les droits fonctionnels sont centralisés dans `app/src/Security/Permission.php` : une seule table permission → rôles à modifier pour changer qui accède à quoi. Un ADMIN a toujours toutes les permissions.
+Les droits fonctionnels sont enregistrés en base (table `role_permission`) et se modifient dans **Configuration de l'outil → Permissions** (ADMIN) : une matrice de cases à cocher, une ligne par fonctionnalité et une colonne par rôle (un rôle ajouté dans la table `role` apparaît automatiquement). Un ADMIN a toujours toutes les permissions et n'apparaît pas dans la matrice ; l'écran Permissions lui-même reste réservé aux ADMIN, quels que soient les réglages. `app/src/Security/Permission.php` liste les permissions et leur configuration par défaut (appliquée par la migration et par `app:seed` sur une base vierge).
 
-| Élément de la page `/membre` | Permission | Rôles |
+| Élément de la page `/membre` | Permission | Rôles par défaut (en plus d'ADMIN) |
 |---|---|---|
-| Invitations aux activités externes (une entrée par activité externe) | `PERM_INVITATIONS` | ADMIN, BUREAU, MONITEUR |
-| Communication → Activités externes | `PERM_ACTIVITES_EXTERNES` | ADMIN, BUREAU, MONITEUR |
-| Communication → Communication générale, Réseaux sociaux | `PERM_COMMUNICATION` | ADMIN, BUREAU, MONITEUR |
-| Communication → Gestion du planning | `PERM_CONFIG_ACTIVITES` | ADMIN, BUREAU |
-| Configuration des activités (aptitudes, activités, activités externes, lignes d'eau, planning) | `PERM_CONFIG_ACTIVITES` | ADMIN, BUREAU |
-| Gestion des utilisateurs (liste, ajout) | `PERM_UTILISATEURS` | ADMIN |
-| Configuration de l'outil (configuration des mails, modèles de mails) | `PERM_CONFIG_OUTIL` | ADMIN |
+| Invitations aux activités externes (une entrée par activité externe) | `PERM_INVITATIONS` | BUREAU |
+| Communication → Activités externes | `PERM_ACTIVITES_EXTERNES` | BUREAU, MONITEUR |
+| Communication → Communication générale, Réseaux sociaux | `PERM_COMMUNICATION` | BUREAU |
+| Communication → Gestion du planning | `PERM_CONFIG_ACTIVITES` | BUREAU |
+| Configuration des activités (aptitudes, activités, activités externes, lignes d'eau, planning) | `PERM_CONFIG_ACTIVITES` | BUREAU |
+| Gestion des utilisateurs (liste, ajout) | `PERM_UTILISATEURS` | aucun (ADMIN seul) |
+| Configuration de l'outil (configuration des mails, permissions) | `PERM_CONFIG_OUTIL` | aucun (ADMIN seul) |
+
+L'accès à `/admin/invitations` est ouvert par `PERM_INVITATIONS` **ou** `PERM_ACTIVITES_EXTERNES` (`security.yaml`) : avec la configuration par défaut, un MONITEUR y accède donc via « Activités externes ».
 
 Les sections vides pour un utilisateur ne sont pas affichées ; la première section visible est ouverte, les autres se replient.
 
@@ -97,37 +99,33 @@ Les sections vides pour un utilisateur ne sont pas affichées ; la première sec
 
 - Une invitation est liée à **un ou plusieurs rôles** qui la voient et la gèrent. Un membre (hors ADMIN) ne voit et ne gère que les invitations partageant au moins un de ses rôles.
 - Les créateurs (BUREAU, MONITEUR) ont leurs rôles pré-cochés à la création ; ils doivent en garder au moins un, sinon l'invitation disparaîtrait de leur liste. Les rôles ADHERENT et ADMIN ne sont pas proposés (l'administrateur voit toujours toutes les invitations).
-- Chaque invitation utilise un **modèle de mail** de type « Invitation ».
-- Le bouton « Envoyer un mail test » envoie une copie du mail à une adresse de son choix, avec le modèle, le commentaire et la date saisis, sans rien enregistrer.
+- Le commentaire est **pré-rempli avec le texte par défaut de l'activité externe** (rendez-vous, consignes, adresse…), modifiable dans **Configuration des activités → Activités externes** et à la création de l'invitation.
+- Le bouton « Envoyer un mail test » envoie une copie du mail à une adresse de son choix, avec le commentaire et la date saisis, sans rien enregistrer.
 - Toutes les actions (fiche, inscrits, réponses, export, relance, annulation, suppression) vérifient le droit de gestion (`InvitationVoter`).
 
-### Mails et modèles
+### Mails
 
-Tous les mails de l'outil sont configurables depuis **Configuration de l'outil → Modèles de mails** (ADMIN). Chaque modèle a un nom, un type et un contenu HTML, édité avec un éditeur riche (Quill). Le contenu est nettoyé avant enregistrement (balises de mise en forme, liens web et mail, styles inline ; scripts et images retirés).
+Chaque mail est un fichier Twig de `app/templates/mail/`, enveloppé par la mise en page commune `templates/mail/_base.html.twig` (« Bonjour à toutes et à tous, », contenu, signature, logos, liens CN95 et pied de page RGPD). Les liens propres à un mail sont fournis par son mailer ; il n'y a plus de modèles en base. `MailRenderer` rend le gabarit puis l'enveloppe dans la base.
 
-| Type | Utilisé pour | Modèle |
-|---|---|---|
-| Invitation | Mail d'invitation à une activité | Choisi dans l'invitation |
-| Annulation | Annulation d'une activité aux membres ayant répondu | Modèle par défaut du type |
-| Désistement (responsable) | Prévenir le responsable qu'un membre ne peut plus participer | Modèle par défaut du type |
-| Activation de compte | Lien pour choisir son mot de passe | Modèle par défaut du type |
+| Mail | Mailer | Gabarit | Contenu | Déclenché par |
+|---|---|---|---|---|
+| Création de compte | `CompteMailer` | `compte/activation.html.twig` | Base + information RGPD + types de mails reçus + lien d'activation (valable 7 jours) | Création d'un utilisateur, renvoi du lien depuis sa fiche |
+| Invitation / relance | `FosseMailer` | `invitation.html.twig` | Base + phrase d'introduction + commentaire de l'invitation + 3 liens (je m'inscris, je ne participe pas, je ne peux plus participer) | Création d'une invitation ; bouton « Relancer » (objet « Rappel : ») |
+| Annulation | `FosseMailer` | `annulation.html.twig` | Base + activité et date | Annulation d'une invitation, aux membres ayant répondu |
+| Désistement | `FosseMailer` | `desistement.html.twig` | Base + membre, activité et date | Un inscrit se désiste via son lien, envoyé au responsable (DP) |
+| Communication officielle | `CommunicationMailer` | `communication.html.twig` | Base + contenu saisi dans l'éditeur ; objet « CN95 Plongée – titre » | Envoi d'une communication |
+| Information RGPD | `RgpdMailer` | `rgpd/information*.html.twig` | Base + information + lien d'accusé de lecture | Commande `app:rgpd:envoyer-information` |
+| Rappel de purge | `RgpdMailer` | `rgpd/rappel_purge.html.twig` | Base + éléments qui seront supprimés | Commande `app:rgpd:rappel-purge` (J-60, J-30, J-7, J-1) |
 
-Un seul modèle par défaut existe pour chaque type. Un modèle ne peut pas être supprimé s'il est le modèle par défaut ou s'il est utilisé par une invitation.
+Le commentaire d'invitation et le contenu d'une communication sont du HTML saisi avec l'éditeur riche (Quill), nettoyé avant enregistrement et à l'envoi (balises de mise en forme, liens web et mail, styles inline ; scripts et images retirés).
 
-**Assemblage d'un mail** (`MailTemplateRenderer`) :
-1. « Bonjour à toutes et à tous, »
-2. le commentaire de l'invitation (éditeur riche, HTML nettoyé ; un ancien commentaire en texte brut reste échappé)
-3. le bloc de liens de réponse, ajouté automatiquement (inscription, refus, désistement, activation…)
-4. le contenu du modèle choisi
-5. la signature commune (« Bonne bulles, le bureau. », logos et liens CN95)
+**Création de compte et RGPD** : le mail d'activation contient l'information RGPD. La page d'activation la réaffiche, et valider le mot de passe vaut prise de connaissance : une demande `Information` répondue est alors enregistrée avec la version du texte (`RgpdMailer::VERSION_TEXTE`). Un simple clic sur le lien n'enregistre rien (un antivirus peut ouvrir les liens). La commande d'information RGPD ne concerne que les membres existants : elle ignore ceux dont l'activation est en attente et ceux déjà informés pour la version.
 
-Variables utilisables dans un modèle : `{{date}}`, `{{activite}}`, `{{prenom}}`, `{{nom}}` (destinataire) et `{{membre}}` (désistement).
-
-Par défaut, le bloc de liens est placé entre « Bonjour » et le contenu du modèle. Pour le placer ailleurs, écrire `{{liens}}` à l'endroit voulu dans le modèle : le bloc y est inséré à la place du token. Le commentaire de l'invitation reste toujours avant le contenu et n'est pas à écrire dans le modèle.
+**Communications officielles** (menu Communication → Communication générale, permission `PERM_COMMUNICATION`) : on rédige un titre et un contenu (brouillon modifiable, aperçu, mail de test à soi-même), puis on envoie à tous les membres actifs (compte activé, adresse mail renseignée), éventuellement restreints par rôles et/ou aptitude principale. Il n'y a pas de choix d'abonnement : ces envois sont des informations officielles du club. Une communication envoyée est conservée comme historique et ne peut plus être modifiée.
 
 Les logos sont publiés dans `app/public/images/mail/` et référencés en URL absolue : ils ne s'affichent dans les mails que si le site est joignable publiquement.
 
-Le mode d'envoi (Brevo, etc.) se configure dans **Configuration de l'outil → Configuration des mails**. Les mails sont mis en file (Messenger) puis envoyés en fin de requête.
+Le mode d'envoi (Brevo, etc.) se configure dans **Configuration de l'outil → Configuration des mails**. Les mails sont mis en file (Messenger) puis envoyés en fin de requête web ou en fin de commande console (`EnvoiFileSubscriber`) ; un mail en échec est repris à la prochaine requête ou commande qui en ajoute un.
 
 ## 📁 Structure du Projet
 
@@ -143,12 +141,13 @@ CN95/
 │   │   │   ├── PlanningCreneau.php    # Créneaux de planning
 │   │   │   ├── InvitationFosse.php    # Invitations aux activités externes
 │   │   │   ├── ReponseFosse.php       # Réponses des membres aux invitations
-│   │   │   └── MailTemplate.php       # Modèles de mails éditables
+│   │   │   ├── Communication.php      # Communications officielles par mail
+│   │   │   └── RolePermission.php     # Permissions accordées à chaque rôle
 │   │   ├── Controller/          # Contrôleurs (routes & logique HTTP)
 │   │   │   └── Admin/           # Espace administrateur (/admin/...)
 │   │   ├── Form/                # Types de formulaires Symfony
-│   │   ├── Mail/                # Envoi et rendu des mails (MailSender, FosseMailer, CompteMailer, MailTemplateRenderer, plugins)
-│   │   ├── Security/            # Permission.php (droits) et Voter/ (PermissionVoter, InvitationVoter)
+│   │   ├── Mail/                # Envoi et rendu des mails (MailSender, MailRenderer, FosseMailer, CompteMailer, CommunicationMailer, RgpdMailer, plugins)
+│   │   ├── Security/            # Permission.php (liste des droits), PermissionProvider.php (droits en base) et Voter/ (PermissionVoter, InvitationVoter)
 │   │   ├── Repository/          # Requêtes personnalisées (Doctrine)
 │   │   ├── Command/             # Commandes console (app:seed)
 │   │   └── Kernel.php           # Noyau Symfony
@@ -204,10 +203,11 @@ L'URL de connexion à la base de données est automatiquement définie pour Dock
 - **Aptitude** - Compétences/qualifications des utilisateurs
 - **PlanningSemaine** - Planning hebdomadaire contenant les créneaux
 - **PlanningCreneau** - Créneaux individuels du planning
-- **ActiviteExterne** - Activité externe pouvant faire l'objet d'invitations (ex. fosse)
-- **InvitationFosse** - Invitation à une date pour une activité externe : aptitudes conviées, rôles qui la gèrent, responsable (DP) éventuel, modèle de mail
+- **ActiviteExterne** - Activité externe pouvant faire l'objet d'invitations (ex. fosse), avec un texte par défaut pré-rempli dans le commentaire des invitations
+- **InvitationFosse** - Invitation à une date pour une activité externe : aptitudes conviées, rôles qui la gèrent, responsable (DP) éventuel, commentaire
 - **ReponseFosse** - Réponse d'un membre à une invitation (en attente, inscrit, refus, désistement), avec un lien personnel
-- **MailTemplate** - Modèle de mail (nom, type, contenu HTML, modèle par défaut du type)
+- **Communication** - Communication officielle (titre, contenu HTML, auteur, état d'envoi)
+- **RolePermission** - Permission accordée à un rôle (modifiable depuis l'administration)
 - **MailConfiguration** - Configuration du plugin d'envoi (chiffrée)
 
 ### Flux typique
@@ -228,7 +228,7 @@ make shell
 ### Commandes Symfony utiles
 
 ```bash
-# Créer les aptitudes, les rôles et les modèles de mails manquants
+# Créer les aptitudes, les rôles et, sur une base vierge, les permissions par défaut
 php bin/console app:seed [--admin-username=... --admin-password=...]
 
 # Vérifier le Twig et le conteneur
@@ -255,7 +255,7 @@ php bin/phpunit
 
 ### Éditeur de mails et JavaScript
 
-Les dépendances JavaScript (dont Quill, pour l'éditeur des modèles de mails) sont gérées par l'Asset Mapper : `importmap.php` et `assets/vendor/`. Pas de build Node. Les contrôleurs Stimulus de l'espace administrateur sont `assets/controllers/wysiwyg_controller.js` (éditeur riche) et `mail_test_controller.js` (mail test d'invitation).
+Les dépendances JavaScript (dont Quill, pour l'éditeur des commentaires d'invitation, des textes par défaut et des communications) sont gérées par l'Asset Mapper : `importmap.php` et `assets/vendor/`. Pas de build Node. Les contrôleurs Stimulus de l'espace administrateur sont `assets/controllers/wysiwyg_controller.js` (éditeur riche) et `mail_test_controller.js` (mail test d'invitation).
 
 ### Base de données
 

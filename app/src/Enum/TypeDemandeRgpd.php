@@ -7,6 +7,6 @@ enum TypeDemandeRgpd: string
     /** Accusé de lecture de la mention d'information (obligatoire pour la gestion du planning). */
     case Information = 'INFORMATION';
 
-    /** Choix accepter / refuser les communications non liées au planning (consentement). */
+    /** Ancien choix accepter / refuser les communications facultatives. N'est plus créé ni lu : conservé pour les lignes existantes (purge annuelle). */
     case Communication = 'COMMUNICATION';
 }

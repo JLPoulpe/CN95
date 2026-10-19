@@ -5,12 +5,9 @@ namespace App\Form;
 use App\Entity\ActiviteExterne;
 use App\Entity\Aptitude;
 use App\Entity\InvitationFosse;
-use App\Entity\MailTemplate;
 use App\Entity\Role;
 use App\Entity\User;
-use App\Enum\TypeMailTemplate;
 use App\Repository\AptitudeRepository;
-use App\Repository\MailTemplateRepository;
 use App\Repository\RoleRepository;
 use App\Repository\UserRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -42,13 +39,6 @@ class InvitationFosseType extends AbstractType
                     'by_reference' => false,
                     'query_builder' => fn (AptitudeRepository $r) => $r->createQueryBuilder('a')->orderBy('a.ordre'),
                     'attr' => ['class' => 'choices-inline'],
-                ])
-                ->add('mailTemplate', EntityType::class, [
-                    'class' => MailTemplate::class,
-                    'label' => 'Modèle du mail',
-                    'query_builder' => fn (MailTemplateRepository $r) => $r->createQueryBuilder('m')
-                        ->where('m.type = :type')->setParameter('type', TypeMailTemplate::Invitation)
-                        ->orderBy('m.nom'),
                 ])
                 ->add('roles', EntityType::class, [
                     'class' => Role::class,

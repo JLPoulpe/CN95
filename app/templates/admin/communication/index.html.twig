@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+{% block title %}Communications – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container container-wide">
+    <p><a href="{{ path('app_member') }}">← Espace administrateur</a></p>
+    <h1 class="header-title">Communications</h1>
+    <p style="margin-bottom:20px"><a class="btn" href="{{ path('admin_communication_new') }}">Nouvelle communication</a></p>
+
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Titre</th><th>Auteur</th><th>Créée le</th><th>État</th><th></th></tr></thead>
+            <tbody>
+            {% for c in communications %}
+                <tr>
+                    <td><strong>{{ c.titre }}</strong></td>
+                    <td>{{ c.auteur ? c.auteur.nomComplet : '–' }}</td>
+                    <td>{{ c.createdAt|date('d/m/Y H:i') }}</td>
+                    <td>
+                        {% if c.estEnvoyee %}
+                            <span class="badge badge-grey">Envoyée le {{ c.envoyeeLe|date('d/m/Y H:i') }} · {{ c.nbDestinataires }} destinataire(s)</span>
+                        {% else %}
+                            <span class="badge badge-yellow">Brouillon</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        <a class="btn btn-sm btn-secondary" href="{{ path('admin_communication_show', {id: c.id}) }}">{{ c.estEnvoyee ? 'Voir' : 'Ouvrir' }}</a>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5">Aucune communication.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

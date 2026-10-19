@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ communication.titre }} – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <p><a href="{{ path('admin_communication_index') }}">← Communications</a></p>
+    <h1 class="header-title">{{ communication.titre }}</h1>
+
+    <div class="card">
+        <p><strong>Objet du mail :</strong> {{ communication.objet }}</p>
+        <p><strong>Auteur :</strong> {{ communication.auteur ? communication.auteur.nomComplet : '–' }}</p>
+        <p><strong>État :</strong>
+            {% if communication.estEnvoyee %}
+                <span class="badge badge-grey">Envoyée le {{ communication.envoyeeLe|date('d/m/Y H:i') }} · {{ communication.nbDestinataires }} destinataire(s)</span>
+            {% else %}
+                <span class="badge badge-yellow">Brouillon</span>
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top:0;font-size:18px">Aperçu du mail</h2>
+        <iframe src="{{ path('admin_communication_apercu', {id: communication.id}) }}" title="Aperçu du mail" sandbox
+                style="width:100%;height:520px;border:1px solid #e5e7eb;border-radius:8px;background:#f5f5f5"></iframe>
+    </div>
+
+    {% if not communication.estEnvoyee %}
+        <div class="card">
+            <h2 style="margin-top:0;font-size:18px">Envoyer</h2>
+            <p style="font-size:14px;color:#4b5563;margin-bottom:12px">Le mail part à tous les membres actifs (compte activé, adresse mail renseignée). Cochez des rôles ou des aptitudes pour restreindre l'envoi.</p>
+            {{ form_start(destinataires, {attr: {onsubmit: "return confirm('Envoyer cette communication ? L\\'envoi ne peut pas être annulé.')"}}) }}
+                {{ form_widget(destinataires) }}
+                <button class="btn" type="submit">Envoyer la communication</button>
+            {{ form_end(destinataires) }}
+        </div>
+
+        <div class="actions" style="margin-top:20px">
+            <a class="btn btn-secondary" href="{{ path('admin_communication_edit', {id: communication.id}) }}">Modifier</a>
+            <form method="post" action="{{ path('admin_communication_test', {id: communication.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('communication_' ~ communication.id) }}">
+                <button class="btn btn-secondary" type="submit">M'envoyer un mail de test</button>
+            </form>
+            <form method="post" action="{{ path('admin_communication_delete', {id: communication.id}) }}" onsubmit="return confirm('Supprimer ce brouillon ?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('communication_' ~ communication.id) }}">
+                <button class="btn btn-danger" type="submit">Supprimer</button>
+            </form>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

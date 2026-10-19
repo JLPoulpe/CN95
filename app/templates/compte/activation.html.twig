@@ -2,18 +2,34 @@
 {% block title %}Activation du compte – CN95 Plongée{% endblock %}
 {% block body %}
 <div class="container">
-    <h1 class="header-title">Activation du compte</h1>
-    <div class="card">
+    <article class="card rgpd-doc">
+        <h1 class="header-title">Activation du compte</h1>
+
         {% if valide %}
-            <p>Bonjour {{ user.prenom }}, choisissez votre mot de passe pour activer votre compte.</p>
-            {{ form_start(form) }}
-                {{ form_widget(form) }}
-                <button class="btn" type="submit">Activer mon compte</button>
-            {{ form_end(form) }}
+            <section class="rgpd-section">
+                <p>Bonjour {{ user.prenom }}, choisissez votre mot de passe pour activer votre compte.</p>
+            </section>
+
+            <section class="rgpd-section">
+                <h2>Vos données personnelles</h2>
+                <p>Voici comment CN95 Plongée utilise vos données personnelles (RGPD).</p>
+                {% include 'rgpd/_resume.html.twig' %}
+            </section>
+
+            <section class="rgpd-section">
+                <h2>Mot de passe</h2>
+                {{ form_start(form) }}
+                    {{ form_widget(form) }}
+                    <p class="rgpd-note">En validant votre mot de passe, vous confirmez avoir pris connaissance de ces informations.</p>
+                    <button class="btn" type="submit">Activer mon compte</button>
+                {{ form_end(form) }}
+            </section>
         {% else %}
-            <p>Ce lien d'activation n'est pas valable : il est incorrect, expiré ou a déjà été remplacé.</p>
-            <p>Demandez à un administrateur de vous renvoyer un lien d'activation.</p>
+            <section class="rgpd-section">
+                <p>Ce lien d'activation n'est pas valable : il est incorrect, expiré ou a déjà été remplacé.</p>
+                <p>Demandez à un administrateur de vous renvoyer un lien d'activation.</p>
+            </section>
         {% endif %}
-    </div>
+    </article>
 </div>
 {% endblock %}

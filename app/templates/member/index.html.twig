@@ -31,7 +31,7 @@
             {{ m.item('📅', 'Gestion du planning', 'Créer, modifier et dupliquer les semaines', path('admin_planning_index')) }}
         {% endif %}
         {% if is_granted('PERM_COMMUNICATION') %}
-            {{ m.item('💬', 'Communication générale', 'Envoyer des communications générales') }}
+            {{ m.item('💬', 'Communication générale', 'Envoyer des communications générales', path('admin_communication_index')) }}
             {{ m.item('📱', 'Réseaux sociaux', 'Gérer les publications sur les réseaux sociaux') }}
         {% endif %}
     </details>
@@ -62,7 +62,7 @@
     <details class="section"{{ ouvrir ? ' open' : '' }}>
         <summary class="section-title">⚠️ Configuration de l'outil</summary>
         {{ m.item('✉️', 'Configuration des mails', 'Choisir le système d\'envoi et ses paramètres', path('admin_mail_config')) }}
-        {{ m.item('📝', 'Modèles de mails', 'Modifier le texte des mails envoyés par l\'outil', path('admin_mail_template_index')) }}
+        {{ m.item('🔐', 'Permissions', 'Choisir quels rôles accèdent à quelles fonctionnalités', path('admin_permission_index')) }}
     </details>
     {% set ouvrir = false %}
     {% endif %}

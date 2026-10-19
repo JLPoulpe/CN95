@@ -10,16 +10,13 @@ use App\Entity\Role;
 use App\Entity\User;
 use App\Enum\StatutInvitationFosse;
 use App\Enum\StatutReponseFosse;
-use App\Enum\TypeMailTemplate;
 use App\Form\InvitationFosseType;
 use App\Mail\ContenuMailSanitizer;
 use App\Mail\FosseMailer;
 use App\Mail\MailMessage;
 use App\Mail\MailSender;
-use App\Mail\MailTemplateRenderer;
 use App\Repository\ActiviteExterneRepository;
 use App\Repository\InvitationFosseRepository;
-use App\Repository\MailTemplateRepository;
 use App\Repository\UserRepository;
 use App\Security\Voter\InvitationVoter;
 use Doctrine\ORM\EntityManagerInterface;
@@ -69,11 +66,11 @@ class InvitationController extends AbstractController
         EntityManagerInterface $em,
         UserRepository $users,
         FosseMailer $mailer,
-        MailTemplateRepository $templates,
         ContenuMailSanitizer $sanitizer,
     ): Response {
         $utilisateur = $this->utilisateur();
-        $invitation = (new InvitationFosse())->setActivite($activiteExterne)->setMailTemplate($templates->parDefaut(TypeMailTemplate::Invitation));
+        // Le commentaire est pré-rempli avec le texte par défaut de l'activité, modifiable avant l'envoi
+        $invitation = (new InvitationFosse())->setActivite($activiteExterne)->setCommentaire($activiteExterne->getTexteParDefaut());
         // Par défaut, l'invitation est visible par les rôles de son créateur (hors adhérent et administrateur)
         foreach ($utilisateur->getUserRoles() as $role) {
             if (!in_array($role->getCode(), [Role::ADHERENT, Role::ADMIN], true)) {
@@ -121,8 +118,7 @@ class InvitationController extends AbstractController
     public function testMail(
         #[MapEntity(id: 'activiteExterneId')] ActiviteExterne $activiteExterne,
         Request $request,
-        MailTemplateRepository $templates,
-        MailTemplateRenderer $renderer,
+        FosseMailer $mailer,
         MailSender $sender,
     ): JsonResponse {
         if (!$this->isCsrfTokenValid('invitation_test_mail', $request->request->getString('_token'))) {
@@ -130,13 +126,9 @@ class InvitationController extends AbstractController
         }
 
         $saisie = $request->request->all('invitation_fosse');
-        $template = $templates->find((int) ($saisie['mailTemplate'] ?? 0));
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', (string) ($saisie['date'] ?? ''));
         $email = $request->request->getString('email');
 
-        if (null === $template || TypeMailTemplate::Invitation !== $template->getType()) {
-            return new JsonResponse(['succes' => false, 'message' => 'Choisir un modèle de mail d\'invitation.'], Response::HTTP_BAD_REQUEST);
-        }
         if (false === $date) {
             return new JsonResponse(['succes' => false, 'message' => 'Renseigner une date pour générer l\'aperçu.'], Response::HTTP_BAD_REQUEST);
         }
@@ -144,22 +136,9 @@ class InvitationController extends AbstractController
             return new JsonResponse(['succes' => false, 'message' => 'Adresse mail invalide.'], Response::HTTP_BAD_REQUEST);
         }
 
-        $utilisateur = $this->utilisateur();
         $libelle = $activiteExterne->getLibelle();
         $dateAffichee = $date->format('d/m/Y');
-        $html = $renderer->rendre(
-            $template,
-            ['date' => $dateAffichee, 'activite' => $libelle, 'prenom' => (string) $utilisateur->getPrenom(), 'nom' => (string) $utilisateur->getNom(), 'membre' => $utilisateur->getNomComplet()],
-            (string) ($saisie['commentaire'] ?? ''),
-            [
-                'intro' => 'Merci d\'indiquer votre choix :',
-                'items' => [
-                    'Je m\'inscris à cette activité' => '#',
-                    'Je ne participe pas à cette activité' => '#',
-                    'Je suis inscrit(e) mais je ne peux plus participer' => '#',
-                ],
-            ],
-        );
+        $html = $mailer->htmlInvitation($libelle, $dateAffichee, (string) ($saisie['commentaire'] ?? ''));
 
         $envoye = $sender->envoyer(new MailMessage($email, null, '[Test] Invitation : '.$libelle.' du '.$dateAffichee, $html));
 

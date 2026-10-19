@@ -6,7 +6,7 @@
     <form method="post" class="card" data-controller="csrf-protection">
         {% if error %}<div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>{% endif %}
         <div class="form-row">
-            <label for="username">Identifiant</label>
+            <label for="username">Identifiant ou adresse e-mail</label>
             <input type="text" id="username" name="_username" value="{{ last_username }}" autocomplete="username" required autofocus>
         </div>
         <div class="form-row">

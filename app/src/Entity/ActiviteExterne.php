@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\ActiviteExterneRepository;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -28,6 +29,10 @@ class ActiviteExterne
 
     #[ORM\Column]
     private bool $necessiteResponsable = true;
+
+    /** Texte pré-rempli dans le commentaire d'une nouvelle invitation (HTML nettoyé par ContenuMailSanitizer). */
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $texteParDefaut = null;
 
     public function getId(): ?int
     {
@@ -66,6 +71,18 @@ class ActiviteExterne
     public function setNecessiteResponsable(bool $necessiteResponsable): static
     {
         $this->necessiteResponsable = $necessiteResponsable;
+
+        return $this;
+    }
+
+    public function getTexteParDefaut(): ?string
+    {
+        return $this->texteParDefaut;
+    }
+
+    public function setTexteParDefaut(?string $texteParDefaut): static
+    {
+        $this->texteParDefaut = $texteParDefaut;
 
         return $this;
     }

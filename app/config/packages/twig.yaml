@@ -1,5 +1,9 @@
 twig:
     file_name_pattern: '*.twig'
+    globals:
+        # Adresse publique du site (DEFAULT_URI, sous-dossier public compris) : les images des mails doivent
+        # pointer vers elle, pas vers l'hôte de la requête ni vers localhost en console
+        public_url: '%env(DEFAULT_URI)%'
 
 when@test:
     twig:

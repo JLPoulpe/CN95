@@ -10,9 +10,9 @@ security:
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         app_user_provider:
+            # Recherche par identifiant ou adresse e-mail : voir UserRepository::loadUserByIdentifier()
             entity:
                 class: App\Entity\User
-                property: username
 
     firewalls:
         dev:
@@ -37,9 +37,10 @@ security:
             # switch_user: true
 
     # Note: Only the *first* matching rule is applied
-    # Les permissions PERM_* et les rôles qui les accordent sont définis dans App\Security\Permission.
+    # Les permissions PERM_* et les rôles qui les accordent sont enregistrés en base (table role_permission, écran Permissions) ; App\Security\Permission en donne la liste et les valeurs par défaut.
     access_control:
         - { path: ^/admin/invitations, allow_if: "is_granted('PERM_INVITATIONS') or is_granted('PERM_ACTIVITES_EXTERNES')" }
+        - { path: ^/admin/communications, roles: PERM_COMMUNICATION }
         - { path: ^/admin/(aptitudes|activites|activites-externes|lignes-eau|planning), allow_if: "is_granted('PERM_CONFIG_ACTIVITES')" }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/membre, roles: ROLE_USER }

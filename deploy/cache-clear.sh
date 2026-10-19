@@ -17,5 +17,9 @@ source "$CONF"
 : "${SSH_TARGET:?}" "${REMOTE_DIR:?}"
 
 echo "==> Suppression du cache : $TARGET ($SSH_TARGET)"
-ssh "$SSH_TARGET" "cd $REMOTE_DIR && rm -rf -- var/cache" \
+# Renommage puis suppression : le site peut recréer var/cache pendant la suppression
+# (rm -rf échouait alors avec « Le dossier n'est pas vide »). Une fois renommé,
+# l'ancien dossier n'est plus utilisé et les requêtes suivantes reconstruisent var/cache.
+STAMP="$(date +%s)"
+ssh "$SSH_TARGET" "cd $REMOTE_DIR && if [ -e var/cache ]; then mv var/cache var/cache.old-$STAMP && rm -rf -- var/cache.old-$STAMP; fi" \
   || die "suppression du cache impossible sur la cible $TARGET."

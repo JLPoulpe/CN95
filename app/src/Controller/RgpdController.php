@@ -6,12 +6,10 @@ use App\Enum\TypeDemandeRgpd;
 use App\Repository\DemandeRgpdRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Attribute\Route;
 
-/** Pages RGPD publiques : mentions légales, politique de confidentialité, accusé de lecture et choix sur les communications. */
+/** Pages RGPD publiques : mentions légales, politique de confidentialité, accusé de lecture. */
 class RgpdController extends AbstractController
 {
     #[Route('/mentions-legales', name: 'app_mentions_legales', methods: ['GET'])]
@@ -47,43 +45,17 @@ class RgpdController extends AbstractController
     }
 
     /**
-     * Choix accepter / refuser. Le GET n'enregistre rien : un antivirus ou un aperçu de mail qui suit le lien
-     * ne doit pas donner un accord à la place du membre. L'enregistrement se fait par POST, avec jeton CSRF.
+     * Ancien lien « accepter / refuser les communications » des mails d'information déjà envoyés. Les communications
+     * du bureau ne dépendent plus d'un choix : la page l'explique et indique comment s'y opposer. Aucune réponse n'est enregistrée.
      */
-    #[Route('/rgpd/communications/{jeton}', name: 'rgpd_communications', requirements: ['jeton' => '[0-9a-f]{64}'], methods: ['GET', 'POST'])]
-    public function communications(string $jeton, Request $request, DemandeRgpdRepository $demandes, EntityManagerInterface $em): Response
+    #[Route('/rgpd/communications/{jeton}', name: 'rgpd_communications', requirements: ['jeton' => '[0-9a-f]{64}'], methods: ['GET'])]
+    public function communications(string $jeton, DemandeRgpdRepository $demandes): Response
     {
         $demande = $demandes->findOneByJeton($jeton) ?? throw $this->createNotFoundException();
         if (TypeDemandeRgpd::Communication !== $demande->getType()) {
             throw $this->createNotFoundException();
         }
 
-        if ($request->isMethod('POST')) {
-            if (!$this->isCsrfTokenValid('rgpd_communications', (string) $request->request->get('_token'))) {
-                // HttpException plutôt que AccessDeniedException : pour un visiteur anonyme, cette dernière déclenche une redirection vers la connexion
-                throw new HttpException(Response::HTTP_FORBIDDEN, 'Jeton de formulaire invalide.');
-            }
-
-            $choix = $request->request->get('choix');
-            if (!in_array($choix, ['accepter', 'refuser'], true)) {
-                throw $this->createNotFoundException();
-            }
-
-            $demande->repondre('accepter' === $choix);
-            $em->flush();
-
-            $this->addFlash('success', 'Votre choix a bien été enregistré.');
-
-            return $this->redirectToRoute('rgpd_communications', ['jeton' => $jeton]);
-        }
-
-        // Le lien du mail indique le choix pré-sélectionné ; seul le POST l'enregistre
-        $preselection = $request->query->get('choix');
-
-        return $this->render('rgpd/communications.html.twig', [
-            'demande' => $demande,
-            'jeton' => $jeton,
-            'preselection' => in_array($preselection, ['accepter', 'refuser'], true) ? $preselection : null,
-        ]);
+        return $this->render('rgpd/communications.html.twig');
     }
 }

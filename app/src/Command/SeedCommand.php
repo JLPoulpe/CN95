@@ -3,14 +3,14 @@
 namespace App\Command;
 
 use App\Entity\Aptitude;
-use App\Entity\MailTemplate;
 use App\Entity\Role;
+use App\Entity\RolePermission;
 use App\Entity\User;
-use App\Mail\MailTemplateDefaults;
 use App\Repository\AptitudeRepository;
-use App\Repository\MailTemplateRepository;
+use App\Repository\RolePermissionRepository;
 use App\Repository\RoleRepository;
 use App\Repository\UserRepository;
+use App\Security\Permission;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -20,7 +20,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-#[AsCommand(name: 'app:seed', description: 'Crée les aptitudes, les rôles et, si demandé, un compte administrateur')]
+#[AsCommand(name: 'app:seed', description: 'Crée les aptitudes, les rôles, les permissions par défaut et, si demandé, un compte administrateur')]
 class SeedCommand extends Command
 {
     private const APTITUDES = [
@@ -46,7 +46,7 @@ class SeedCommand extends Command
         private RoleRepository $roles,
         private UserRepository $users,
         private UserPasswordHasherInterface $hasher,
-        private MailTemplateRepository $mailTemplates,
+        private RolePermissionRepository $rolePermissions,
     ) {
         parent::__construct();
     }
@@ -79,22 +79,21 @@ class SeedCommand extends Command
         $this->em->flush();
         $io->success(count(self::ROLES).' rôles synchronisés.');
 
-        // Les modèles de mails existants ne sont jamais modifiés : seuls les modèles manquants sont créés
-        $crees = 0;
-        foreach (MailTemplateDefaults::tous() as $defaut) {
-            if (null !== $this->mailTemplates->findOneBy(['nom' => $defaut['nom']])) {
-                continue;
+        // La configuration par défaut n'est posée que sur une base vierge : un administrateur peut volontairement
+        // retirer tous les rôles d'une permission, il ne faut pas la recréer
+        if (0 === $this->rolePermissions->count([])) {
+            $crees = 0;
+            foreach (Permission::DEFAUTS as $permission => $codes) {
+                foreach ($codes as $code) {
+                    if (null !== $role = $this->roles->findOneBy(['code' => $code])) {
+                        $this->em->persist(new RolePermission($role, $permission));
+                        ++$crees;
+                    }
+                }
             }
-            $template = (new MailTemplate())
-                ->setNom($defaut['nom'])
-                ->setType($defaut['type'])
-                ->setContenu($defaut['contenu'])
-                ->setParDefaut(null === $this->mailTemplates->parDefaut($defaut['type']));
-            $this->em->persist($template);
-            ++$crees;
+            $this->em->flush();
+            $io->success($crees.' permission(s) par défaut créée(s).');
         }
-        $this->em->flush();
-        $io->success($crees.' modèle(s) de mail créé(s).');
 
         $username = $input->getOption('admin-username');
         if ($username && !$this->users->findOneBy(['username' => $username])) {

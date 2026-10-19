@@ -3,7 +3,6 @@
 namespace App\Command;
 
 use App\Entity\DemandeRgpd;
-use App\Entity\User;
 use App\Enum\TypeDemandeRgpd;
 use App\Mail\RgpdMailer;
 use App\Repository\DemandeRgpdRepository;
@@ -19,8 +18,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * Envoie à chaque membre le mail d'information RGPD (accusé de lecture + choix sur les communications).
+ * Envoie aux membres existants le mail d'information RGPD (accusé de lecture).
  * Une seule fois par version du texte : relancer la commande n'envoie pas de doublon.
+ * Les nouveaux comptes reçoivent cette information dans leur mail d'activation et l'acquittent en choisissant leur mot de passe :
+ * ils ne sont pas concernés tant que leur activation est en attente, ni une fois qu'elle est faite pour cette version.
  */
 #[AsCommand(name: 'app:rgpd:envoyer-information', description: 'Envoie le mail d\'information RGPD aux membres (une fois par version du texte)')]
 class RgpdEnvoyerInformationCommand extends Command
@@ -56,10 +57,17 @@ class RgpdEnvoyerInformationCommand extends Command
         $envoyes = 0;
         $echecs = 0;
         $dejaEnvoyes = 0;
+        $enAttente = 0;
 
         foreach ($this->users->findAll() as $user) {
             if ($this->demandes->existePourVersion($user, TypeDemandeRgpd::Information, $version)) {
                 ++$dejaEnvoyes;
+                continue;
+            }
+
+            // Mail d'activation déjà envoyé : il contient l'information, qui sera acquittée à la création du mot de passe
+            if ($user->activationEnAttente()) {
+                ++$enAttente;
                 continue;
             }
 
@@ -69,13 +77,12 @@ class RgpdEnvoyerInformationCommand extends Command
             }
 
             $estRepresentant = in_array(mb_strtolower((string) $user->getEmail()), $representants, true);
-            [$information, $communication] = $this->creerDemandes($user, $version);
+            $information = new DemandeRgpd($user, TypeDemandeRgpd::Information, $version);
+            $this->em->persist($information);
             $this->em->flush();
 
             $liens = [
                 'accuse' => $this->urls->generate('rgpd_accuse', ['jeton' => $information->getJeton()], UrlGeneratorInterface::ABSOLUTE_URL),
-                'accepter' => $this->urls->generate('rgpd_communications', ['jeton' => $communication->getJeton(), 'choix' => 'accepter'], UrlGeneratorInterface::ABSOLUTE_URL),
-                'refuser' => $this->urls->generate('rgpd_communications', ['jeton' => $communication->getJeton(), 'choix' => 'refuser'], UrlGeneratorInterface::ABSOLUTE_URL),
                 'politique' => $this->urls->generate('app_confidentialite', [], UrlGeneratorInterface::ABSOLUTE_URL),
             ];
 
@@ -84,7 +91,6 @@ class RgpdEnvoyerInformationCommand extends Command
             } else {
                 // Sans mail reçu, la demande ne doit pas rester en attente : on la retire pour pouvoir renvoyer plus tard
                 $this->em->remove($information);
-                $this->em->remove($communication);
                 $this->em->flush();
                 ++$echecs;
             }
@@ -94,7 +100,8 @@ class RgpdEnvoyerInformationCommand extends Command
         $io->table(['Résultat', 'Membres'], [
             [$simulation ? 'À envoyer' : 'Envoyés', $envoyes],
             ['Échecs d\'envoi', $echecs],
-            ['Déjà envoyés pour cette version', $dejaEnvoyes],
+            ['Déjà informés pour cette version', $dejaEnvoyes],
+            ['Activation en attente (information dans le mail d\'activation)', $enAttente],
         ]);
 
         // Journal sans donnée personnelle : seulement des compteurs
@@ -105,16 +112,5 @@ class RgpdEnvoyerInformationCommand extends Command
         }
 
         return $echecs > 0 ? Command::FAILURE : Command::SUCCESS;
-    }
-
-    /** @return array{0: DemandeRgpd, 1: DemandeRgpd} */
-    private function creerDemandes(User $user, string $version): array
-    {
-        $information = new DemandeRgpd($user, TypeDemandeRgpd::Information, $version);
-        $communication = new DemandeRgpd($user, TypeDemandeRgpd::Communication, $version);
-        $this->em->persist($information);
-        $this->em->persist($communication);
-
-        return [$information, $communication];
     }
 }
