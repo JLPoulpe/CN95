@@ -181,7 +181,8 @@ rm -rf "$APP/tests" "$APP/phpunit.dist.xml" "$APP/.env.dev" "$APP/.env.test" "$A
 find "$APP" -name .gitignore -delete
 
 # .env minimal (les secrets vont dans .env.local sur le serveur)
-printf 'APP_ENV=prod\nAPP_DEBUG=0\n' > "$APP/.env"
+# Les variables lues par la configuration doivent exister au build (valeurs factices : les vraies sont dans .env.local)
+printf 'APP_ENV=prod\nAPP_DEBUG=0\nDEFAULT_URI=http://localhost\nMESSENGER_TRANSPORT_DSN=sync://\n' > "$APP/.env"
 
 DOCKER_RUN=(docker run --rm -u "$(id -u):$(id -g)" -v "$APP":/work -w /work
   -e COMPOSER_HOME=/tmp/composer -e HOME=/tmp
