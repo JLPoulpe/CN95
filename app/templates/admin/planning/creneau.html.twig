@@ -2,7 +2,7 @@
 {% block title %}{{ titre }} – CN95 Plongée{% endblock %}
 {% block body %}
 <div class="container">
-    <h1 class="header-title">{{ titre }} <small style="font-size:16px;color:#6b7280">(S{{ semaine.lundi|date('W') }})</small></h1>
+    <h1 class="header-title">{{ titre }} <small>(S{{ semaine.lundi|date('W') }})</small></h1>
     <div class="card">
         {{ form_start(form) }}
             {{ form_widget(form) }}

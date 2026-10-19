@@ -2,12 +2,12 @@
 {% block title %}Permissions – CN95 Plongée{% endblock %}
 {% block body %}
 <div class="container container-wide">
-    <p><a href="{{ path('app_member') }}">← Espace administrateur</a></p>
+    <p class="retour"><a href="{{ path('app_member') }}">← Espace administrateur</a></p>
     <h1 class="header-title">Permissions</h1>
 
-    <div class="card" style="font-size:14px;color:#4b5563">
+    <div class="card card-hint">
         <p>Cochez les rôles autorisés pour chaque fonctionnalité. Les administrateurs ont toujours tous les droits et n'apparaissent donc pas ici. Un rôle ajouté dans l'outil apparaît automatiquement en colonne.</p>
-        <p style="margin-top:8px">Les changements sont pris en compte à la prochaine page affichée par chaque utilisateur.</p>
+        <p class="hint">Les changements sont pris en compte à la prochaine page affichée par chaque utilisateur.</p>
     </div>
 
     <form method="post" action="{{ path('admin_permission_index') }}">
@@ -23,7 +23,7 @@
                 <tbody>
                 {% for code, libelle in permissions %}
                     <tr>
-                        <td><strong>{{ libelle }}</strong><br><small style="color:#6b7280">{{ code }}</small></td>
+                        <td><strong>{{ libelle }}</strong><br><small class="muted">{{ code }}</small></td>
                         {% for role in roles %}
                             <td style="text-align:center">
                                 <input type="checkbox" name="droits[{{ code }}][{{ role.id }}]" value="1"
@@ -36,7 +36,7 @@
                 </tbody>
             </table>
         </div>
-        <p style="margin-top:20px"><button class="btn" type="submit">Enregistrer</button></p>
+        <p class="toolbar"><button class="btn" type="submit">Enregistrer</button></p>
     </form>
 </div>
 {% endblock %}

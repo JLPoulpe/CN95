@@ -12,7 +12,7 @@
          data-mail-test-token-value="{{ csrf_token('invitation_test_mail') }}">
         {{ form_start(form) }}
             {{ form_widget(form) }}
-            <p style="margin:12px 0">Un mail sera envoyé à chaque membre ayant une des aptitudes sélectionnées.</p>
+            <p class="hint">Un mail sera envoyé à chaque membre ayant une des aptitudes sélectionnées.</p>
             <button class="btn" type="submit">Créer et envoyer</button>
             <button class="btn btn-secondary" type="button" style="margin-left:12px" data-action="mail-test#ouvrir">Envoyer un mail test</button>
             <a href="{{ path('admin_invitation_index', {activiteExterneId: activiteExterne.id}) }}" style="margin-left:12px">Annuler</a>
@@ -20,7 +20,7 @@
 
         <dialog data-mail-test-target="dialog" aria-labelledby="mail-test-titre" style="max-width:460px;width:90%;border:none;border-radius:12px;padding:24px">
             <h2 id="mail-test-titre" style="margin-top:0;font-size:20px">Envoyer un mail test</h2>
-            <p style="margin-bottom:12px;font-size:14px;color:#4b5563">Le mail est envoyé avec le commentaire et la date saisis. Rien n'est enregistré.</p>
+            <p class="hint">Le mail est envoyé avec le commentaire et la date saisis. Rien n'est enregistré.</p>
             <form data-action="submit->mail-test#envoyer" data-turbo="false" style="margin:0">
                 <div class="form-row">
                     <label for="mail-test-email">Adresse de test</label>

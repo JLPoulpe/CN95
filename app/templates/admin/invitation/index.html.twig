@@ -11,7 +11,7 @@
         {% endif %}
     </nav>
     <h1 class="header-title">Invitations – {{ activiteExterne.libelle }}</h1>
-    <p style="margin-bottom:20px"><a class="btn" href="{{ path('admin_invitation_new', {activiteExterneId: activiteExterne.id}) }}">Créer une invitation</a></p>
+    <p class="toolbar"><a class="btn" href="{{ path('admin_invitation_new', {activiteExterneId: activiteExterne.id}) }}">Créer une invitation</a></p>
     <div class="table-wrapper">
         <table>
             <thead>

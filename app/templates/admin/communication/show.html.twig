@@ -2,7 +2,7 @@
 {% block title %}{{ communication.titre }} – CN95 Plongée{% endblock %}
 {% block body %}
 <div class="container">
-    <p><a href="{{ path('admin_communication_index') }}">← Communications</a></p>
+    <p class="retour"><a href="{{ path('admin_communication_index') }}">← Communications</a></p>
     <h1 class="header-title">{{ communication.titre }}</h1>
 
     <div class="card">
@@ -26,7 +26,7 @@
     {% if not communication.estEnvoyee %}
         <div class="card">
             <h2 style="margin-top:0;font-size:18px">Envoyer</h2>
-            <p style="font-size:14px;color:#4b5563;margin-bottom:12px">Le mail part à tous les membres actifs (compte activé, adresse mail renseignée). Cochez des rôles ou des aptitudes pour restreindre l'envoi.</p>
+            <p class="hint">Le mail part à tous les membres actifs (compte activé, adresse mail renseignée). Cochez des rôles ou des aptitudes pour restreindre l'envoi.</p>
             {{ form_start(destinataires, {attr: {onsubmit: "return confirm('Envoyer cette communication ? L\\'envoi ne peut pas être annulé.')"}}) }}
                 {{ form_widget(destinataires) }}
                 <button class="btn" type="submit">Envoyer la communication</button>

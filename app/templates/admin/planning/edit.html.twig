@@ -2,7 +2,7 @@
 {% block title %}Semaine S{{ semaine.lundi|date('W') }} – CN95 Plongée{% endblock %}
 {% block body %}
 <div class="container">
-    <h1 class="header-title">Semaine S{{ semaine.lundi|date('W') }} <small style="font-size:16px;color:#6b7280">({{ semaine.lundi|date('d/m/Y') }})</small></h1>
+    <h1 class="header-title">Semaine S{{ semaine.lundi|date('W') }} <small>({{ semaine.lundi|date('d/m/Y') }})</small></h1>
     <div class="card">
         {{ form_start(form) }}
             {{ form_widget(form) }}
@@ -13,7 +13,7 @@
 
     <div class="section">
         <div class="section-title">Créneaux</div>
-        <p style="margin-bottom:16px"><a class="btn" href="{{ path('admin_planning_creneau_new', {id: semaine.id}) }}">Ajouter un créneau</a></p>
+        <p class="toolbar"><a class="btn" href="{{ path('admin_planning_creneau_new', {id: semaine.id}) }}">Ajouter un créneau</a></p>
         {% for c in semaine.creneaux %}
             <div class="creneau">
                 <div class="creneau-main">
@@ -34,7 +34,7 @@
                 </div>
             </div>
         {% else %}
-            <p style="color:#6b7280">Aucun créneau.</p>
+            <p class="muted">Aucun créneau.</p>
         {% endfor %}
     </div>
 </div>

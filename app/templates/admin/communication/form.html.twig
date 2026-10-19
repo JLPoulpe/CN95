@@ -6,10 +6,10 @@
 {% endblock %}
 {% block body %}
 <div class="container">
-    <p><a href="{{ path('admin_communication_index') }}">← Communications</a></p>
+    <p class="retour"><a href="{{ path('admin_communication_index') }}">← Communications</a></p>
     <h1 class="header-title">{{ communication ? 'Modifier la communication' : 'Nouvelle communication' }}</h1>
     <div class="card">
-        <p style="font-size:14px;color:#4b5563;margin-bottom:12px">Le mail contiendra « Bonjour à toutes et à tous, », votre contenu, puis la signature du bureau. Les destinataires se choisissent à l'étape suivante, avant l'envoi.</p>
+        <p class="hint">Le mail contiendra « Bonjour à toutes et à tous, », votre contenu, puis la signature du bureau. Les destinataires se choisissent à l'étape suivante, avant l'envoi.</p>
         {{ form_start(form) }}
             {{ form_widget(form) }}
             <button class="btn" type="submit">Enregistrer</button>

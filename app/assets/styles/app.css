@@ -156,3 +156,27 @@ a.week-btn:hover { background: #eff6ff; color: #1f2937; }
     .rgpd-doc .rgpd-saut { break-before: page; }
     .rgpd-doc h2 { break-after: avoid; }
 }
+
+/* Textes d'aide et de navigation (remplacent les styles inline répétés dans les pages d'administration) */
+.hint { font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0 0 12px; }
+.note { font-size: 13px; color: #6b7280; line-height: 1.5; margin: 12px 0 0; }
+.muted { color: #6b7280; }
+.toolbar { margin-bottom: 20px; }
+.retour { font-size: 14px; margin: 0 0 16px; }
+.card-hint { font-size: 14px; color: #4b5563; line-height: 1.6; }
+.card-hint p { margin: 0 0 8px; }
+.card-hint p:last-child { margin-bottom: 0; }
+.header-title small { font-size: 16px; font-weight: 400; color: #6b7280; margin-left: 6px; }
+
+/* Fiches (ex. invitation) : libellé / valeur en colonnes, commentaire riche en lecture seule */
+.fiche { display: grid; grid-template-columns: max-content 1fr; gap: 10px 24px; font-size: 15px; margin: 0 0 4px; }
+.fiche dt { font-weight: 600; color: #374151; }
+.fiche dd { margin: 0; color: #1f2937; }
+.card-titre { font-size: 16px; font-weight: 600; color: #111827; margin: 0 0 16px; }
+.contenu-riche { font-size: 15px; line-height: 1.6; color: #1f2937; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; }
+.contenu-riche h1, .contenu-riche h2, .contenu-riche h3 { font-size: 17px; font-weight: 600; margin: 0 0 8px; }
+.contenu-riche p { margin: 0 0 8px; }
+.contenu-riche p:last-child { margin-bottom: 0; }
+.contenu-riche ul, .contenu-riche ol { margin: 0 0 8px 20px; }
+.actions-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 20px; }
+.actions-bar form { margin: 0; }
