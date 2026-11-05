@@ -14,6 +14,8 @@
             <dt>Activité</dt><dd>{{ invitation.activite }}</dd>
             <dt>Date</dt><dd>{{ invitation.date|date('d/m/Y') }}</dd>
             <dt>Aptitudes conviées</dt><dd>{{ invitation.aptitudes|map(a => a.code)|join(', ') }}</dd>
+            <dt>Limite d'inscrits</dt><dd>{{ invitation.limiteInscrits ?? 'Illimité' }}</dd>
+            <dt>Liste d'attente</dt><dd>{{ invitation.limiteAttente ?? 'Aucune' }}</dd>
             <dt>Visible par</dt><dd>{{ invitation.roles|map(r => r.libelle)|join(', ') }}</dd>
             <dt>État</dt>
             <dd>
@@ -22,7 +24,7 @@
                 {% else %}<span class="badge badge-yellow">Active</span>{% endif %}
             </dd>
             <dt>Réponses</dt>
-            <dd>{{ compte.inscrits }} inscrit(s) · {{ compte.refus }} ne participe pas · {{ compte.desistements }} désistement(s) · {{ compte.sans_reponse }} sans réponse</dd>
+            <dd>{{ compte.inscrits }} inscrit(s){% if invitation.limiteInscrits %} / {{ invitation.limiteInscrits }}{% endif %} · {{ compte.liste_attente }} en liste d'attente{% if invitation.limiteAttente is not null %} / {{ invitation.limiteAttente }}{% endif %} · {{ compte.refus }} ne participe pas · {{ compte.desistements }} désistement(s) · {{ compte.sans_reponse }} sans réponse</dd>
         </dl>
     </div>
 
@@ -53,7 +55,6 @@
 
     <div class="actions-bar">
         <a class="btn btn-secondary" href="{{ path('admin_invitation_inscrits', {id: invitation.id}) }}">Voir les inscrits</a>
-        <a class="btn btn-secondary" href="{{ path('admin_invitation_interactions', {id: invitation.id}) }}">Voir les membres ayant répondu</a>
 
         {% if invitation.envoyable %}
             <form method="post" action="{{ path('admin_invitation_relancer', {id: invitation.id}) }}"

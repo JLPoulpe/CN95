@@ -4,19 +4,24 @@ namespace App\Controller\Admin;
 
 use App\Controller\PlanningController as PublicPlanningController;
 use App\Entity\Activite;
+use App\Entity\Aptitude;
 use App\Entity\PlanningCreneau;
 use App\Entity\PlanningSemaine;
+use App\Entity\User;
 use App\Form\PlanningCreneauType;
 use App\Form\PlanningDuplicationType;
 use App\Form\PlanningSemaineType;
 use App\Repository\ActiviteRepository;
 use App\Repository\PlanningCreneauRepository;
 use App\Repository\PlanningSemaineRepository;
+use App\Security\Permission;
+use App\Security\Voter\PlanningCreneauVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/planning')]
 class PlanningController extends AbstractController
@@ -41,6 +46,7 @@ class PlanningController extends AbstractController
     }
 
     #[Route('/new', name: 'admin_planning_new')]
+    #[IsGranted(Permission::CONFIG_ACTIVITES)]
     public function new(Request $request, EntityManagerInterface $em, PlanningSemaineRepository $semaines): Response
     {
         $dernier = $semaines->findOneBy([], ['lundi' => 'DESC']);
@@ -64,20 +70,28 @@ class PlanningController extends AbstractController
     #[Route('/{id}/edit', name: 'admin_planning_edit', requirements: ['id' => '\\d+'])]
     public function edit(PlanningSemaine $semaine, Request $request, EntityManagerInterface $em): Response
     {
-        $form = $this->createForm(PlanningSemaineType::class, $semaine);
-        $form->handleRequest($request);
+        // Les réglages de la semaine (DP, fermeture) restent réservés à la configuration des activités ;
+        // un moniteur n'y voit que les créneaux.
+        $complet = $this->isGranted(Permission::CONFIG_ACTIVITES);
+        $form = $complet ? $this->createForm(PlanningSemaineType::class, $semaine) : null;
+        $form?->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        if ($form?->isSubmitted() && $form->isValid()) {
             $em->flush();
             $this->addFlash('success', 'Semaine modifiée.');
 
             return $this->redirectToRoute('admin_planning_edit', ['id' => $semaine->getId()]);
         }
 
-        return $this->render('admin/planning/edit.html.twig', ['form' => $form, 'semaine' => $semaine]);
+        return $this->render('admin/planning/edit.html.twig', [
+            'form' => $form,
+            'semaine' => $semaine,
+            'peutAjouter' => $complet,
+        ]);
     }
 
     #[Route('/{id}/supprimer', name: 'admin_planning_delete', requirements: ['id' => '\\d+'], methods: ['POST'])]
+    #[IsGranted(Permission::CONFIG_ACTIVITES)]
     public function delete(PlanningSemaine $semaine, Request $request, EntityManagerInterface $em): Response
     {
         if ($this->isCsrfTokenValid('delete_semaine_'.$semaine->getId(), $request->request->getString('_token'))) {
@@ -90,6 +104,7 @@ class PlanningController extends AbstractController
     }
 
     #[Route('/{id}/dupliquer', name: 'admin_planning_duplicate', requirements: ['id' => '\\d+'])]
+    #[IsGranted(Permission::CONFIG_ACTIVITES)]
     public function duplicate(PlanningSemaine $source, Request $request, EntityManagerInterface $em, PlanningSemaineRepository $semaines): Response
     {
         $form = $this->createForm(PlanningDuplicationType::class, ['lundi' => $source->getLundi()->modify('+1 week')]);
@@ -118,8 +133,10 @@ class PlanningController extends AbstractController
     #[Route('/{id}/creneau/new', name: 'admin_planning_creneau_new', requirements: ['id' => '\\d+'])]
     public function creneauNew(PlanningSemaine $semaine, Request $request, EntityManagerInterface $em): Response
     {
+        // Ajouter un créneau est réservé à la configuration des activités ; un moniteur ne peut qu'en modifier.
+        $this->denyAccessUnlessGranted(Permission::CONFIG_ACTIVITES);
         $creneau = new PlanningCreneau();
-        $form = $this->createForm(PlanningCreneauType::class, $creneau);
+        $form = $this->createForm(PlanningCreneauType::class, $creneau, ['aptitudes_autorisees' => null]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -137,10 +154,17 @@ class PlanningController extends AbstractController
     #[Route('/creneau/{id}/edit', name: 'admin_planning_creneau_edit', requirements: ['id' => '\\d+'])]
     public function creneauEdit(PlanningCreneau $creneau, Request $request, EntityManagerInterface $em): Response
     {
-        $form = $this->createForm(PlanningCreneauType::class, $creneau);
+        $this->denyAccessUnlessGranted(PlanningCreneauVoter::GERER, $creneau);
+        $autorisees = $this->aptitudesAutorisees();
+        // Aptitudes des autres groupes : non modifiables par un moniteur, conservées à l'enregistrement
+        $horsGroupes = null === $autorisees ? [] : $this->aptitudesHorsGroupes($creneau, $autorisees);
+        $form = $this->createForm(PlanningCreneauType::class, $creneau, ['aptitudes_autorisees' => $autorisees]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            foreach ($horsGroupes as $aptitude) {
+                $creneau->addAptitude($aptitude);
+            }
             $em->flush();
             $this->addFlash('success', 'Créneau modifié.');
 
@@ -153,6 +177,7 @@ class PlanningController extends AbstractController
     #[Route('/creneau/{id}/supprimer', name: 'admin_planning_creneau_delete', requirements: ['id' => '\\d+'], methods: ['POST'])]
     public function creneauDelete(PlanningCreneau $creneau, Request $request, EntityManagerInterface $em): Response
     {
+        $this->denyAccessUnlessGranted(PlanningCreneauVoter::GERER, $creneau);
         $semaineId = $creneau->getSemaine()->getId();
         if ($this->isCsrfTokenValid('delete_creneau_'.$creneau->getId(), $request->request->getString('_token'))) {
             $em->remove($creneau);
@@ -161,5 +186,38 @@ class PlanningController extends AbstractController
         }
 
         return $this->redirectToRoute('admin_planning_edit', ['id' => $semaineId]);
+    }
+
+    /**
+     * Aptitudes du créneau qui ne font pas partie des groupes encadrés par l'utilisateur.
+     *
+     * @param list<Aptitude> $autorisees
+     *
+     * @return list<Aptitude>
+     */
+    private function aptitudesHorsGroupes(PlanningCreneau $creneau, array $autorisees): array
+    {
+        $ids = array_map(static fn (Aptitude $a) => $a->getId(), $autorisees);
+
+        return array_values(array_filter(
+            $creneau->getAptitudes()->toArray(),
+            static fn (Aptitude $a) => !in_array($a->getId(), $ids, true),
+        ));
+    }
+
+    /**
+     * Aptitudes que l'utilisateur peut attribuer à un créneau : null s'il gère tout le planning (pas de limite),
+     * sinon les groupes qu'il encadre.
+     *
+     * @return list<Aptitude>|null
+     */
+    private function aptitudesAutorisees(): ?array
+    {
+        if ($this->isGranted(Permission::CONFIG_ACTIVITES)) {
+            return null;
+        }
+        $user = $this->getUser();
+
+        return $user instanceof User ? $user->getAptitudesEncadrees()->getValues() : [];
     }
 }

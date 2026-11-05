@@ -1,25 +1,73 @@
 {% extends 'base.html.twig' %}
 {% block title %}Inscrits – {{ invitation.activite.libelle }} – CN95 Plongée{% endblock %}
-{% block body %}
-<div class="container">
-    <p class="retour"><a href="{{ path('admin_invitation_show', {id: invitation.id}) }}">← {{ invitation.activite.libelle }} du {{ invitation.date|date('d/m/Y') }}</a></p>
-    <h1 class="header-title">Inscrits – {{ invitation.activite.libelle }} du {{ invitation.date|date('d/m/Y') }}</h1>
+
+{% macro liste_principale(titre, reponses) %}
+    <h2 class="card-titre">{{ titre }} ({{ reponses|length }})</h2>
     <div class="table-wrapper">
         <table>
-            <thead><tr><th>Membre</th><th>Aptitude</th><th>Réponse</th><th>Date de réponse</th></tr></thead>
+            <thead><tr><th>Membre</th><th>Aptitude</th><th>Date d'inscription</th></tr></thead>
             <tbody>
             {% for reponse in reponses %}
                 <tr>
                     <td>{{ reponse.user.prenom }} {{ reponse.user.nom }}</td>
                     <td>{{ reponse.user.aptitude }}</td>
-                    <td>{{ reponse.statut.label }}</td>
-                    <td>{{ reponse.repondueAt ? reponse.repondueAt|date('d/m/Y H:i') : '–' }}</td>
+                    <td>{{ reponse.repondueAt|date('d/m/Y H:i') }}</td>
                 </tr>
             {% else %}
-                <tr><td colspan="4">Aucun membre ciblé.</td></tr>
+                <tr><td colspan="3">Aucun inscrit.</td></tr>
             {% endfor %}
             </tbody>
         </table>
+    </div>
+{% endmacro %}
+
+{% macro liste_attente(titre, reponses) %}
+    <h2 class="card-titre">{{ titre }} ({{ reponses|length }})</h2>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Rang</th><th>Membre</th><th>Aptitude</th><th>Date d'inscription</th></tr></thead>
+            <tbody>
+            {% for reponse in reponses %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ reponse.user.prenom }} {{ reponse.user.nom }}</td>
+                    <td>{{ reponse.user.aptitude }}</td>
+                    <td>{{ reponse.repondueAt|date('d/m/Y H:i') }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4">Personne en liste d'attente.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}
+
+{% block body %}
+<div class="container">
+    <p class="retour"><a href="{{ path('admin_invitation_show', {id: invitation.id}) }}">← {{ invitation.activite.libelle }} du {{ invitation.date|date('d/m/Y') }}</a></p>
+    <h1 class="header-title">Inscrits – {{ invitation.activite.libelle }} du {{ invitation.date|date('d/m/Y') }}</h1>
+
+    <p class="inscrits-actions"><a class="btn btn-secondary" href="{{ path('admin_invitation_export_inscrits', {id: invitation.id}) }}">Télécharger la feuille d'émargement (CSV)</a>
+        {% if is_granted('FICHE_SECU_OUVRIR', invitation) %}
+            <a class="btn" style="margin-left:12px" href="{{ path('admin_fiche_securite_show', {id: invitation.id}) }}">Fiche de sécu</a>
+        {% endif %}
+    </p>
+    <p class="hint inscrits-total">
+        Total : {{ total_principale }}{% if invitation.limiteInscrits %} / {{ invitation.limiteInscrits }}{% endif %} en liste principale,
+        {{ total_attente }}{% if invitation.limiteAttente is not null %} / {{ invitation.limiteAttente }}{% endif %} en liste d'attente.
+    </p>
+
+    <div class="inscrits-colonnes">
+        <section>
+            <h2 class="inscrits-groupe">Moniteurs / encadrants</h2>
+            {{ _self.liste_principale('Liste principale', moniteurs_principale) }}
+            <div class="inscrits-espace">{{ _self.liste_attente('Liste d\'attente', moniteurs_attente) }}</div>
+        </section>
+        <section>
+            <h2 class="inscrits-groupe">Plongeurs</h2>
+            {{ _self.liste_principale('Liste principale', plongeurs_principale) }}
+            <div class="inscrits-espace">{{ _self.liste_attente('Liste d\'attente', plongeurs_attente) }}</div>
+        </section>
     </div>
 </div>
 {% endblock %}

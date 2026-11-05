@@ -26,6 +26,9 @@ a.bandeau:hover { box-shadow: 0 4px 12px rgba(0,0,0,.15); transform: translateY(
 .form-row label, form div > label { display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 8px; }
 input[type=text], input[type=email], input[type=tel], input[type=password], select { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; font-family: inherit; }
 input:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+/* Lecture seule / désactivé : champ grisé, non modifiable, partout sur le site */
+input:not([type=checkbox]):not([type=radio]):disabled, input[readonly]:not([type=checkbox]):not([type=radio]),
+select:disabled, select[readonly], textarea:disabled, textarea[readonly] { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; cursor: not-allowed; box-shadow: none; }
 .btn { background: #3b82f6; color: #fff; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; display: inline-block; }
 .btn:hover { background: #2563eb; color: #fff; }
 .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; }
@@ -116,6 +119,8 @@ a.week-btn:hover { background: #eff6ff; color: #1f2937; }
 .choices-inline label { display: inline-flex; align-items: center; min-height: 44px; margin: 0; padding: 0 18px; border: 2px solid #d1d5db; border-radius: 22px; background: #fff; color: #374151; font-size: 15px; font-weight: 500; cursor: pointer; user-select: none; }
 .choices-inline input:checked + label { background: #3b82f6; border-color: #3b82f6; color: #fff; }
 .choices-inline input:checked + label::before { content: '✓'; margin-right: 8px; font-weight: 700; }
+.choices-inline input:disabled + label, .choices-inline input:disabled:checked + label, .choices-inline input.hors-groupe + label { background: #f3f4f6; border-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+input[type=checkbox]:disabled + label, input[type=radio]:disabled + label { color: #9ca3af; cursor: not-allowed; }
 .choices-inline input:focus-visible + label { outline: 3px solid rgba(59,130,246,.35); outline-offset: 2px; }
 
 /* Case à cocher unique : case à gauche, libellé à droite sur la même ligne */
@@ -180,3 +185,36 @@ a.week-btn:hover { background: #eff6ff; color: #1f2937; }
 .contenu-riche ul, .contenu-riche ol { margin: 0 0 8px 20px; }
 .actions-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 20px; }
 .actions-bar form { margin: 0; }
+
+/* ===== Moniteur par groupe ===== */
+.groupes { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.groupe { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); border-top: 4px solid #3b82f6; padding: 16px; }
+.groupe-titre { font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 8px; }
+.groupe ul { margin: 0; padding-left: 18px; font-size: 14px; color: #374151; }
+
+/* Page des inscrits : moniteurs et plongeurs côte à côte, empilés sur petit écran */
+.inscrits-actions { margin: 24px 0 16px; }
+.inscrits-total { margin: 0 0 40px; }
+.inscrits-colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+.inscrits-colonnes section { min-width: 0; }
+.inscrits-groupe { font-size: 20px; font-weight: 700; color: #111827; margin: 0 0 28px; }
+.inscrits-espace { margin-top: 40px; }
+.inscrits-colonnes .card-titre { margin-bottom: 12px; }
+@media (max-width: 900px) {
+    .inscrits-colonnes { grid-template-columns: 1fr; }
+}
+
+/* Fiche de sécu : palanquées et restants (glisser-déposer) */
+.fiche-palanquees { margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; align-items: start; }
+.fiche-palanquee, .fiche-restants { transition: box-shadow .15s, background .15s; }
+.fiche-palanquee.is-over, .fiche-restants.is-over { box-shadow: 0 0 0 2px #3b82f6; background: #eff6ff; }
+.fiche-alerte { box-shadow: 0 0 0 2px #f59e0b; }
+.fiche-entete { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.fiche-entete .card-titre { margin: 0; }
+.fiche-avertissement { color: #b45309; font-size: 14px; margin: 0 0 8px; }
+.fiche-liste { list-style: none; margin: 0; padding: 0; min-height: 48px; }
+.fiche-personne { display: flex; flex-direction: column; padding: 8px 10px; margin-bottom: 6px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; cursor: grab; }
+.fiche-personne.is-dragging { opacity: .4; }
+.fiche-chef { border-color: #f59e0b; background: #fffbeb; }
+.fiche-personne-info { font-size: 13px; color: #6b7280; }
+.fiche-vide { color: #9ca3af; font-size: 14px; padding: 8px 0; }

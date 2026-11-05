@@ -6,6 +6,7 @@ use App\Entity\ActiviteExterne;
 use App\Entity\InvitationFosse;
 use App\Entity\Role;
 use App\Entity\User;
+use App\Enum\StatutReponseFosse;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Symfony\Component\Validator\Violation\ConstraintViolationBuilderInterface;
@@ -85,5 +86,21 @@ class InvitationFosseTest extends TestCase
         $membre = (new User())->addUserRole($role(Role::MONITEUR))->addUserRole($role(Role::BUREAU));
 
         $this->assertTrue($invitation->estGerablePar($membre));
+    }
+
+    public function testInscriptionListePrincipaleListeAttentePuisComplet(): void
+    {
+        $invitation = (new InvitationFosse())->setLimiteInscrits(30)->setLimiteAttente(10);
+
+        $this->assertSame(StatutReponseFosse::Inscrit, $invitation->statutPourInscription(29, 0));
+        $this->assertSame(StatutReponseFosse::ListeAttente, $invitation->statutPourInscription(30, 0));
+        $this->assertSame(StatutReponseFosse::ListeAttente, $invitation->statutPourInscription(30, 9));
+        $this->assertNull($invitation->statutPourInscription(30, 10));
+    }
+
+    public function testSansLimiteToutLeMondeEstInscritEtSansListeAttenteLaListePleineEstComplete(): void
+    {
+        $this->assertSame(StatutReponseFosse::Inscrit, (new InvitationFosse())->statutPourInscription(500, 0));
+        $this->assertNull((new InvitationFosse())->setLimiteInscrits(5)->statutPourInscription(5, 0));
     }
 }

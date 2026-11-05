@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\Role;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -107,5 +108,16 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         }
 
         return $qb->getQuery()->getResult();
+    }
+
+    /** Moniteurs (rôle MONITEUR), avec les aptitudes dont ils ont la charge. @return User[] */
+    public function findMoniteurs(): array
+    {
+        return $this->createQueryBuilder('u')
+            ->addSelect('g')
+            ->join('u.userRoles', 'r')->leftJoin('u.aptitudesEncadrees', 'g')
+            ->where('r.code = :code')->setParameter('code', Role::MONITEUR)
+            ->orderBy('u.nom', 'ASC')->addOrderBy('u.prenom', 'ASC')->addOrderBy('g.ordre', 'ASC')
+            ->getQuery()->getResult();
     }
 }

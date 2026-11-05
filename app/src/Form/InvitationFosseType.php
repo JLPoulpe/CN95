@@ -13,6 +13,7 @@ use App\Repository\UserRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -30,6 +31,18 @@ class InvitationFosseType extends AbstractType
                     'widget' => 'single_text',
                     'input' => 'datetime_immutable',
                     'constraints' => [new GreaterThanOrEqual('today', message: 'La date doit être aujourd\'hui ou plus tard.')],
+                ])
+                ->add('limiteInscrits', IntegerType::class, [
+                    'label' => 'Nombre maximum d\'inscrits',
+                    'required' => false,
+                    'help' => 'Laisser vide pour ne pas limiter.',
+                    'attr' => ['min' => 1],
+                ])
+                ->add('limiteAttente', IntegerType::class, [
+                    'label' => 'Places en liste d\'attente',
+                    'required' => false,
+                    'help' => 'Nombre de personnes mises en liste d\'attente une fois la limite d\'inscrits atteinte.',
+                    'attr' => ['min' => 0],
                 ])
                 ->add('aptitudes', EntityType::class, [
                     'class' => Aptitude::class,

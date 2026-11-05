@@ -3,9 +3,11 @@
 {% block body %}
 <div class="container container-wide">
     <h1 class="header-title">Gestion du planning</h1>
+    {% if is_granted('PERM_CONFIG_ACTIVITES') %}
     <p class="toolbar">
         <a class="btn" href="{{ path('admin_planning_new') }}">Nouvelle semaine</a>
     </p>
+    {% endif %}
     {% if activites|length %}
     <div class="section">
         <div class="section-title">Voir les créneaux par activité</div>
@@ -28,12 +30,14 @@
                     <td>{{ s.dpVendredi ?? 'Identique au lundi' }}</td>
                     <td>{% if s.fermee %}<span class="badge badge-yellow">Fermée{% if s.motif %} – {{ s.motif }}{% endif %}</span>{% else %}{{ s.creneaux|length }} créneau(x){% endif %}</td>
                     <td class="actions">
-                        <a class="btn btn-sm btn-secondary" href="{{ path('admin_planning_edit', {id: s.id}) }}">Modifier</a>
+                        <a class="btn btn-sm btn-secondary" href="{{ path('admin_planning_edit', {id: s.id}) }}">{% if is_granted('PERM_CONFIG_ACTIVITES') %}Modifier{% else %}Détail{% endif %}</a>
+                        {% if is_granted('PERM_CONFIG_ACTIVITES') %}
                         <a class="btn btn-sm btn-secondary" href="{{ path('admin_planning_duplicate', {id: s.id}) }}">Dupliquer</a>
                         <form method="post" action="{{ path('admin_planning_delete', {id: s.id}) }}" onsubmit="return confirm('Supprimer cette semaine et ses créneaux ?')">
                             <input type="hidden" name="_token" value="{{ csrf_token('delete_semaine_' ~ s.id) }}">
                             <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
                         </form>
+                        {% endif %}
                     </td>
                 </tr>
             {% else %}

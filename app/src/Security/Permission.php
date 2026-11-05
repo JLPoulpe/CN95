@@ -16,6 +16,7 @@ final class Permission
     public const ACTIVITES_EXTERNES = 'PERM_ACTIVITES_EXTERNES';
     public const UTILISATEURS = 'PERM_UTILISATEURS';
     public const CONFIG_ACTIVITES = 'PERM_CONFIG_ACTIVITES';
+    public const PLANNING_GROUPES = 'PERM_PLANNING_GROUPES';
     public const CONFIG_OUTIL = 'PERM_CONFIG_OUTIL';
 
     /** Libellé affiché dans l'écran des permissions. */
@@ -25,6 +26,7 @@ final class Permission
         self::ACTIVITES_EXTERNES => 'Activités externes',
         self::UTILISATEURS => 'Gestion des utilisateurs',
         self::CONFIG_ACTIVITES => 'Configuration des activités',
+        self::PLANNING_GROUPES => 'Planning de ses groupes (créneaux des aptitudes encadrées)',
         self::CONFIG_OUTIL => 'Configuration de l\'outil',
     ];
 
@@ -35,6 +37,7 @@ final class Permission
         self::ACTIVITES_EXTERNES => [Role::BUREAU, Role::MONITEUR],
         self::UTILISATEURS => [],
         self::CONFIG_ACTIVITES => [Role::BUREAU],
+        self::PLANNING_GROUPES => [Role::MONITEUR],
         self::CONFIG_OUTIL => [],
     ];
 

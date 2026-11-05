@@ -10,7 +10,7 @@
     </form>
     <div class="table-wrapper">
         <table>
-            <thead><tr><th>Nom</th><th>Prénom</th><th>Email</th><th>Téléphone</th><th>Aptitude</th><th>Préparée</th><th>Rôles</th><th></th></tr></thead>
+            <thead><tr><th>Nom</th><th>Prénom</th><th>Email</th><th>Téléphone</th><th>Mineur</th><th>Expiration CACI</th><th>Aptitude</th><th>Préparée</th><th>Rôles</th><th></th></tr></thead>
             <tbody>
             {% for u in users %}
                 <tr>
@@ -18,13 +18,15 @@
                     <td>{{ u.prenom }}</td>
                     <td>{{ u.email }}</td>
                     <td>{{ u.telephone }}</td>
+                    <td>{% if u.estMineur %}<span style="color:#2e9e4f" title="Mineur">&#10004;</span>{% endif %}</td>
+                    <td>{% if u.caciExpireLe %}{% set caciAlerte = u.caciExpire or u.caciBientotExpire %}<span{% if caciAlerte %} style="color:#c0392b;font-weight:bold" title="{{ u.caciExpire ? 'Expiré' : 'Expire dans moins d\'un mois' }}"{% endif %}>{% if u.caciBientotExpire %}&#9888; {% endif %}{{ u.caciExpireLe|date('d/m/Y') }}</span>{% endif %}</td>
                     <td><span class="badge">{{ u.aptitude }}</span></td>
                     <td>{% if u.aptitudePreparee %}<span class="badge">{{ u.aptitudePreparee }}</span>{% endif %}</td>
                     <td>{% for r in u.userRoles %}<span class="badge">{{ r }}</span> {% endfor %}</td>
                     <td><a class="btn btn-sm btn-secondary" href="{{ path('admin_user_edit', {id: u.id}) }}">Modifier</a></td>
                 </tr>
             {% else %}
-                <tr><td colspan="8">Aucun utilisateur.</td></tr>
+                <tr><td colspan="10">Aucun utilisateur.</td></tr>
             {% endfor %}
             </tbody>
         </table>

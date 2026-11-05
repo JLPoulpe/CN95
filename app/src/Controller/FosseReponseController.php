@@ -2,11 +2,13 @@
 
 namespace App\Controller;
 
+use App\Entity\InvitationFosse;
 use App\Entity\ReponseFosse;
 use App\Enum\StatutInvitationFosse;
 use App\Enum\StatutReponseFosse;
 use App\Mail\FosseMailer;
 use App\Repository\ReponseFosseRepository;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,9 +34,7 @@ class FosseReponseController extends AbstractController
         }
 
         if ('inscription' === $choix) {
-            $this->changerStatut($reponse, StatutReponseFosse::Inscrit, $em);
-
-            return $this->afficher('Inscription enregistrée', sprintf('Vous êtes inscrit(e) à l\'activité « %s » du %s.', $libelle, $date));
+            return $this->inscrire($reponse, $reponses, $em, $libelle, $date);
         }
 
         if ('refus' === $choix) {
@@ -43,14 +43,61 @@ class FosseReponseController extends AbstractController
             return $this->afficher('Réponse enregistrée', sprintf('Nous avons bien reçu votre volonté de ne pas participer à l\'activité « %s » du %s.', $libelle, $date));
         }
 
-        if (StatutReponseFosse::Inscrit === $reponse->getStatut()) {
-            $this->changerStatut($reponse, StatutReponseFosse::Desistement, $em);
+        // Pour le membre, la liste d'attente n'existe pas : se désister depuis l'une ou l'autre liste donne le même résultat
+        if (in_array($reponse->getStatut(), [StatutReponseFosse::Inscrit, StatutReponseFosse::ListeAttente], true)) {
+            $this->desister($reponse, $reponses, $em);
             $mailer->desistementDp($reponse);
 
             return $this->afficher('Désistement enregistré', sprintf('Nous avons bien pris en compte votre désistement pour l\'activité « %s » du %s. Le responsable en a été informé.', $libelle, $date));
         }
 
         return $this->afficher('Aucune inscription', sprintf('Vous n\'étiez pas inscrit(e) à l\'activité « %s » du %s.', $libelle, $date));
+    }
+
+    /** Les 30 premiers (limite d'inscrits) vont en liste principale, les suivants en liste d'attente ; au-delà, plus de place. */
+    private function inscrire(ReponseFosse $reponse, ReponseFosseRepository $reponses, EntityManagerInterface $em, string $libelle, string $date): Response
+    {
+        $statut = $em->wrapInTransaction(function () use ($reponse, $reponses, $em): ?StatutReponseFosse {
+            // Verrou sur l'invitation : deux inscriptions simultanées ne doivent pas dépasser la limite
+            $invitation = $em->find(InvitationFosse::class, $reponse->getInvitation()->getId(), LockMode::PESSIMISTIC_WRITE);
+
+            // Déjà dans une des deux listes : on conserve sa place (un second clic ne change rien)
+            if (in_array($reponse->getStatut(), [StatutReponseFosse::Inscrit, StatutReponseFosse::ListeAttente], true)) {
+                return $reponse->getStatut();
+            }
+
+            $statut = $invitation->statutPourInscription(
+                $reponses->compter($invitation, StatutReponseFosse::Inscrit),
+                $reponses->compter($invitation, StatutReponseFosse::ListeAttente),
+            );
+            if (null !== $statut) {
+                $this->changerStatut($reponse, $statut, $em);
+            }
+
+            return $statut;
+        });
+
+        if (null === $statut) {
+            return $this->afficher('Plus de place disponible', sprintf('Il n\'y a plus de place disponible pour l\'activité « %s » du %s. Si besoin, rapprochez-vous de votre moniteur référent.', $libelle, $date));
+        }
+
+        return $this->afficher('Inscription enregistrée', sprintf('Vous avez bien été mis en attente d\'approbation à l\'activité « %s » du %s.', $libelle, $date));
+    }
+
+    /** Le désistement d'un inscrit libère une place en liste principale : le premier de la liste d'attente la prend, ce qui rouvre une place en liste d'attente. */
+    private function desister(ReponseFosse $reponse, ReponseFosseRepository $reponses, EntityManagerInterface $em): void
+    {
+        $em->wrapInTransaction(function () use ($reponse, $reponses, $em): void {
+            $invitation = $em->find(InvitationFosse::class, $reponse->getInvitation()->getId(), LockMode::PESSIMISTIC_WRITE);
+
+            $etaitInscrit = StatutReponseFosse::Inscrit === $reponse->getStatut();
+            $this->changerStatut($reponse, StatutReponseFosse::Desistement, $em);
+
+            // Seul le désistement d'un inscrit libère une place en liste principale (promotion silencieuse : aucun mail)
+            if ($etaitInscrit && null !== $suivant = $reponses->premierEnListeAttente($invitation)) {
+                $this->changerStatut($suivant, StatutReponseFosse::Inscrit, $em);
+            }
+        });
     }
 
     private function changerStatut(ReponseFosse $reponse, StatutReponseFosse $statut, EntityManagerInterface $em): void

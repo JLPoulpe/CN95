@@ -28,6 +28,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\String\Slugger\AsciiSlugger;
 
 #[Route('/admin/invitations')]
 class InvitationController extends AbstractController
@@ -213,54 +214,95 @@ class InvitationController extends AbstractController
     {
         $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
 
-        $reponses = $invitation->getReponses()->toArray();
-        usort($reponses, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getUser()->getNom(), $a->getUser()->getPrenom()] <=> [$b->getUser()->getNom(), $b->getUser()->getPrenom()]);
+        $parStatut = fn (StatutReponseFosse $statut) => array_values(array_filter($invitation->getReponses()->toArray(), fn (ReponseFosse $r) => $statut === $r->getStatut()));
+
+        // Liste principale par ordre alphabétique ; liste d'attente par ordre d'arrivée (c'est l'ordre de promotion)
+        $principale = $parStatut(StatutReponseFosse::Inscrit);
+        usort($principale, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getUser()->getNom(), $a->getUser()->getPrenom()] <=> [$b->getUser()->getNom(), $b->getUser()->getPrenom()]);
+        $attente = $parStatut(StatutReponseFosse::ListeAttente);
+        usort($attente, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getRepondueAt(), $a->getId()] <=> [$b->getRepondueAt(), $b->getId()]);
+
+        $moniteur = fn (ReponseFosse $r) => $r->getUser()->hasRole(Role::MONITEUR);
 
         return $this->render('admin/invitation/inscrits.html.twig', [
             'invitation' => $invitation,
-            'reponses' => $reponses,
+            'moniteurs_principale' => array_values(array_filter($principale, $moniteur)),
+            'moniteurs_attente' => array_values(array_filter($attente, $moniteur)),
+            'plongeurs_principale' => array_values(array_filter($principale, fn (ReponseFosse $r) => !$moniteur($r))),
+            'plongeurs_attente' => array_values(array_filter($attente, fn (ReponseFosse $r) => !$moniteur($r))),
+            'total_principale' => count($principale),
+            'total_attente' => count($attente),
         ]);
     }
 
-    #[Route('/{id}/interactions', name: 'admin_invitation_interactions', requirements: ['id' => '\\d+'])]
-    public function interactions(InvitationFosse $invitation): Response
-    {
-        $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
+    private const JOURS = ['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI', 'DIMANCHE'];
+    private const MOIS = ['JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
+    /** Nombre de lignes réservées aux moniteurs / encadrants sur la feuille (au minimum). */
+    private const PLACES_MONITEURS = 8;
+    /** Croix épaisse (gras, noire) : un CSV ne porte aucune mise en forme, le caractère la remplace. */
+    private const CROIX = '✖';
 
-        $reponses = array_values(array_filter($invitation->getReponses()->toArray(), fn (ReponseFosse $r) => $r->aRepondu()));
-        usort($reponses, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getUser()->getNom(), $a->getUser()->getPrenom()] <=> [$b->getUser()->getNom(), $b->getUser()->getPrenom()]);
-
-        return $this->render('admin/invitation/interactions.html.twig', [
-            'invitation' => $invitation,
-            'reponses' => $reponses,
-        ]);
-    }
-
-    /** Liste des seuls inscrits, au format de la feuille d'émargement de la fosse. */
+    /** Feuille d'émargement de la fosse : moniteurs, plongeurs puis liste d'attente, avec des lignes vides jusqu'à la limite. */
     #[Route('/{id}/export-inscrits', name: 'admin_invitation_export_inscrits', requirements: ['id' => '\\d+'])]
     public function exportInscrits(InvitationFosse $invitation): Response
     {
         $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
 
-        $inscrits = array_values(array_filter($invitation->getReponses()->toArray(), fn (ReponseFosse $r) => StatutReponseFosse::Inscrit === $r->getStatut()));
-        usort($inscrits, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getUser()->getNom(), $a->getUser()->getPrenom()] <=> [$b->getUser()->getNom(), $b->getUser()->getPrenom()]);
+        $parStatut = fn (StatutReponseFosse $statut) => array_values(array_filter($invitation->getReponses()->toArray(), fn (ReponseFosse $r) => $statut === $r->getStatut()));
+        $parNom = fn (ReponseFosse $a, ReponseFosse $b) => [mb_strtoupper((string) $a->getUser()->getNom()), $a->getUser()->getPrenom()] <=> [mb_strtoupper((string) $b->getUser()->getNom()), $b->getUser()->getPrenom()];
 
-        $date = $invitation->getDate()->format('d/m/Y');
+        $moniteurs = array_values(array_filter($parStatut(StatutReponseFosse::Inscrit), fn (ReponseFosse $r) => $r->getUser()->hasRole(Role::MONITEUR)));
+        $plongeurs = array_values(array_filter($parStatut(StatutReponseFosse::Inscrit), fn (ReponseFosse $r) => !$r->getUser()->hasRole(Role::MONITEUR)));
+        usort($moniteurs, $parNom);
+        usort($plongeurs, $parNom);
+        // La liste d'attente reste dans l'ordre d'arrivée
+        $attente = $parStatut(StatutReponseFosse::ListeAttente);
+        usort($attente, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getRepondueAt(), $a->getId()] <=> [$b->getRepondueAt(), $b->getId()]);
+
+        $fosse = $invitation->getDate();
+        $ligne = fn (?ReponseFosse $reponse, int|string $place) => null === $reponse
+            ? [$place, '', '', '', '', '', '']
+            : [
+                $place,
+                mb_strtoupper(trim((string) $reponse->getUser()->getNom())),
+                trim((string) $reponse->getUser()->getPrenom()),
+                (string) $reponse->getUser()->getAptitude(),
+                (string) $reponse->getUser()->getAptitudePreparee(),
+                $reponse->getUser()->estMineur($fosse) ? self::CROIX : '',
+                (string) $reponse->getUser()->getTelephone(),
+            ];
+        $vide = ['', '', '', '', '', '', ''];
+
+        $lignes = [
+            [sprintf('%s DU %s %d %s %d', mb_strtoupper($invitation->getActivite()->getLibelle()), self::JOURS[(int) $fosse->format('N') - 1], $fosse->format('j'), self::MOIS[(int) $fosse->format('n') - 1], $fosse->format('Y')), '', '', '', '', '', ''],
+            ['Places', 'Nom', 'Prénom', 'Aptitudes', 'Aptitudes préparées', 'Mineur', 'Téléphone'],
+            ['MONITEURS / ENCADRANTS', '', '', '', '', '', ''],
+        ];
+
+        // Places libres jusqu'à la limite : les premières sont réservées aux moniteurs (jusqu'à PLACES_MONITEURS lignes), le reste aux plongeurs
+        $libres = max(0, ($invitation->getLimiteInscrits() ?? 0) - count($moniteurs) - count($plongeurs));
+        $libresMoniteurs = min($libres, max(0, self::PLACES_MONITEURS - count($moniteurs)));
+
+        $place = 0;
+        for ($i = 0, $n = count($moniteurs) + $libresMoniteurs; $i < $n; ++$i) {
+            $lignes[] = $ligne($moniteurs[$i] ?? null, ++$place);
+        }
+
+        $lignes[] = ['PLONGEURS', '', '', '', '', '', ''];
+        for ($i = 0, $n = count($plongeurs) + $libres - $libresMoniteurs; $i < $n; ++$i) {
+            $lignes[] = $ligne($plongeurs[$i] ?? null, ++$place);
+        }
+
+        $lignes[] = ['PLONGEURS EN LISTE D\'ATTENTE', '', '', '', '', '', ''];
+        $nbAttente = max(count($attente), $invitation->getLimiteAttente() ?? 0);
+        for ($i = 0; $i < $nbAttente; ++$i) {
+            $lignes[] = isset($attente[$i]) ? $ligne($attente[$i], '') : $vide;
+        }
+
         $handle = fopen('php://temp', 'r+');
         fwrite($handle, "\xEF\xBB\xBF"); // BOM : accents corrects à l'ouverture dans Excel
-        fputcsv($handle, [sprintf('FOSSE DU %s – %s', mb_strtoupper($invitation->getActivite()->getLibelle()), $date)]);
-        fputcsv($handle, []);
-        fputcsv($handle, ['N°', 'Nom', 'Prénom', 'Aptitude', 'Aptitude préparée', 'Téléphone']);
-        foreach ($inscrits as $index => $reponse) {
-            $user = $reponse->getUser();
-            fputcsv($handle, [
-                $index + 1,
-                trim((string) $user->getNom()),
-                trim((string) $user->getPrenom()),
-                (string) $user->getAptitude(),
-                (string) $user->getAptitudePreparee(),
-                (string) $user->getTelephone(),
-            ]);
+        foreach ($lignes as $champs) {
+            fputcsv($handle, $champs, ',', '"', '', "\r\n");
         }
         rewind($handle);
         $contenu = stream_get_contents($handle);
@@ -270,7 +312,7 @@ class InvitationController extends AbstractController
         $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
         $response->headers->set('Content-Disposition', $response->headers->makeDisposition(
             ResponseHeaderBag::DISPOSITION_ATTACHMENT,
-            sprintf('inscrits-%d-%s.csv', $invitation->getId(), $invitation->getDate()->format('Y-m-d')),
+            sprintf('%s_%s.csv', (new AsciiSlugger())->slug((string) $invitation->getActivite()->getLibelle(), '_'), $invitation->getDate()->format('Y-m-d')),
         ));
 
         return $response;
@@ -344,14 +386,15 @@ class InvitationController extends AbstractController
         return array_values(array_map(fn (Role $role) => $role->getCode(), $utilisateur->getUserRoles()->toArray()));
     }
 
-    /** @return array{sans_reponse: int, inscrits: int, refus: int, desistements: int} */
+    /** @return array{sans_reponse: int, inscrits: int, liste_attente: int, refus: int, desistements: int} */
     private function compter(InvitationFosse $invitation): array
     {
-        $compte = ['sans_reponse' => 0, 'inscrits' => 0, 'refus' => 0, 'desistements' => 0];
+        $compte = ['sans_reponse' => 0, 'inscrits' => 0, 'liste_attente' => 0, 'refus' => 0, 'desistements' => 0];
         foreach ($invitation->getReponses() as $reponse) {
             match ($reponse->getStatut()) {
                 StatutReponseFosse::EnAttente => ++$compte['sans_reponse'],
                 StatutReponseFosse::Inscrit => ++$compte['inscrits'],
+                StatutReponseFosse::ListeAttente => ++$compte['liste_attente'],
                 StatutReponseFosse::Refus => ++$compte['refus'],
                 StatutReponseFosse::Desistement => ++$compte['desistements'],
             };

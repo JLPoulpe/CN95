@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+{% block title %}Moniteur par groupe – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container container-wide">
+    <h1 class="header-title">Moniteur par groupe</h1>
+
+    <div class="groupes">
+        {% for g in groupes %}
+            <div class="groupe">
+                <div class="groupe-titre">{{ g.aptitude.code }}</div>
+                {% if g.moniteurs %}
+                    <ul>{% for m in g.moniteurs %}<li>{{ m.username }}</li>{% endfor %}</ul>
+                {% else %}
+                    <p class="note">Aucun moniteur</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Nom</th><th>Prénom</th><th>Aptitudes</th><th></th></tr></thead>
+            <tbody>
+            {% for m in moniteurs %}
+                <tr>
+                    <td><strong>{{ m.nom }}</strong></td>
+                    <td>{{ m.prenom }}</td>
+                    <td>{% for a in m.aptitudesEncadrees %}<span class="badge">{{ a }}</span> {% endfor %}</td>
+                    <td><a class="btn btn-sm btn-secondary" href="{{ path('admin_moniteur_edit', {id: m.id}) }}">Éditer</a></td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4">Aucun moniteur (attribuer le rôle Moniteur depuis la gestion des utilisateurs).</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

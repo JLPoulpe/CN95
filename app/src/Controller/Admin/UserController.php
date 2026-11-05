@@ -40,6 +40,16 @@ class UserController extends AbstractController
         $form = $this->createForm(UserType::class, $user);
         $form->handleRequest($request);
 
+        if ($form->isSubmitted() && $form->isValid() && $user->estCompteLocal()) {
+            // Compte local : pas de mail, le mot de passe initial est l'identifiant, compte utilisable immédiatement
+            $user->setPassword($hasher->hashPassword($user, $user->getUserIdentifier()));
+            $em->persist($user);
+            $em->flush();
+            $this->addFlash('success', 'Utilisateur créé (compte local). Mot de passe initial : son identifiant. Aucun mail envoyé.');
+
+            return $this->redirectToRoute('admin_user_index');
+        }
+
         if ($form->isSubmitted() && $form->isValid()) {
             // Mot de passe aléatoire inutilisable : le compte ne se connecte qu'après activation
             $user->setPassword($hasher->hashPassword($user, bin2hex(random_bytes(32))));

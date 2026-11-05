@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Repository\AptitudeRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -25,6 +26,8 @@ class UserType extends AbstractType
             ->add('prenom', null, ['label' => 'Prénom'])
             ->add('email', EmailType::class)
             ->add('telephone', TelType::class, ['label' => 'Téléphone', 'required' => false])
+            ->add('dateNaissance', DateType::class, ['label' => 'Date de naissance', 'required' => false, 'widget' => 'single_text', 'input' => 'datetime_immutable'])
+            ->add('caciExpireLe', DateType::class, ['label' => 'Expiration du CACI', 'required' => false, 'widget' => 'single_text', 'input' => 'datetime_immutable'])
             ->add('aptitude', EntityType::class, [
                 'class' => Aptitude::class,
                 'query_builder' => $ordered,

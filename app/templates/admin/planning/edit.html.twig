@@ -3,6 +3,7 @@
 {% block body %}
 <div class="container">
     <h1 class="header-title">Semaine S{{ semaine.lundi|date('W') }} <small>({{ semaine.lundi|date('d/m/Y') }})</small></h1>
+    {% if form %}
     <div class="card">
         {{ form_start(form) }}
             {{ form_widget(form) }}
@@ -10,10 +11,13 @@
             <a href="{{ path('admin_planning_index') }}" style="margin-left:12px">Retour</a>
         {{ form_end(form) }}
     </div>
+    {% else %}
+    <p class="retour"><a href="{{ path('admin_planning_index') }}">← Gestion du planning</a></p>
+    {% endif %}
 
     <div class="section">
         <div class="section-title">Créneaux</div>
-        <p class="toolbar"><a class="btn" href="{{ path('admin_planning_creneau_new', {id: semaine.id}) }}">Ajouter un créneau</a></p>
+        {% if peutAjouter %}<p class="toolbar"><a class="btn" href="{{ path('admin_planning_creneau_new', {id: semaine.id}) }}">Ajouter un créneau</a></p>{% endif %}
         {% for c in semaine.creneaux %}
             <div class="creneau">
                 <div class="creneau-main">
@@ -25,6 +29,7 @@
                     {% if c.lignes|length %}<span class="lignes">Lignes {{ c.lignesLabel }}</span>{% endif %}
                     {% for a in c.aptitudes %}<span class="apt apt-{{ a.code }}">{{ a.code }}</span>{% else %}<span class="apt apt-tous">Tous niveaux</span>{% endfor %}
                 </div>
+                {% if is_granted('PLANNING_CRENEAU_GERER', c) %}
                 <div class="actions">
                     <a class="btn btn-sm btn-secondary" href="{{ path('admin_planning_creneau_edit', {id: c.id}) }}">Modifier</a>
                     <form method="post" action="{{ path('admin_planning_creneau_delete', {id: c.id}) }}" onsubmit="return confirm('Supprimer ce créneau ?')">
@@ -32,6 +37,7 @@
                         <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
                     </form>
                 </div>
+                {% endif %}
             </div>
         {% else %}
             <p class="muted">Aucun créneau.</p>

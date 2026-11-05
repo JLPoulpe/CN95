@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Enum\StatutInvitationFosse;
+use App\Enum\StatutReponseFosse;
 use App\Repository\InvitationFosseRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -61,6 +62,16 @@ class InvitationFosse
     #[ORM\JoinTable(name: 'invitation_fosse_role')]
     #[Assert\Count(min: 1, minMessage: 'Choisir au moins un rôle.')]
     private Collection $roles;
+
+    /** Nombre maximum d'inscrits (null = illimité). */
+    #[ORM\Column(nullable: true)]
+    #[Assert\Positive(message: 'La limite d\'inscrits doit être supérieure à 0.')]
+    private ?int $limiteInscrits = null;
+
+    /** Nombre de places en liste d'attente, une fois la limite d'inscrits atteinte (null = pas de liste d'attente). */
+    #[ORM\Column(nullable: true)]
+    #[Assert\PositiveOrZero(message: 'Le nombre de places en liste d\'attente ne peut pas être négatif.')]
+    private ?int $limiteAttente = null;
 
     /** Date de création de l'invitation, utilisée par la purge annuelle (app:rgpd:purger). */
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, options: ['default' => 'CURRENT_TIMESTAMP'])]
@@ -206,6 +217,48 @@ class InvitationFosse
     public function isEnvoyable(): bool
     {
         return !$this->isAnnulee() && !$this->isPassee();
+    }
+
+    public function getLimiteInscrits(): ?int
+    {
+        return $this->limiteInscrits;
+    }
+
+    public function setLimiteInscrits(?int $limiteInscrits): static
+    {
+        $this->limiteInscrits = $limiteInscrits;
+
+        return $this;
+    }
+
+    public function getLimiteAttente(): ?int
+    {
+        return $this->limiteAttente;
+    }
+
+    public function setLimiteAttente(?int $limiteAttente): static
+    {
+        $this->limiteAttente = $limiteAttente;
+
+        return $this;
+    }
+
+    /**
+     * Statut attribué à une nouvelle inscription : liste principale tant que la limite n'est pas atteinte, puis liste d'attente.
+     *
+     * @return StatutReponseFosse|null Null quand les deux listes sont pleines
+     */
+    public function statutPourInscription(int $inscrits, int $enAttente): ?StatutReponseFosse
+    {
+        if (null === $this->limiteInscrits || $inscrits < $this->limiteInscrits) {
+            return StatutReponseFosse::Inscrit;
+        }
+
+        if ($enAttente < ($this->limiteAttente ?? 0)) {
+            return StatutReponseFosse::ListeAttente;
+        }
+
+        return null;
     }
 
     /** @return Collection<int, ReponseFosse> */

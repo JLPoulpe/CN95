@@ -18,6 +18,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[UniqueEntity(fields: ['email'], message: 'Cet email est déjà utilisé.')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    public const DOMAINE_COMPTE_LOCAL = 'cn95.local';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -39,6 +41,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $telephone = null;
 
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $dateNaissance = null;
+
+    /** Date d'expiration du certificat médical (CACI). */
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $caciExpireLe = null;
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull]
@@ -46,6 +55,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\ManyToOne]
     private ?Aptitude $aptitudePreparee = null;
+
+    /**
+     * Aptitudes préparées dont ce moniteur a la charge (groupes encadrés).
+     *
+     * @var Collection<int, Aptitude>
+     */
+    #[ORM\ManyToMany(targetEntity: Aptitude::class)]
+    #[ORM\JoinTable(name: 'user_aptitude_encadree')]
+    #[ORM\OrderBy(['ordre' => 'ASC'])]
+    private Collection $aptitudesEncadrees;
 
     #[ORM\Column(length: 180, unique: true)]
     #[Assert\NotBlank]
@@ -73,6 +92,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __construct()
     {
         $this->userRoles = new ArrayCollection();
+        $this->aptitudesEncadrees = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -122,6 +142,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /** Compte local (domaine cn95.local) : pas de mail d'activation, mot de passe = identifiant. */
+    public function estCompteLocal(): bool
+    {
+        $domaine = strtolower(substr((string) strrchr((string) $this->email, '@'), 1));
+
+        return self::DOMAINE_COMPTE_LOCAL === $domaine;
+    }
+
     public function getTelephone(): ?string
     {
         return $this->telephone;
@@ -132,6 +160,55 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->telephone = $telephone;
 
         return $this;
+    }
+
+    public function getDateNaissance(): ?\DateTimeImmutable
+    {
+        return $this->dateNaissance;
+    }
+
+    public function setDateNaissance(?\DateTimeImmutable $dateNaissance): static
+    {
+        $this->dateNaissance = $dateNaissance;
+
+        return $this;
+    }
+
+    public function getCaciExpireLe(): ?\DateTimeImmutable
+    {
+        return $this->caciExpireLe;
+    }
+
+    public function setCaciExpireLe(?\DateTimeImmutable $caciExpireLe): static
+    {
+        $this->caciExpireLe = $caciExpireLe;
+
+        return $this;
+    }
+
+    /** Mineur (< 18 ans) à la date donnée (aujourd'hui par défaut). Faux si date de naissance inconnue. */
+    public function estMineur(?\DateTimeImmutable $quand = null): bool
+    {
+        if (null === $this->dateNaissance) {
+            return false;
+        }
+
+        return $this->dateNaissance->modify('+18 years') > ($quand ?? new \DateTimeImmutable('today'));
+    }
+
+    public function caciExpire(?\DateTimeImmutable $quand = null): bool
+    {
+        return null !== $this->caciExpireLe && $this->caciExpireLe < ($quand ?? new \DateTimeImmutable('today'));
+    }
+
+    /** CACI encore valide mais expirant dans moins d'un mois. */
+    public function caciBientotExpire(?\DateTimeImmutable $quand = null): bool
+    {
+        $quand ??= new \DateTimeImmutable('today');
+
+        return null !== $this->caciExpireLe
+            && !$this->caciExpire($quand)
+            && $this->caciExpireLe < $quand->modify('+1 month');
     }
 
     public function getAptitude(): ?Aptitude
@@ -154,6 +231,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setAptitudePreparee(?Aptitude $aptitudePreparee): static
     {
         $this->aptitudePreparee = $aptitudePreparee;
+
+        return $this;
+    }
+
+    /** @return Collection<int, Aptitude> */
+    public function getAptitudesEncadrees(): Collection
+    {
+        return $this->aptitudesEncadrees;
+    }
+
+    public function addAptitudesEncadree(Aptitude $aptitude): static
+    {
+        if (!$this->aptitudesEncadrees->contains($aptitude)) {
+            $this->aptitudesEncadrees->add($aptitude);
+        }
+
+        return $this;
+    }
+
+    public function removeAptitudesEncadree(Aptitude $aptitude): static
+    {
+        $this->aptitudesEncadrees->removeElement($aptitude);
 
         return $this;
     }
@@ -219,6 +318,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return false;
     }
 
+    /** Un créneau est gérable par groupe dès qu'une de ses aptitudes fait partie des groupes encadrés. */
+    public function encadreUneAptitudeDe(PlanningCreneau $creneau): bool
+    {
+        foreach ($creneau->getAptitudes() as $aptitude) {
+            if ($this->aptitudesEncadrees->contains($aptitude)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function getNomComplet(): string
     {
         return trim($this->prenom.' '.$this->nom);
@@ -277,7 +388,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __serialize(): array
     {
         $data = (array) $this;
-        unset($data["\0".self::class."\0userRoles"]);
+        unset($data["\0".self::class."\0userRoles"], $data["\0".self::class."\0aptitudesEncadrees"]);
         $data["\0".self::class."\0password"] = hash('crc32c', (string) $this->password);
 
         return $data;

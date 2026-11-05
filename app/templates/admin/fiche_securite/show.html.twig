@@ -1,0 +1,89 @@
+{% extends 'base.html.twig' %}
+{% block title %}Fiche de sécu – {{ invitation.activite.libelle }} – CN95 Plongée{% endblock %}
+
+{% macro personne(user, invitation) %}
+    <li class="fiche-personne" draggable="true" data-user-id="{{ user.id }}" data-action="dragstart->fiche-securite#debut dragend->fiche-securite#fin">
+        <span class="fiche-personne-nom">{{ user.prenom }} {{ user.nom }}</span>
+        <span class="fiche-personne-info">{{ user.aptitude }}{% if user.aptitudePreparee %} → {{ user.aptitudePreparee }}{% endif %}{% if user.estMineur(invitation.date) %} · mineur{% endif %}</span>
+    </li>
+{% endmacro %}
+
+{% block body %}
+<div class="container"
+     data-controller="fiche-securite"
+     data-fiche-securite-url-value="{{ path('admin_fiche_securite_deplacer', {id: invitation.id}) }}"
+     data-fiche-securite-token-value="{{ csrf_token('fiche_securite_' ~ invitation.id) }}">
+    <p class="retour"><a href="{{ path('admin_invitation_inscrits', {id: invitation.id}) }}">← Inscrits – {{ invitation.activite.libelle }} du {{ invitation.date|date('d/m/Y') }}</a></p>
+    <h1 class="header-title">Fiche de sécu – {{ invitation.activite.libelle }} du {{ invitation.date|date('d/m/Y') }}</h1>
+
+    <p class="hint">
+        {{ nb_inscrits }} inscrit(s) en liste principale · {{ fiche.palanquees|length }} palanquée(s).
+        Une palanquée compte 5 personnes : un moniteur (chef de palanquée) et 4 accompagnants.
+        Glissez-déposez une personne pour la changer de palanquée ; les modifications sont enregistrées automatiquement.
+    </p>
+    <div class="actions-bar">
+        <form method="post" action="{{ path('admin_fiche_securite_ajouter', {id: invitation.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('fiche_securite_' ~ invitation.id) }}">
+            <button class="btn" type="submit">Ajouter une palanquée</button>
+        </form>
+        <form method="post" action="{{ path('admin_fiche_securite_synchroniser', {id: invitation.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('fiche_securite_' ~ invitation.id) }}">
+            <button class="btn btn-secondary" type="submit">Mettre à jour depuis les inscrits</button>
+        </form>
+    </div>
+
+    <div data-fiche-securite-target="plateau">
+        <div class="fiche-palanquees">
+            {% for palanquee in fiche.palanquees %}
+                <section class="card fiche-palanquee{% if palanquee.avertissements %} fiche-alerte{% endif %}"
+                         data-fiche-securite-target="zone" data-palanquee-id="{{ palanquee.id }}"
+                         data-action="dragover->fiche-securite#survol dragleave->fiche-securite#sortie drop->fiche-securite#depot">
+                    <div class="fiche-entete">
+                        <h2 class="card-titre">Palanquée {{ palanquee.numero }} <span class="muted">({{ palanquee.membres|length }} / 5)</span></h2>
+                        <form method="post" action="{{ path('admin_fiche_securite_supprimer', {id: invitation.id, palanqueeId: palanquee.id}) }}"
+                              onsubmit="return confirm('Supprimer cette palanquée ? Ses membres retournent dans les restants.')">
+                            <input type="hidden" name="_token" value="{{ csrf_token('fiche_securite_' ~ invitation.id) }}">
+                            <button class="btn btn-sm btn-danger" type="submit" aria-label="Supprimer la palanquée {{ palanquee.numero }}">Supprimer</button>
+                        </form>
+                    </div>
+                    {% for message in palanquee.avertissements %}<p class="fiche-avertissement">⚠ {{ message }}</p>{% endfor %}
+                    <ul class="fiche-liste">
+                        {% for membre in palanquee.membresOrdonnes %}
+                            <li class="fiche-personne{% if membre.user is same as palanquee.chef %} fiche-chef{% endif %}" draggable="true" data-user-id="{{ membre.user.id }}"
+                                data-action="dragstart->fiche-securite#debut dragend->fiche-securite#fin">
+                                <span class="fiche-personne-nom">
+                                    {% if membre.user is same as palanquee.chef %}<span class="badge badge-yellow">Chef</span>{% endif %}
+                                    {{ membre.user.prenom }} {{ membre.user.nom }}
+                                </span>
+                                <span class="fiche-personne-info">{{ membre.user.aptitude }}{% if membre.user.aptitudePreparee %} → {{ membre.user.aptitudePreparee }}{% endif %}{% if membre.user.estMineur(invitation.date) %} · mineur{% endif %}</span>
+                            </li>
+                        {% else %}
+                            <li class="fiche-vide">Déposez ici une personne.</li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% else %}
+                <p class="muted">Aucune palanquée : aucun moniteur n'est inscrit. Ajoutez-en une pour commencer.</p>
+            {% endfor %}
+        </div>
+
+        <div class="inscrits-colonnes" style="margin-top:32px">
+            <section class="card fiche-restants" data-fiche-securite-target="zone" data-palanquee-id=""
+                     data-action="dragover->fiche-securite#survol dragleave->fiche-securite#sortie drop->fiche-securite#depot">
+                <h2 class="card-titre">Moniteurs restants ({{ restants.moniteurs|length }})</h2>
+                <ul class="fiche-liste">
+                    {% for user in restants.moniteurs %}{{ _self.personne(user, invitation) }}{% else %}<li class="fiche-vide">Aucun moniteur restant.</li>{% endfor %}
+                </ul>
+            </section>
+            <section class="card fiche-restants" data-fiche-securite-target="zone" data-palanquee-id=""
+                     data-action="dragover->fiche-securite#survol dragleave->fiche-securite#sortie drop->fiche-securite#depot">
+                <h2 class="card-titre">Adhérents restants ({{ restants.adherents|length }})</h2>
+                <ul class="fiche-liste">
+                    {% for user in restants.adherents %}{{ _self.personne(user, invitation) }}{% else %}<li class="fiche-vide">Aucun adhérent restant.</li>{% endfor %}
+                </ul>
+            </section>
+        </div>
+    </div>
+    <div class="alert" data-fiche-securite-target="erreur" hidden role="alert"></div>
+</div>
+{% endblock %}

@@ -79,9 +79,4 @@ class ReponseFosse
     {
         return $this->repondueAt;
     }
-
-    public function aRepondu(): bool
-    {
-        return StatutReponseFosse::EnAttente !== $this->statut;
-    }
 }

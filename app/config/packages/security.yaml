@@ -41,7 +41,8 @@ security:
     access_control:
         - { path: ^/admin/invitations, allow_if: "is_granted('PERM_INVITATIONS') or is_granted('PERM_ACTIVITES_EXTERNES')" }
         - { path: ^/admin/communications, roles: PERM_COMMUNICATION }
-        - { path: ^/admin/(aptitudes|activites|activites-externes|lignes-eau|planning), allow_if: "is_granted('PERM_CONFIG_ACTIVITES')" }
+        - { path: ^/admin/planning, allow_if: "is_granted('PERM_CONFIG_ACTIVITES') or is_granted('PERM_PLANNING_GROUPES')" }
+        - { path: ^/admin/(aptitudes|activites|activites-externes|lignes-eau), allow_if: "is_granted('PERM_CONFIG_ACTIVITES')" }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/membre, roles: ROLE_USER }
 
