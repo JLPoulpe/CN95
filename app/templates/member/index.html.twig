@@ -7,7 +7,7 @@
 <div class="container">
     <details class="section"{{ ouvrir ? ' open' : '' }}>
         <summary class="section-title">Planning</summary>
-        {{ m.item('📅', 'Planning des entraînements', 'Lundi et vendredi : lieux, lignes d\'eau et aptitudes', path('app_planning')) }}
+        {{ m.item('📅', 'Planning des entraînements', 'Lundi et vendredi : lieux et aptitudes', path('app_planning')) }}
     </details>
     {% set ouvrir = false %}
 
@@ -21,15 +21,13 @@
     {% set ouvrir = false %}
     {% endif %}
 
-    {% if is_granted('PERM_ACTIVITES_EXTERNES') or is_granted('PERM_COMMUNICATION') or is_granted('PERM_PLANNING_GROUPES') %}
+    {% if is_granted('PERM_ACTIVITES_EXTERNES') or is_granted('PERM_COMMUNICATION') or (is_granted('PERM_PLANNING_GROUPES') and not is_granted('PERM_CONFIG_ACTIVITES')) %}
     <details class="section"{{ ouvrir ? ' open' : '' }}>
         <summary class="section-title">Communication</summary>
         {% if is_granted('PERM_ACTIVITES_EXTERNES') %}
             {{ m.item('📋', 'Activités externes', 'Consulter et gérer les invitations par activité', path('admin_invitation_index_defaut')) }}
         {% endif %}
-        {% if is_granted('PERM_CONFIG_ACTIVITES') %}
-            {{ m.item('📅', 'Gestion du planning', 'Créer, modifier et dupliquer les semaines', path('admin_planning_index')) }}
-        {% elseif is_granted('PERM_PLANNING_GROUPES') %}
+        {% if is_granted('PERM_PLANNING_GROUPES') and not is_granted('PERM_CONFIG_ACTIVITES') %}
             {{ m.item('📅', 'Gestion du planning', 'Modifier les créneaux de vos groupes', path('admin_planning_index')) }}
         {% endif %}
         {% if is_granted('PERM_COMMUNICATION') %}
@@ -43,10 +41,9 @@
     {% if is_granted('PERM_CONFIG_ACTIVITES') %}
     <details class="section"{{ ouvrir ? ' open' : '' }}>
         <summary class="section-title">Configuration des activités</summary>
-        {{ m.item('🎓', 'Gestion des aptitudes', 'Créer, modifier et supprimer les aptitudes', path('admin_aptitude_index')) }}
+        {{ m.item('📅', 'Gestion du planning', 'Créer, modifier et dupliquer les semaines', path('admin_planning_index')) }}
         {{ m.item('🏊', 'Gestion des activités', 'Créer, modifier et supprimer les activités du planning', path('admin_activite_index')) }}
         {{ m.item('🤿', 'Activités externes', 'Créer et modifier les activités externes (fosse, sorties…)', path('admin_activite_externe_index')) }}
-        {{ m.item('🌊', 'Lignes d\'eau', 'Gérer les lignes d\'eau par bassin', path('admin_ligne_eau_index')) }}
     </details>
     {% set ouvrir = false %}
     {% endif %}
@@ -61,11 +58,17 @@
     {% set ouvrir = false %}
     {% endif %}
 
-    {% if is_granted('PERM_CONFIG_OUTIL') %}
+    {% if is_granted('PERM_CONFIG_OUTIL') or is_granted('PERM_CONFIG_ACTIVITES') %}
     <details class="section"{{ ouvrir ? ' open' : '' }}>
         <summary class="section-title">⚠️ Configuration de l'outil</summary>
-        {{ m.item('✉️', 'Configuration des mails', 'Choisir le système d\'envoi et ses paramètres', path('admin_mail_config')) }}
-        {{ m.item('🔐', 'Permissions', 'Choisir quels rôles accèdent à quelles fonctionnalités', path('admin_permission_index')) }}
+        {% if is_granted('PERM_CONFIG_ACTIVITES') %}
+            {{ m.item('🎓', 'Gestion des aptitudes', 'Créer, modifier et supprimer les aptitudes', path('admin_aptitude_index')) }}
+            {{ m.item('🌊', 'Lieux d\'activité', 'Gérer les lieux : lignes des bassins, salles, bureau…', path('admin_lieu_activite_index')) }}
+        {% endif %}
+        {% if is_granted('PERM_CONFIG_OUTIL') %}
+            {{ m.item('✉️', 'Configuration des mails', 'Choisir le système d\'envoi et ses paramètres', path('admin_mail_config')) }}
+            {{ m.item('🔐', 'Permissions', 'Choisir quels rôles accèdent à quelles fonctionnalités', path('admin_permission_index')) }}
+        {% endif %}
     </details>
     {% set ouvrir = false %}
     {% endif %}

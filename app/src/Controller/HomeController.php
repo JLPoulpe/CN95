@@ -22,7 +22,7 @@ class HomeController extends AbstractController
             'lundi' => $lundi,
             'semaine' => $semaine,
             'jours' => $vue->jours($semaine, $lundi),
-            'aptitudes' => $aptitudes->findBy([], ['ordre' => 'ASC']),
+            'aptitudes' => $aptitudes->findVisibles(),
         ]);
     }
 }

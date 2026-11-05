@@ -16,6 +16,12 @@ class AptitudeRepository extends ServiceEntityRepository
         parent::__construct($registry, Aptitude::class);
     }
 
+    /** @return list<Aptitude> */
+    public function findVisibles(): array
+    {
+        return $this->findBy(['visible' => true], ['ordre' => 'ASC']);
+    }
+
     /**
      * Nombre de références (utilisateurs et créneaux) vers cette aptitude.
      */

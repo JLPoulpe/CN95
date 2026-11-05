@@ -43,7 +43,7 @@ class PlanningSemaine
 
     /** @var Collection<int, PlanningCreneau> */
     #[ORM\OneToMany(targetEntity: PlanningCreneau::class, mappedBy: 'semaine', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    #[ORM\OrderBy(['jour' => 'ASC', 'lieu' => 'ASC', 'id' => 'ASC'])]
+    #[ORM\OrderBy(['jour' => 'ASC', 'id' => 'ASC'])]
     #[Assert\Valid]
     private Collection $creneaux;
 

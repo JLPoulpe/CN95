@@ -3,13 +3,11 @@
 namespace App\Entity;
 
 use App\Enum\Jour;
-use App\Enum\Lieu;
 use App\Repository\PlanningCreneauRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: PlanningCreneauRepository::class)]
 class PlanningCreneau
@@ -27,15 +25,12 @@ class PlanningCreneau
     #[Assert\NotNull]
     private ?Jour $jour = null;
 
-    #[ORM\Column(enumType: Lieu::class, length: 20)]
-    #[Assert\NotNull]
-    private ?Lieu $lieu = null;
-
-    /** @var Collection<int, LigneEau> */
-    #[ORM\ManyToMany(targetEntity: LigneEau::class)]
-    #[ORM\JoinTable(name: 'planning_creneau_ligne_eau')]
-    #[ORM\OrderBy(['numero' => 'ASC'])]
-    private Collection $lignes;
+    /** @var Collection<int, LieuActivite> */
+    #[ORM\ManyToMany(targetEntity: LieuActivite::class)]
+    #[ORM\JoinTable(name: 'planning_creneau_lieu_activite')]
+    #[ORM\OrderBy(['ordre' => 'ASC', 'groupe' => 'ASC', 'nom' => 'ASC'])]
+    #[Assert\Count(min: 1, minMessage: 'Choisir au moins un lieu.')]
+    private Collection $lieux;
 
     /** @var Collection<int, Activite> */
     #[ORM\ManyToMany(targetEntity: Activite::class)]
@@ -57,18 +52,7 @@ class PlanningCreneau
     {
         $this->aptitudes = new ArrayCollection();
         $this->activites = new ArrayCollection();
-        $this->lignes = new ArrayCollection();
-    }
-
-    #[Assert\Callback]
-    public function validate(ExecutionContextInterface $context): void
-    {
-        foreach ($this->lignes as $ligne) {
-            if ($ligne->getLieu() !== $this->lieu) {
-                $context->buildViolation('Les lignes doivent appartenir au lieu du créneau.')->atPath('lignes')->addViolation();
-                break;
-            }
-        }
+        $this->lieux = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -100,43 +84,53 @@ class PlanningCreneau
         return $this;
     }
 
-    public function getLieu(): ?Lieu
+    /** @return Collection<int, LieuActivite> */
+    public function getLieux(): Collection
     {
-        return $this->lieu;
+        return $this->lieux;
     }
 
-    public function setLieu(?Lieu $lieu): static
+    public function addLieu(LieuActivite $lieu): static
     {
-        $this->lieu = $lieu;
-
-        return $this;
-    }
-
-    /** @return Collection<int, LigneEau> */
-    public function getLignes(): Collection
-    {
-        return $this->lignes;
-    }
-
-    public function addLigne(LigneEau $ligne): static
-    {
-        if (!$this->lignes->contains($ligne)) {
-            $this->lignes->add($ligne);
+        if (!$this->lieux->contains($lieu)) {
+            $this->lieux->add($lieu);
         }
 
         return $this;
     }
 
-    public function removeLigne(LigneEau $ligne): static
+    public function removeLieu(LieuActivite $lieu): static
     {
-        $this->lignes->removeElement($ligne);
+        $this->lieux->removeElement($lieu);
 
         return $this;
     }
 
-    public function getLignesLabel(): string
+    /** Groupes concernés, dans l'ordre d'affichage (le plus petit « ordre » de chaque groupe fait foi). @return list<string> */
+    public function getGroupes(): array
     {
-        return implode('/', array_map(fn (LigneEau $l) => (string) $l->getNumero(), $this->lignes->toArray()));
+        $groupes = [];
+        foreach ($this->lieux as $l) {
+            $groupes[$l->getGroupe()] = min($groupes[$l->getGroupe()] ?? PHP_INT_MAX, $l->getOrdre());
+        }
+        asort($groupes);
+
+        return array_map('strval', array_keys($groupes));
+    }
+
+    /** @return list<LieuActivite> */
+    public function getLieuxDuGroupe(string $groupe): array
+    {
+        return array_values($this->lieux->filter(fn (LieuActivite $l) => $l->getGroupe() === $groupe)->toArray());
+    }
+
+    /** Libellé complet, ex. « Petit bassin : Ligne 1, Ligne 2 · Salles : Bureau ». */
+    public function getLieuxLabel(): string
+    {
+        return implode(' · ', array_map(
+            fn (string $g) => $g.' : '.implode(', ', array_map(fn (LieuActivite $l) => $l->getNom(), $this->getLieuxDuGroupe($g))),
+            $this->getGroupes(),
+        ));
     }
 
     /** @return Collection<int, Activite> */
@@ -206,6 +200,6 @@ class PlanningCreneau
         $this->semaine = null;
         $this->aptitudes = new ArrayCollection($this->aptitudes->toArray());
         $this->activites = new ArrayCollection($this->activites->toArray());
-        $this->lignes = new ArrayCollection($this->lignes->toArray());
+        $this->lieux = new ArrayCollection($this->lieux->toArray());
     }
 }

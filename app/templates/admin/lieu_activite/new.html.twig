@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouveau lieu d'activité – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Ajout d'un lieu d'activité</h1>
+    <div class="card">
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <datalist id="groupes-lieux">{% for g in groupes %}<option value="{{ g }}">{% endfor %}</datalist>
+            <button class="btn" type="submit">Créer</button>
+            <a href="{{ path('admin_lieu_activite_index') }}" style="margin-left:12px">Annuler</a>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

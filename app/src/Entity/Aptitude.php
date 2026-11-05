@@ -22,6 +22,10 @@ class Aptitude
     #[ORM\Column]
     private int $ordre = 0;
 
+    /** Une aptitude non visible n'est plus proposée dans le planning. */
+    #[ORM\Column(options: ['default' => true])]
+    private bool $visible = true;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -59,6 +63,18 @@ class Aptitude
     public function setOrdre(int $ordre): static
     {
         $this->ordre = $ordre;
+
+        return $this;
+    }
+
+    public function isVisible(): bool
+    {
+        return $this->visible;
+    }
+
+    public function setVisible(bool $visible): static
+    {
+        $this->visible = $visible;
 
         return $this;
     }

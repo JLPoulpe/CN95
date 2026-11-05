@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+{% block title %}Lieux d'activité – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Lieux d'activité</h1>
+    <div class="search-bar">
+        <a class="btn" href="{{ path('admin_lieu_activite_new') }}">Ajouter</a>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+        <form method="post" action="{{ path('admin_lieu_activite_import') }}" enctype="multipart/form-data">
+            <input type="hidden" name="_token" value="{{ csrf_token('import_lieux_activite') }}">
+            <label for="fichier">Importer des lieux (CSV)</label>
+            <input type="file" id="fichier" name="fichier" accept=".csv,text/csv" required>
+            <button class="btn" type="submit">Importer</button>
+            <a href="{{ path('admin_lieu_activite_import_model') }}" style="margin-left:12px">Télécharger un modèle</a>
+            <p class="note">Colonnes : <code>groupe</code> ; <code>nom</code> ; <code>ordre</code> (optionnel). Séparateur « ; » ou « , ». Un lieu existant (même groupe et même nom) est mis à jour.</p>
+        </form>
+    </div>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Groupe</th><th>Nom</th><th>Ordre</th><th></th></tr></thead>
+            <tbody>
+            {% for l in lieux %}
+                <tr>
+                    <td>{{ l.groupe }}</td>
+                    <td>{{ l.nom }}</td>
+                    <td>{{ l.ordre }}</td>
+                    <td class="actions">
+                        <a class="btn btn-sm btn-secondary" href="{{ path('admin_lieu_activite_edit', {id: l.id}) }}">Modifier</a>
+                        <form method="post" action="{{ path('admin_lieu_activite_delete', {id: l.id}) }}" onsubmit="return confirm('Supprimer ce lieu ?')">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete_lieu_activite_' ~ l.id) }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4">Aucun lieu d'activité.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="note">{{ lieux|length }} lieu(x)</p>
+</div>
+{% endblock %}

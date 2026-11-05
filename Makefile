@@ -1,4 +1,4 @@
-.PHONY: help up down restart build logs ps shell db-shell tools clean cache-clear brevo-key
+.PHONY: help up down restart build logs ps shell db-shell tools clean cache-clear brevo-key purge
 
 TARGET ?= prod
 export TARGET
@@ -40,3 +40,6 @@ cache-clear: ## Supprime le cache distant (TARGET=prod, fichier deploy/targets/<
 
 brevo-key: ## Affiche la clé API Brevo de chaque environnement (ENVS="local ionos cn95", MASQUER=1 pour masquer)
 	bash deploy/brevo-key.sh $(if $(MASQUER),--masquer) $(ENVS)
+
+purge: ## Purge la base de chaque environnement (NIVEAU=totale|configuration, DRY_RUN=1 pour simuler, ENVS="local ionos cn95")
+	bash deploy/purge.sh --niveau "$(NIVEAU)" $(if $(DRY_RUN),--dry-run) $(ENVS)

@@ -26,7 +26,7 @@
                 {% endif %}
                 {% for l in j.lieux %}
                     <div class="lieu" data-planning-filter-target="lieu">
-                        <h3 class="lieu-titre">{{ l.lieu.label }}</h3>
+                        <h3 class="lieu-titre">{{ l.groupe }}</h3>
                         {% for c in l.creneaux %}
                             <div class="creneau" data-planning-filter-target="creneau" data-aptitudes="{{ c.aptitudes|map(a => a.code)|join(' ') }}">
                                 <div class="creneau-main">
@@ -34,7 +34,7 @@
                                     {% if c.libelle %}<span class="creneau-libelle">{{ c.libelle }}</span>{% endif %}
                                 </div>
                                 <div class="creneau-meta">
-                                    {% if c.lignes|length %}<span class="lignes">Lignes {{ c.lignesLabel }}</span>{% endif %}
+                                    {% set lieuxGroupe = c.lieuxDuGroupe(l.groupe) %}{% if lieuxGroupe|length %}<span class="lignes">{{ lieuxGroupe|map(x => x.nom)|join(' / ') }}</span>{% endif %}
                                     {% for a in c.aptitudes %}<span class="apt apt-{{ a.code }}">{{ a.code }}</span>{% else %}<span class="apt apt-tous">Tous niveaux</span>{% endfor %}
                                 </div>
                             </div>

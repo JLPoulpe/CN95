@@ -49,7 +49,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?\DateTimeImmutable $caciExpireLe = null;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull]
     private ?Aptitude $aptitude = null;
 

@@ -42,7 +42,7 @@ class PlanningController extends AbstractController
             'lundi' => $lundi,
             'semaine' => $semaine,
             'jours' => $jours,
-            'aptitudes' => $aptitudes->findBy([], ['ordre' => 'ASC']),
+            'aptitudes' => $aptitudes->findVisibles(),
             'precedente' => $lundi > $courante ? $lundi->modify('-1 week') : null,
             'suivante' => $lundi < $limite ? $lundi->modify('+1 week') : null,
             'estCourante' => $lundi == $courante,

@@ -2,12 +2,14 @@
 
 namespace App\Controller\Admin;
 
+use App\Aptitude\AptitudeCsvImporter;
 use App\Entity\Aptitude;
 use App\Form\AptitudeType;
 use App\Repository\AptitudeRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -19,6 +21,43 @@ class AptitudeController extends AbstractController
     {
         return $this->render('admin/aptitude/index.html.twig', [
             'aptitudes' => $aptitudes->findBy([], ['ordre' => 'ASC', 'code' => 'ASC']),
+        ]);
+    }
+
+    #[Route('/import', name: 'admin_aptitude_import', methods: ['POST'])]
+    public function import(Request $request, AptitudeCsvImporter $importer): Response
+    {
+        if (!$this->isCsrfTokenValid('import_aptitudes', $request->request->getString('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide.');
+
+            return $this->redirectToRoute('admin_aptitude_index');
+        }
+        $file = $request->files->get('fichier');
+        if (!$file instanceof UploadedFile || !$file->isValid()) {
+            $this->addFlash('error', 'Veuillez sélectionner un fichier CSV.');
+
+            return $this->redirectToRoute('admin_aptitude_index');
+        }
+
+        $result = $importer->import($file->getPathname());
+        if ($result['created'] + $result['updated'] > 0) {
+            $this->addFlash('success', sprintf('Import terminé : %d créée(s), %d mise(s) à jour.', $result['created'], $result['updated']));
+        }
+        foreach (array_slice($result['errors'], 0, 20) as $error) {
+            $this->addFlash('error', $error);
+        }
+
+        return $this->redirectToRoute('admin_aptitude_index');
+    }
+
+    #[Route('/import/modele', name: 'admin_aptitude_import_model')]
+    public function importModel(): Response
+    {
+        $csv = "\xEF\xBB\xBFcode;libelle;ordre\nE2;Encadrant niveau 2;1\nPE40;Plongeur Encadré 40 m;2\n";
+
+        return new Response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="modele_aptitudes.csv"',
         ]);
     }
 

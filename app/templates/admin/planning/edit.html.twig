@@ -25,8 +25,7 @@
                     {% if c.libelle %}<span class="creneau-libelle">{{ c.libelle }}</span>{% endif %}
                 </div>
                 <div class="creneau-meta">
-                    <span>{{ c.jour.label }} · {{ c.lieu.label }}</span>
-                    {% if c.lignes|length %}<span class="lignes">Lignes {{ c.lignesLabel }}</span>{% endif %}
+                    <span>{{ c.jour.label }} · {{ c.lieuxLabel }}</span>
                     {% for a in c.aptitudes %}<span class="apt apt-{{ a.code }}">{{ a.code }}</span>{% else %}<span class="apt apt-tous">Tous niveaux</span>{% endfor %}
                 </div>
                 {% if is_granted('PLANNING_CRENEAU_GERER', c) %}

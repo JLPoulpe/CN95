@@ -6,18 +6,17 @@
     <h1 class="header-title">Créneaux – {{ activite.libelle }}</h1>
     <div class="table-wrapper">
         <table>
-            <thead><tr><th>Semaine</th><th>Jour</th><th>Lieu</th><th>Lignes</th><th>Précision</th></tr></thead>
+            <thead><tr><th>Semaine</th><th>Jour</th><th>Lieux</th><th>Précision</th></tr></thead>
             <tbody>
             {% for c in creneaux %}
                 <tr>
                     <td>S{{ c.semaine.lundi|date('W') }} ({{ c.semaine.lundi|date('d/m/Y') }})</td>
                     <td>{{ c.jour.label }}</td>
-                    <td>{{ c.lieu.label }}</td>
-                    <td>{% if c.lignes|length %}{{ c.lignesLabel }}{% else %}–{% endif %}</td>
+                    <td>{{ c.lieuxLabel }}</td>
                     <td>{{ c.libelle ?? '–' }}</td>
                 </tr>
             {% else %}
-                <tr><td colspan="5">Aucun créneau pour cette activité.</td></tr>
+                <tr><td colspan="4">Aucun créneau pour cette activité.</td></tr>
             {% endfor %}
             </tbody>
         </table>

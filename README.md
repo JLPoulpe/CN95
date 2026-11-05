@@ -86,8 +86,7 @@ Les droits fonctionnels sont enregistrés en base (table `role_permission`) et s
 | Invitations aux activités externes (une entrée par activité externe) | `PERM_INVITATIONS` | BUREAU |
 | Communication → Activités externes | `PERM_ACTIVITES_EXTERNES` | BUREAU, MONITEUR |
 | Communication → Communication générale, Réseaux sociaux | `PERM_COMMUNICATION` | BUREAU |
-| Communication → Gestion du planning | `PERM_CONFIG_ACTIVITES` | BUREAU |
-| Configuration des activités (aptitudes, activités, activités externes, lignes d'eau, planning) | `PERM_CONFIG_ACTIVITES` | BUREAU |
+| Configuration des activités (aptitudes, activités, activités externes, lieux d'activité, planning) | `PERM_CONFIG_ACTIVITES` | BUREAU |
 | Gestion des utilisateurs (liste, ajout) | `PERM_UTILISATEURS` | aucun (ADMIN seul) |
 | Configuration de l'outil (configuration des mails, permissions) | `PERM_CONFIG_OUTIL` | aucun (ADMIN seul) |
 

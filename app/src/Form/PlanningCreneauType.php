@@ -4,13 +4,12 @@ namespace App\Form;
 
 use App\Entity\Activite;
 use App\Entity\Aptitude;
-use App\Entity\LigneEau;
+use App\Entity\LieuActivite;
 use App\Entity\PlanningCreneau;
 use App\Enum\Jour;
-use App\Enum\Lieu;
 use App\Repository\ActiviteRepository;
 use App\Repository\AptitudeRepository;
-use App\Repository\LigneEauRepository;
+use App\Repository\LieuActiviteRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
@@ -31,17 +30,17 @@ class PlanningCreneauType extends AbstractType
 
         $builder
             ->add('jour', EnumType::class, ['class' => Jour::class, 'choice_label' => fn (Jour $j) => $j->label()] + $lecture)
-            ->add('lieu', EnumType::class, ['class' => Lieu::class, 'choice_label' => fn (Lieu $l) => $l->label()] + $lecture)
-            ->add('lignes', EntityType::class, [
-                'class' => LigneEau::class,
-                'label' => "Lignes d'eau utilisées",
+            ->add('lieux', EntityType::class, [
+                'class' => LieuActivite::class,
+                'label' => 'Lieux',
                 'multiple' => true,
                 'expanded' => true,
-                'required' => false,
                 'by_reference' => false,
-                'choice_label' => fn (LigneEau $l) => $l->getLabel(),
+                // Le groupe est affiché en petit au-dessus du nom
+                'label_html' => true,
+                'choice_label' => fn (LieuActivite $l) => '<span><small class="chip-groupe">'.htmlspecialchars($l->getGroupe()).'</small>'.htmlspecialchars($l->getNom()).'</span>',
                 'attr' => ['class' => 'choices-inline'],
-                'query_builder' => fn (LigneEauRepository $r) => $r->createQueryBuilder('l')->orderBy('l.lieu')->addOrderBy('l.numero'),
+                'query_builder' => fn (LieuActiviteRepository $r) => $r->createQueryBuilder('l')->orderBy('l.ordre')->addOrderBy('l.groupe')->addOrderBy('l.nom'),
             ] + $lecture)
             ->add('activites', EntityType::class, [
                 'class' => Activite::class,
@@ -62,7 +61,18 @@ class PlanningCreneauType extends AbstractType
                 'required' => false,
                 'by_reference' => false,
                 'attr' => ['class' => 'choices-inline'],
-                'query_builder' => fn (AptitudeRepository $r) => $r->createQueryBuilder('a')->orderBy('a.ordre'),
+                // Aptitudes visibles, plus celles déjà portées par ce créneau (pour ne pas les perdre à l'enregistrement)
+                'query_builder' => static function (AptitudeRepository $r) use ($options) {
+                    $qb = $r->createQueryBuilder('a')->orderBy('a.ordre');
+                    $deja = $options['data'] instanceof PlanningCreneau ? $options['data']->getAptitudes()->toArray() : [];
+                    if ($deja) {
+                        $qb->where('a.visible = true OR a IN (:deja)')->setParameter('deja', $deja);
+                    } else {
+                        $qb->where('a.visible = true');
+                    }
+
+                    return $qb;
+                },
             ] + (null === $limitees
                 ? []
                 : [

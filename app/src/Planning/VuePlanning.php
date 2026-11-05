@@ -2,14 +2,17 @@
 
 namespace App\Planning;
 
+use App\Entity\PlanningCreneau;
 use App\Entity\PlanningSemaine;
 use App\Enum\Jour;
-use App\Enum\Lieu;
 
-/** Regroupe les créneaux d'une semaine par jour puis par lieu, dans l'ordre des enums. */
+/**
+ * Regroupe les créneaux d'une semaine par jour puis par groupe de lieux.
+ * Un créneau qui occupe plusieurs groupes apparaît dans chacun d'eux.
+ */
 final class VuePlanning
 {
-    /** @return array<string, array{jour: Jour, date: \DateTimeImmutable, lieux: array<string, array{lieu: Lieu, creneaux: list<\App\Entity\PlanningCreneau>}>}> */
+    /** @return array<string, array{jour: Jour, date: \DateTimeImmutable, lieux: array<string, array{groupe: string, creneaux: list<PlanningCreneau>}>}> */
     public function jours(?PlanningSemaine $semaine, \DateTimeImmutable $lundi): array
     {
         $jours = [];
@@ -18,16 +21,26 @@ final class VuePlanning
         }
 
         foreach (Jour::cases() as $jour) {
-            foreach (Lieu::cases() as $lieu) {
-                $liste = $semaine->getCreneaux()->filter(fn ($c) => $c->getJour() === $jour && $c->getLieu() === $lieu)->getValues();
-                if ($liste) {
-                    $jours[$jour->value]['lieux'][$lieu->value] = ['lieu' => $lieu, 'creneaux' => $liste];
+            $groupes = []; // nom => [ordre, créneaux]
+            foreach ($semaine->getCreneaux() as $c) {
+                if ($c->getJour() !== $jour) {
+                    continue;
+                }
+                foreach ($c->getLieux() as $l) {
+                    $g = $l->getGroupe();
+                    $groupes[$g]['ordre'] = min($groupes[$g]['ordre'] ?? PHP_INT_MAX, $l->getOrdre());
+                    $groupes[$g]['creneaux'][spl_object_id($c)] = $c;
                 }
             }
-            if (isset($jours[$jour->value])) {
-                $jours[$jour->value]['jour'] = $jour;
-                $jours[$jour->value]['date'] = $lundi->modify('+'.$jour->decalage().' days');
+            if (!$groupes) {
+                continue;
             }
+            uasort($groupes, fn ($a, $b) => $a['ordre'] <=> $b['ordre']);
+            foreach ($groupes as $nom => $g) {
+                $jours[$jour->value]['lieux'][$nom] = ['groupe' => $nom, 'creneaux' => array_values($g['creneaux'])];
+            }
+            $jours[$jour->value]['jour'] = $jour;
+            $jours[$jour->value]['date'] = $lundi->modify('+'.$jour->decalage().' days');
         }
 
         return $jours;

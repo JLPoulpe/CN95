@@ -66,3 +66,23 @@ make brevo-key ENVS="local ionos" MASQUER=1 # équivalent via Make
 
 Le script lance `php bin/console app:mail:afficher-config` sur chaque environnement (Docker en local, SSH pour une cible). La commande doit donc avoir été déployée sur la cible. Si `APP_SECRET` a changé depuis l'enregistrement de la clé, la configuration est illisible : il faut la ressaisir dans **Configuration de l'outil → Configuration des mails**. Le résultat contient un secret : ne pas le copier dans un ticket ou une conversation.
 
+
+## Purge de la base
+
+La purge supprime les données de chaque environnement (local puis toutes les cibles) en gardant toujours les comptes administrateurs. Deux niveaux :
+
+| Niveau | Conservé | Supprimé |
+|---|---|---|
+| `totale` | administrateurs, rôles, permissions, configuration des mails | tout le reste, y compris les aptitudes et les lieux d'activité |
+| `configuration` | idem, plus « Configuration de l'outil » (aptitudes, lieux d'activité, configuration des mails, permissions) | activités, planning, invitations, fiches de sécurité, communications, demandes RGPD, file d'envoi des mails, utilisateurs non administrateurs |
+
+```bash
+bash deploy/purge.sh --niveau totale --dry-run          # simulation sur toutes les cibles, rien n'est supprimé
+bash deploy/purge.sh --niveau configuration local ionos # purge de certaines cibles seulement
+make purge NIVEAU=totale DRY_RUN=1                      # équivalent via Make
+```
+
+- Une seule confirmation est demandée (taper `PURGER`) avant de commencer ; la suppression est irréversible.
+- La commande `app:purge` doit être déployée sur chaque cible (`deploy/deploy.sh <cible>`) avant la purge.
+- Chaque table de la base doit être classée dans `app/src/Purge/PurgeEnvironnement.php`. Une table inconnue fait échouer la purge sans rien supprimer : l'ajouter à une des listes avant de relancer.
+- Au niveau `totale`, les aptitudes sont supprimées et le compte administrateur perd son aptitude : relancer `app:seed` (aptitudes par défaut) puis renseigner l'aptitude de l'administrateur.

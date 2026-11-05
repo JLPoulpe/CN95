@@ -117,6 +117,7 @@ a.week-btn:hover { background: #eff6ff; color: #1f2937; }
 .choices-inline > div { margin: 0; }
 .choices-inline input[type=checkbox], .choices-inline input[type=radio] { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 .choices-inline label { display: inline-flex; align-items: center; min-height: 44px; margin: 0; padding: 0 18px; border: 2px solid #d1d5db; border-radius: 22px; background: #fff; color: #374151; font-size: 15px; font-weight: 500; cursor: pointer; user-select: none; }
+.choices-inline .chip-groupe { display: block; text-align: left; font-size: 11px; line-height: 1.2; font-weight: 400; opacity: .7; }
 .choices-inline input:checked + label { background: #3b82f6; border-color: #3b82f6; color: #fff; }
 .choices-inline input:checked + label::before { content: '✓'; margin-right: 8px; font-weight: 700; }
 .choices-inline input:disabled + label, .choices-inline input:disabled:checked + label, .choices-inline input.hors-groupe + label { background: #f3f4f6; border-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
@@ -218,3 +219,7 @@ input[type=checkbox]:disabled + label, input[type=radio]:disabled + label { colo
 .fiche-chef { border-color: #f59e0b; background: #fffbeb; }
 .fiche-personne-info { font-size: 13px; color: #6b7280; }
 .fiche-vide { color: #9ca3af; font-size: 14px; padding: 8px 0; }
+
+/* Case à cocher avant son libellé, sur la même ligne */
+.check-row { display: flex; flex-direction: row-reverse; justify-content: flex-end; align-items: center; gap: 8px; }
+.check-row label { margin: 0; }
