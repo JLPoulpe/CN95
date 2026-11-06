@@ -57,3 +57,7 @@ Thumbs.db
 deploy/targets/*.conf
 deploy/.build/
 ###< Deploy ###
+
+###> Données personnelles à importer ###
+/import/
+###< Données personnelles à importer ###

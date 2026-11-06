@@ -1,4 +1,4 @@
-.PHONY: help up down restart build logs ps shell db-shell tools clean cache-clear brevo-key purge
+.PHONY: help up down restart build logs ps shell db-shell tools clean cache-clear brevo-key purge import-adherents envoyer-activation
 
 TARGET ?= prod
 export TARGET
@@ -43,3 +43,9 @@ brevo-key: ## Affiche la clé API Brevo de chaque environnement (ENVS="local ion
 
 purge: ## Purge la base de chaque environnement (NIVEAU=totale|configuration, DRY_RUN=1 pour simuler, ENVS="local ionos cn95")
 	bash deploy/purge.sh --niveau "$(NIVEAU)" $(if $(DRY_RUN),--dry-run) $(ENVS)
+
+import-adherents: ## Importe un CSV d'adhérents (FICHIER=import/adherents_2027.csv ENVS="local ionos", DRY_RUN=1 pour simuler)
+	bash deploy/import-adherents.sh "$(FICHIER)" $(if $(DRY_RUN),--dry-run) $(ENVS)
+
+envoyer-activation: ## Envoie le mail d'activation (EMAIL=adresse ou TOUS=1, ENVS="local ionos", DRY_RUN=1 pour simuler)
+	bash deploy/envoyer-activation.sh $(if $(EMAIL),--email "$(EMAIL)") $(if $(TOUS),--tous) $(if $(DRY_RUN),--dry-run) $(ENVS)

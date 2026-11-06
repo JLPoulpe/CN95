@@ -38,7 +38,7 @@ select:disabled, select[readonly], textarea:disabled, textarea[readonly] { backg
 .login-box { max-width: 400px; margin: 60px auto; }
 .search-bar { display: flex; gap: 12px; margin-bottom: 20px; }
 .search-bar input { width: 300px; }
-.table-wrapper { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); overflow: hidden; }
+.table-wrapper { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 thead { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
 th { padding: 16px; text-align: left; font-size: 13px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; }

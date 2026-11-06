@@ -86,3 +86,27 @@ make purge NIVEAU=totale DRY_RUN=1                      # équivalent via Make
 - La commande `app:purge` doit être déployée sur chaque cible (`deploy/deploy.sh <cible>`) avant la purge.
 - Chaque table de la base doit être classée dans `app/src/Purge/PurgeEnvironnement.php`. Une table inconnue fait échouer la purge sans rien supprimer : l'ajouter à une des listes avant de relancer.
 - Au niveau `totale`, les aptitudes sont supprimées et le compte administrateur perd son aptitude : relancer `app:seed` (aptitudes par défaut) puis renseigner l'aptitude de l'administrateur.
+
+
+## Import des adhérents et mail d'activation
+
+Le fichier CSV doit être nettoyé : `nom;prenom;email;telephone;date_naissance;caci_expire_le;aptitude` (dates `AAAA-MM-JJ`, téléphone en `0XXXXXXXXX`, aptitude = code en base). Il contient des données personnelles : le dossier `import/` est ignoré par git.
+
+```bash
+bash deploy/import-adherents.sh import/adherents_2027.csv --dry-run local   # valide et liste les comptes, n'écrit rien
+bash deploy/import-adherents.sh import/adherents_2027.csv local ionos       # crée les comptes (confirmation IMPORTER)
+make import-adherents FICHIER=import/adherents_2027.csv ENVS="local" DRY_RUN=1
+```
+
+Les environnements sont à nommer explicitement (`local` ou une cible). Chaque compte créé a le rôle Adhérent, un mot de passe inutilisable et une activation en attente ; **aucun mail n'est envoyé**. Identifiant = prénom (sans accent) ; si le prénom est partagé ou déjà pris : `prénom.nom`. Un email déjà en base est ignoré, donc le script est relançable. Une ligne invalide bloque tout l'import.
+
+Mail d'activation (le même que lors de l'ajout d'un adhérent), à envoyer ensuite :
+
+```bash
+bash deploy/envoyer-activation.sh --email moi@example.org --dry-run local   # liste le destinataire
+bash deploy/envoyer-activation.sh --email moi@example.org ionos             # un seul destinataire
+bash deploy/envoyer-activation.sh --tous ionos                              # tous les comptes en attente (confirmation ENVOYER)
+make envoyer-activation EMAIL=moi@example.org ENVS="ionos"
+```
+
+Chaque envoi génère un nouveau lien valable 7 jours (le précédent est invalidé). Les comptes déjà activés ne reçoivent rien. Les deux commandes doivent avoir été déployées sur la cible (`deploy/deploy.sh <cible>`).

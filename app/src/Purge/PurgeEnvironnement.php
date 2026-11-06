@@ -226,7 +226,7 @@ final class PurgeEnvironnement
 
     private function identifiant(string $table): string
     {
-        return $this->connection->quoteIdentifier($table);
+        return $this->connection->quoteSingleIdentifier($table);
     }
 
     /** @throws PurgeException si une table de la base n'est classée nulle part */
