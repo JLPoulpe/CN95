@@ -5,7 +5,9 @@ namespace App\Tests\Unit;
 use App\Entity\Activite;
 use App\Entity\Aptitude;
 use App\Entity\LieuActivite;
+use App\Entity\PlanningCreneau;
 use App\Entity\PlanningSemaine;
+use App\Enum\Jour;
 use App\Planning\PlanningCsvImporter;
 use App\Repository\ActiviteRepository;
 use App\Repository\AptitudeRepository;
@@ -59,7 +61,48 @@ class PlanningCsvImporterTest extends TestCase
         $c = $persistes[0]->getCreneaux();
         $this->assertCount(4 - 2, $c); // 18/09 : bloc + PMT
         $this->assertSame(['Ligne 1', 'Ligne 2'], array_map(fn ($l) => $l->getNom(), $c[0]->getLieux()->toArray()));
+        // La colonne PN1 donne l'aptitude PN1 (et non « tous niveaux »)
+        $this->assertSame(['PN1'], array_map(fn ($a) => $a->getCode(), $c[0]->getAptitudes()->toArray()));
         // Un seul créneau le 25/09 : lignes partagées incluses
         $this->assertCount(4, $persistes[1]->getCreneaux()[0]->getLieux());
+    }
+
+    public function testCorrigerPn1AjouteLAptitudeAuxCreneauxExistantsSansRecreer(): void
+    {
+        $apt = fn (string $c) => (new Aptitude())->setCode($c);
+        $pn1 = $apt('PN1');
+        $aRepo = $this->createStub(AptitudeRepository::class);
+        $aRepo->method('findOneBy')->willReturnCallback(fn (array $c) => 'PN1' === $c['code'] ? $pn1 : null);
+
+        $bloc = (new Activite())->setCode('BLOC')->setLibelle('Séance bloc');
+        $acRepo = $this->createStub(ActiviteRepository::class);
+        $acRepo->method('findAll')->willReturn([$bloc]);
+
+        // Semaine du 14/09 déjà importée, avec le créneau « bloc » du vendredi sans aucune aptitude
+        $semaine = (new PlanningSemaine())->setLundi(new \DateTimeImmutable('2026-09-14'));
+        $creneau = (new PlanningCreneau())->setJour(Jour::Vendredi)->addActivite($bloc);
+        $semaine->addCreneau($creneau);
+        $sRepo = $this->createStub(PlanningSemaineRepository::class);
+        $sRepo->method('findOneBy')->willReturnCallback(fn (array $c) => $c['lundi']->format('Y-m-d') === '2026-09-14' ? $semaine : null);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects($this->exactly(2))->method('flush');
+
+        $csv = "\xEF\xBB\xBFDate;Jour;PN1;PE40;Événement / remarque\r\n"
+            ."2026-09-18;vendredi;Séance bloc;Séance PMT;REPRISE\r\n"
+            ."2026-09-25;vendredi;Séance bloc;;\r\n";
+        $importer = new PlanningCsvImporter($em, $sRepo, $acRepo, $aRepo, $this->createStub(LieuActiviteRepository::class));
+
+        $r = $importer->corrigerPn1($csv);
+        $this->assertSame(1, $r['ajoutes']);
+        $this->assertSame(0, $r['deja_presents']);
+        $this->assertSame(['21/09/2026'], $r['semaines_absentes']); // le 25/09 est dans la semaine du 21/09
+        $this->assertSame(['PN1'], array_map(fn ($a) => $a->getCode(), $creneau->getAptitudes()->toArray()));
+        $this->assertCount(1, $semaine->getCreneaux(), 'aucun créneau créé ou supprimé');
+
+        // Relancer ne change rien
+        $r2 = $importer->corrigerPn1($csv);
+        $this->assertSame(0, $r2['ajoutes']);
+        $this->assertSame(1, $r2['deja_presents']);
     }
 }

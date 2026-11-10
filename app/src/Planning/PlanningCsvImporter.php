@@ -31,11 +31,11 @@ class PlanningCsvImporter
     private const COLONNES_IGNOREES = ['date', 'jour', 'evenement / remarque', 'evenement', 'remarque'];
 
     /**
-     * Aptitudes ciblées par colonne. PN1/PN2/PN3 sont des groupes de préparation, pas des aptitudes :
-     * PN1 n'a aucun niveau (aucune aptitude), PN2 = N1 ou PE40, PN3 = N2. Une autre colonne désigne l'aptitude de même code.
+     * Aptitudes ciblées par colonne. PN2 et PN3 sont des groupes de préparation, pas des aptitudes :
+     * PN2 = N1 ou PE40, PN3 = N2. PN1 désigne l'aptitude PN1. Une autre colonne désigne l'aptitude de même code.
      */
     private const APTITUDES_PAR_COLONNE = [
-        'PN1' => [],
+        'PN1' => ['PN1'],
         'PN2' => ['N1', 'PE40'],
         'PN3' => ['N2'],
     ];
@@ -237,6 +237,103 @@ class PlanningCsvImporter
         $def = self::LIEUX_PAR_ACTIVITE[$cle] ?? ['propres' => [], 'partage' => []];
 
         return $plusieursActivites ? $def['propres'] : [...$def['propres'], ...$def['partage']];
+    }
+
+    /**
+     * Correctif : ajoute l'aptitude PN1 aux créneaux déjà importés dont la colonne PN1 du CSV donne l'activité ce jour-là.
+     * Idempotent, ne crée ni ne supprime aucun créneau. Les semaines absentes de la base sont signalées, pas créées.
+     *
+     * @return array{ajoutes: int, deja_presents: int, semaines_absentes: list<string>, ignored: list<string>, errors: list<string>}
+     */
+    public function corrigerPn1(string $contenu, bool $dryRun = false): array
+    {
+        $result = ['ajoutes' => 0, 'deja_presents' => 0, 'semaines_absentes' => [], 'ignored' => [], 'errors' => []];
+
+        $contenu = preg_replace('/^\xEF\xBB\xBF/', '', $contenu) ?? '';
+        if (!mb_check_encoding($contenu, 'UTF-8')) {
+            $contenu = mb_convert_encoding($contenu, 'UTF-8', 'Windows-1252');
+        }
+        $lines = preg_split('/\R/', $contenu) ?: [];
+        $separator = substr_count((string) ($lines[0] ?? ''), ';') >= substr_count((string) ($lines[0] ?? ''), ',') ? ';' : ',';
+        $header = array_map(fn (string $h) => $this->normalize($h), str_getcsv((string) array_shift($lines), $separator, '"', ''));
+        $colDate = array_search('date', $header, true);
+        $colPn1 = array_search('pn1', $header, true);
+        if (false === $colDate || false === $colPn1) {
+            $result['errors'][] = 'Colonnes « Date » ou « PN1 » introuvables dans l\'en-tête.';
+
+            return $result;
+        }
+
+        $aptitude = $this->aptitudes->findOneBy(['code' => 'PN1']);
+        if (null === $aptitude) {
+            $result['errors'][] = 'Aptitude « PN1 » introuvable en base.';
+
+            return $result;
+        }
+
+        $activitesParCle = [];
+        foreach ($this->activites->findAll() as $a) {
+            foreach ([$a->getLibelle(), $a->getCode()] as $v) {
+                if (null !== $v && '' !== $v) {
+                    $activitesParCle[$this->cle($v)] = $a;
+                }
+            }
+        }
+
+        foreach ($lines as $i => $line) {
+            if ('' === trim($line)) {
+                continue;
+            }
+            $row = array_map('trim', str_getcsv($line, $separator, '"', ''));
+            $cellule = $row[$colPn1] ?? '';
+            if ('' === $cellule) {
+                continue;
+            }
+            $n = $i + 2;
+            $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $row[$colDate] ?? '');
+            if (false === $date || $date->format('Y-m-d') !== ($row[$colDate] ?? '')) {
+                $result['errors'][] = sprintf('Ligne %d : date « %s » invalide (AAAA-MM-JJ attendu).', $n, $row[$colDate] ?? '');
+                continue;
+            }
+            $jour = match ($date->format('N')) {
+                '1' => Jour::Lundi,
+                '5' => Jour::Vendredi,
+                default => null,
+            };
+            if (null === $jour) {
+                continue; // même règle que l'import : seuls lundi et vendredi
+            }
+            $activite = $activitesParCle[$this->cle($cellule)] ?? null;
+            if (null === $activite) {
+                $result['ignored'][] = sprintf('%s : activité « %s » introuvable, ignorée.', $date->format('d/m/Y'), $cellule);
+                continue;
+            }
+            $lundi = $date->modify('-'.$jour->decalage().' days');
+            $semaine = $this->semaines->findOneBy(['lundi' => $lundi]);
+            if (null === $semaine) {
+                $result['semaines_absentes'][$lundi->format('d/m/Y')] = true;
+                continue;
+            }
+
+            foreach ($semaine->getCreneaux() as $creneau) {
+                if ($creneau->getJour() !== $jour || !$creneau->getActivites()->contains($activite)) {
+                    continue;
+                }
+                if ($creneau->getAptitudes()->contains($aptitude)) {
+                    ++$result['deja_presents'];
+                    continue;
+                }
+                $creneau->addAptitude($aptitude);
+                ++$result['ajoutes'];
+            }
+        }
+
+        $result['semaines_absentes'] = array_keys($result['semaines_absentes']);
+        if (!$dryRun) {
+            $this->em->flush();
+        }
+
+        return $result;
     }
 
     /** « Séance bloc » / « bloc » -> « bloc ». */
