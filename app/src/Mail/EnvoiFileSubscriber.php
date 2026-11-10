@@ -10,6 +10,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Messenger\Event\WorkerRunningEvent;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
+use Symfony\Component\Messenger\Transport\Sync\SyncTransport;
 use Symfony\Component\Messenger\Worker;
 
 /**
@@ -37,6 +38,11 @@ final class EnvoiFileSubscriber implements EventSubscriberInterface
     public function onTerminate(): void
     {
         if (!$this->sender->aEnvoisEnAttente()) {
+            return;
+        }
+        // Transport synchrone (MESSENGER_TRANSPORT_DSN=sync://) : le mail est déjà parti pendant le dispatch,
+        // il n'y a pas de file à lire (SyncTransport ne sait pas recevoir).
+        if ($this->file instanceof SyncTransport) {
             return;
         }
 
