@@ -19,6 +19,8 @@ final class ContenuMailSanitizer
             ->allowSafeElements()
             ->allowElement('h1')->allowElement('h2')->allowElement('h3')
             ->allowAttribute('style', '*')
+            // L'attribut style est ensuite filtré : couleurs et alignement uniquement
+            ->withAttributeSanitizer(new StyleAttributeSanitizer())
             ->allowAttribute('class', ['p', 'h1', 'h2', 'h3', 'li', 'ol', 'ul'])
             ->allowLinkSchemes(['https', 'http', 'mailto'])
             ->allowRelativeLinks(false)

@@ -19,9 +19,15 @@
     </div>
 
     <div class="card">
+        <h2>Mot de passe</h2>
+        <p class="hint">Changez votre mot de passe (l'ancien est demandé).</p>
+        <a class="btn btn-secondary" href="{{ path('app_profil_mot_de_passe') }}">Changer mon mot de passe</a>
+    </div>
+
+    <div class="card">
         <h2>Supprimer mes données personnelles</h2>
         <p class="hint">Vous pouvez demander l'effacement de vos données à tout moment.</p>
-        <button class="btn btn-danger" type="button" data-ouvrir-dialogue="supprimer-donnees">Supprimer mes données personnelles</button>
+        <button class="btn btn-danger" type="button" data-controller="dialogue" data-dialogue-cible-value="supprimer-donnees" data-action="click->dialogue#ouvrir">Supprimer mes données personnelles</button>
     </div>
 
     <dialog class="modal" id="supprimer-donnees" aria-labelledby="supprimer-donnees-titre">
@@ -39,11 +45,4 @@
         </form>
     </dialog>
 </div>
-<script>
-    document.querySelectorAll('[data-ouvrir-dialogue]').forEach(function (bouton) {
-        bouton.addEventListener('click', function () {
-            document.getElementById(bouton.dataset.ouvrirDialogue).showModal();
-        });
-    });
-</script>
 {% endblock %}

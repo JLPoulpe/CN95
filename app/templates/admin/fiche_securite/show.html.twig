@@ -41,7 +41,7 @@
                     <div class="fiche-entete">
                         <h2 class="card-titre">Palanquée {{ palanquee.numero }} <span class="muted">({{ palanquee.membres|length }} / 5)</span></h2>
                         <form method="post" action="{{ path('admin_fiche_securite_supprimer', {id: invitation.id, palanqueeId: palanquee.id}) }}"
-                              onsubmit="return confirm('Supprimer cette palanquée ? Ses membres retournent dans les restants.')">
+                              data-controller="confirm" data-confirm-message-value="Supprimer cette palanquée ? Ses membres retournent dans les restants." data-action="submit->confirm#demander">
                             <input type="hidden" name="_token" value="{{ csrf_token('fiche_securite_' ~ invitation.id) }}">
                             <button class="btn btn-sm btn-danger" type="submit" aria-label="Supprimer la palanquée {{ palanquee.numero }}">Supprimer</button>
                         </form>

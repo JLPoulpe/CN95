@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ titre }} – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <div class="card">
+        <h1 class="header-title">{{ titre }}</h1>
+        <p>{{ message }}</p>
+        {# Le choix n'est enregistré qu'au clic (POST) : un antivirus ou un aperçu de mail qui ouvre le lien ne change rien #}
+        <form method="post" action="{{ path(route, parametres) }}">
+            <button class="btn" type="submit">{{ bouton }}</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

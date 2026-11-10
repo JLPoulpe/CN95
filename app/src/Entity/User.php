@@ -84,6 +84,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $activationExpireLe = null;
 
+    /** Hash SHA-256 du jeton de réinitialisation du mot de passe (« mot de passe oublié »), valable 1 heure. */
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $resetTokenHash = null;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $resetExpireLe = null;
+
     /** Date de création du compte, utilisée par la purge annuelle (app:rgpd:purger). */
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, options: ['default' => 'CURRENT_TIMESTAMP'])]
     private \DateTimeImmutable $createdAt;
@@ -334,6 +341,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return trim($this->prenom.' '.$this->nom);
     }
 
+    /** Nom affiché aux visiteurs non connectés : prénom et trois premières lettres du nom (« Jean Dup. »). */
+    public function getNomAbrege(): string
+    {
+        $nom = trim((string) $this->nom);
+        $debut = mb_substr($nom, 0, 3);
+        if (mb_strlen($nom) > 3) {
+            $debut .= '.';
+        }
+
+        return trim($this->prenom.' '.$debut);
+    }
+
     public function __toString(): string
     {
         return $this->getNomComplet();
@@ -371,6 +390,31 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->activationEnAttente()
             && hash_equals($this->activationTokenHash, hash('sha256', $jeton))
             && $this->activationExpireLe > $maintenant;
+    }
+
+    /** Crée un lien de réinitialisation valable 1 heure (le précédent n'est plus valable) et retourne le jeton à envoyer par mail. */
+    public function genererReinitialisation(\DateTimeImmutable $maintenant): string
+    {
+        $jeton = bin2hex(random_bytes(32));
+        $this->resetTokenHash = hash('sha256', $jeton);
+        $this->resetExpireLe = $maintenant->modify('+1 hour');
+
+        return $jeton;
+    }
+
+    public function reinitialisationValide(string $jeton, \DateTimeImmutable $maintenant): bool
+    {
+        return null !== $this->resetTokenHash
+            && hash_equals($this->resetTokenHash, hash('sha256', $jeton))
+            && $this->resetExpireLe > $maintenant;
+    }
+
+    /** Enregistre le nouveau mot de passe et invalide le jeton (usage unique). */
+    public function terminerReinitialisation(string $motDePasseHache): void
+    {
+        $this->password = $motDePasseHache;
+        $this->resetTokenHash = null;
+        $this->resetExpireLe = null;
     }
 
     public function terminerActivation(string $motDePasseHache): void

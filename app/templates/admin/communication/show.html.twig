@@ -27,7 +27,7 @@
         <div class="card">
             <h2 style="margin-top:0;font-size:18px">Envoyer</h2>
             <p class="hint">Le mail part à tous les membres actifs (compte activé, adresse mail renseignée). Cochez des rôles ou des aptitudes pour restreindre l'envoi.</p>
-            {{ form_start(destinataires, {attr: {onsubmit: "return confirm('Envoyer cette communication ? L\\'envoi ne peut pas être annulé.')"}}) }}
+            {{ form_start(destinataires, {attr: {'data-controller': 'confirm', 'data-confirm-message-value': 'Envoyer cette communication ? L\'envoi ne peut pas être annulé.', 'data-action': 'submit->confirm#demander'}}) }}
                 {{ form_widget(destinataires) }}
                 <button class="btn" type="submit">Envoyer la communication</button>
             {{ form_end(destinataires) }}
@@ -39,7 +39,7 @@
                 <input type="hidden" name="_token" value="{{ csrf_token('communication_' ~ communication.id) }}">
                 <button class="btn btn-secondary" type="submit">M'envoyer un mail de test</button>
             </form>
-            <form method="post" action="{{ path('admin_communication_delete', {id: communication.id}) }}" onsubmit="return confirm('Supprimer ce brouillon ?')">
+            <form method="post" action="{{ path('admin_communication_delete', {id: communication.id}) }}" data-controller="confirm" data-confirm-message-value="Supprimer ce brouillon ?" data-action="submit->confirm#demander">
                 <input type="hidden" name="_token" value="{{ csrf_token('communication_' ~ communication.id) }}">
                 <button class="btn btn-danger" type="submit">Supprimer</button>
             </form>

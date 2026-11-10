@@ -11,14 +11,15 @@ use App\Repository\ReponseFosseRepository;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /** Pages atteintes depuis les liens du mail d'invitation. Accès public : le token identifie la réponse. */
 class FosseReponseController extends AbstractController
 {
-    #[Route('/fosse/r/{token}/{choix}', name: 'fosse_reponse', requirements: ['choix' => 'inscription|refus|desistement'], methods: ['GET'])]
-    public function repondre(string $token, string $choix, ReponseFosseRepository $reponses, EntityManagerInterface $em, FosseMailer $mailer): Response
+    #[Route('/fosse/r/{token}/{choix}', name: 'fosse_reponse', requirements: ['choix' => 'inscription|refus|desistement'], methods: ['GET', 'POST'])]
+    public function repondre(Request $request, string $token, string $choix, ReponseFosseRepository $reponses, EntityManagerInterface $em, FosseMailer $mailer): Response
     {
         $reponse = $reponses->findOneByToken($token) ?? throw $this->createNotFoundException();
         $invitation = $reponse->getInvitation();
@@ -31,6 +32,11 @@ class FosseReponseController extends AbstractController
 
         if (StatutInvitationFosse::Annulee === $invitation->getStatut()) {
             return $this->afficher('Activité annulée', sprintf('L\'activité « %s » du %s est annulée.', $libelle, $date));
+        }
+
+        // En GET (ouverture du lien du mail, éventuellement par un antivirus ou un aperçu) rien n'est enregistré : le membre confirme par un clic (POST)
+        if (!$request->isMethod('POST')) {
+            return $this->confirmer($token, $choix, $libelle, $date);
         }
 
         if ('inscription' === $choix) {
@@ -106,6 +112,23 @@ class FosseReponseController extends AbstractController
             $reponse->setStatut($statut);
             $em->flush();
         }
+    }
+
+    private function confirmer(string $token, string $choix, string $libelle, string $date): Response
+    {
+        [$titre, $bouton, $phrase] = match ($choix) {
+            'inscription' => ['Confirmer mon inscription', 'Je m\'inscris', 'Vous êtes sur le point de vous inscrire à l\'activité « %s » du %s.'],
+            'refus' => ['Confirmer mon refus', 'Je ne participerai pas', 'Vous êtes sur le point d\'indiquer que vous ne participerez pas à l\'activité « %s » du %s.'],
+            default => ['Confirmer mon désistement', 'Je me désiste', 'Vous êtes sur le point de vous désister de l\'activité « %s » du %s.'],
+        };
+
+        return $this->render('fosse/confirmation.html.twig', [
+            'titre' => $titre,
+            'message' => sprintf($phrase, $libelle, $date),
+            'bouton' => $bouton,
+            'route' => 'fosse_reponse',
+            'parametres' => ['token' => $token, 'choix' => $choix],
+        ]);
     }
 
     private function afficher(string $titre, string $message): Response

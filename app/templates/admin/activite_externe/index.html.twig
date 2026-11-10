@@ -16,7 +16,7 @@
                     <td class="actions">
                         <a class="btn btn-sm btn-secondary" href="{{ path('admin_invitation_index', {activiteExterneId: a.id}) }}">Invitations →</a>
                         <a class="btn btn-sm btn-secondary" href="{{ path('admin_activite_externe_edit', {id: a.id}) }}">Modifier</a>
-                        <form method="post" action="{{ path('admin_activite_externe_delete', {id: a.id}) }}" style="display:inline" onsubmit="return confirm('Supprimer cette activité externe ?')">
+                        <form method="post" action="{{ path('admin_activite_externe_delete', {id: a.id}) }}" style="display:inline" data-controller="confirm" data-confirm-message-value="Supprimer cette activité externe ?" data-action="submit->confirm#demander">
                             <input type="hidden" name="_token" value="{{ csrf_token('delete_activite_externe_' ~ a.id) }}">
                             <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
                         </form>

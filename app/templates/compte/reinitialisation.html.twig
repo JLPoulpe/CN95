@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouveau mot de passe – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container login-box">
+    <h1 class="header-title">Nouveau mot de passe</h1>
+    <div class="card">
+        {% if valide %}
+            {{ form_start(form) }}
+                {{ form_widget(form) }}
+                <button class="btn" type="submit">Enregistrer le mot de passe</button>
+            {{ form_end(form) }}
+        {% else %}
+            <p>Ce lien n'est pas valable : il est incorrect, expiré (1 heure) ou a déjà été utilisé.</p>
+            <p><a href="{{ path('app_mot_de_passe_oublie') }}">Demander un nouveau lien</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

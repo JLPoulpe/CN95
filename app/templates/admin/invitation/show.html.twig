@@ -58,20 +58,20 @@
 
         {% if invitation.envoyable %}
             <form method="post" action="{{ path('admin_invitation_relancer', {id: invitation.id}) }}"
-                  onsubmit="return confirm('Renvoyer l\'invitation aux membres sans réponse ?')">
+                  data-controller="confirm" data-confirm-message-value="Renvoyer l'invitation aux membres sans réponse ?" data-action="submit->confirm#demander">
                 <input type="hidden" name="_token" value="{{ csrf_token('invitation_relancer_' ~ invitation.id) }}">
                 <button class="btn btn-secondary" type="submit" {% if compte.sans_reponse == 0 %}disabled{% endif %}>Renvoyer les invitations</button>
             </form>
 
             <form method="post" action="{{ path('admin_invitation_annuler', {id: invitation.id}) }}"
-                  onsubmit="return confirm('Annuler cette invitation ? Les membres ayant répondu seront prévenus.')">
+                  data-controller="confirm" data-confirm-message-value="Annuler cette invitation ? Les membres ayant répondu seront prévenus." data-action="submit->confirm#demander">
                 <input type="hidden" name="_token" value="{{ csrf_token('invitation_annuler_' ~ invitation.id) }}">
                 <button class="btn btn-danger" type="submit">Annuler l'invitation</button>
             </form>
         {% endif %}
 
         <form method="post" action="{{ path('admin_invitation_delete', {id: invitation.id}) }}"
-              onsubmit="return confirm('Supprimer définitivement cette invitation et toutes ses réponses ?')">
+              data-controller="confirm" data-confirm-message-value="Supprimer définitivement cette invitation et toutes ses réponses ?" data-action="submit->confirm#demander">
             <input type="hidden" name="_token" value="{{ csrf_token('invitation_delete_' ~ invitation.id) }}">
             <button class="btn btn-danger" type="submit">Supprimer l'invitation</button>
         </form>

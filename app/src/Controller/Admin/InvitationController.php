@@ -10,6 +10,7 @@ use App\Entity\Role;
 use App\Entity\User;
 use App\Enum\StatutInvitationFosse;
 use App\Enum\StatutReponseFosse;
+use App\Export\CsvSecurise;
 use App\Form\InvitationFosseType;
 use App\Mail\ContenuMailSanitizer;
 use App\Mail\FosseMailer;
@@ -302,7 +303,7 @@ class InvitationController extends AbstractController
         $handle = fopen('php://temp', 'r+');
         fwrite($handle, "\xEF\xBB\xBF"); // BOM : accents corrects à l'ouverture dans Excel
         foreach ($lignes as $champs) {
-            fputcsv($handle, $champs, ',', '"', '', "\r\n");
+            fputcsv($handle, CsvSecurise::ligne($champs), ',', '"', '', "\r\n");
         }
         rewind($handle);
         $contenu = stream_get_contents($handle);

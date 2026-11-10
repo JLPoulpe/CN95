@@ -199,22 +199,14 @@ rm -rf "$APP/var"
 
 # FallbackResource attend un chemin depuis la racine du site : on y inscrit le chemin du front controller
 URL_PATH="$(printf '%s' "${PUBLIC_URL%/}${PUBLIC_SUBPATH}" | sed -E 's#^[a-zA-Z]+://[^/]+##')"
-sed "s#__FRONT_CONTROLLER__#${URL_PATH}/index.php#" "$DEPLOY_DIR/templates/htaccess" > "$APP/public/.htaccess"
+# Hôte public (sans schéma ni chemin) pour la redirection HTTPS
+PUBLIC_HOST="$(printf '%s' "$PUBLIC_URL" | sed -E 's#^[a-zA-Z]+://([^/:]+).*#\1#')"
+[[ "$PUBLIC_HOST" =~ ^[A-Za-z0-9.-]+$ ]] || die "hôte invalide dans PUBLIC_URL : $PUBLIC_URL"
+sed -e "s#__FRONT_CONTROLLER__#${URL_PATH}/index.php#" -e "s#__HOST__#${PUBLIC_HOST}#" "$DEPLOY_DIR/templates/htaccess" > "$APP/public/.htaccess"
 # Racine du projet : aucun accès web (seul public/ est servi, grâce au « Require all granted » de public/.htaccess)
 cp "$DEPLOY_DIR/templates/htaccess-racine" "$APP/.htaccess"
 
-# --- 4. Script web de migration ----------------------------------------------
-MIGRATE_URL=""
-if [[ $SKIP_DB -eq 0 ]]; then
-  TOKEN="$(openssl rand -hex 32)"
-  MIGRATE_NAME="_migrate_${TOKEN:0:16}.php"
-  MIGRATIONS_LIST="$(echo "$NEW_MIGRATIONS" | xargs -n1 basename | tr '\n' ' ')"
-  sed -e "s/__TOKEN__/$TOKEN/" \
-      -e "s/__WITH_SEED__/$([[ $SEED -eq 1 ]] && echo true || echo false)/" \
-      -e "s/__MIGRATIONS__/${MIGRATIONS_LIST% }/" \
-      "$DEPLOY_DIR/templates/migrate.php.tpl" > "$APP/public/$MIGRATE_NAME"
-  MIGRATE_URL="${PUBLIC_URL%/}${PUBLIC_SUBPATH}/$MIGRATE_NAME?token=$TOKEN"
-fi
+# --- 4. Migrations : exécutées par SSH après l'envoi (aucun script web dans public/) -------------------
 
 # --- 5. Synchronisation -------------------------------------------------------
 RSYNC=(rsync -az --delete-after --itemize-changes
@@ -249,6 +241,13 @@ EOF
   ssh "$SSH_TARGET" "php -v | head -n1" || echo "ATTENTION : php CLI introuvable côté serveur (le script web utilisera la version choisie dans le panneau)."
 }
 
+# Lance une commande Symfony sur le serveur avec le PHP CLI de la cible (comme deploy/purge.sh)
+run_console() {
+  local args="$*"
+  : "${PHP_CLI:=php8.4}"
+  ssh "$SSH_TARGET" "cd $REMOTE_DIR && P=$PHP_CLI; if ! command -v \"\$P\" >/dev/null 2>&1; then echo \"ATTENTION : \$P introuvable, utilisation de php (\$(php -v 2>/dev/null | head -n1)). Corriger PHP_CLI dans deploy/targets/$TARGET.conf.\" >&2; P=php; fi; \"\$P\" bin/console $args --env=prod"
+}
+
 info "Vérification de la configuration serveur"
 if [[ $DRY_RUN -eq 1 ]]; then
   if [[ $INIT_SERVER -eq 1 ]] || ! ssh "$SSH_TARGET" "test -f $REMOTE_DIR/.env.local"; then
@@ -276,14 +275,16 @@ fi
 # Le cache précédent peut empêcher le démarrage du nouveau kernel, même sans migration.
 bash "$DEPLOY_DIR/cache-clear.sh" "$TARGET"
 
-# --- 6. Migration web ---------------------------------------------------------
-if [[ -n "$MIGRATE_URL" ]]; then
-  echo
-  info "Ouvrez cette URL pour mettre à jour la base (usage unique, le script se supprime) :"
-  echo "    $MIGRATE_URL"
-  echo
-  read -r -p "Migration terminée avec succès ? [o/N] " ans
-  [[ "$ans" =~ ^[oOyY]$ ]] || die "déploiement non finalisé : aucun tag créé. Relancez après correction."
+# --- 6. Migrations de base de données (SSH) ----------------------------------
+if [[ $SKIP_DB -eq 0 ]]; then
+  info "Migrations de la base (SSH)"
+  run_console doctrine:migrations:migrate --no-interaction --allow-no-migration \
+    || die "migrations en échec : déploiement non finalisé, aucun tag créé. Corrigez puis relancez."
+  if [[ $SEED -eq 1 ]]; then
+    run_console app:seed || die "app:seed en échec : aucun tag créé."
+  fi
+  # Le cache doit être reconstruit avec le schéma à jour
+  bash "$DEPLOY_DIR/cache-clear.sh" "$TARGET"
 fi
 
 # --- 6b. Compte admin ---------------------------------------------------------

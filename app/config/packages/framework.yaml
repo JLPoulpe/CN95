@@ -8,6 +8,23 @@ framework:
         cookie_httponly: true
         cookie_samesite: lax
 
+    # « Mot de passe oublié » : limites par adresse IP et par compte (évite le harcèlement par mail et l'énumération)
+    rate_limiter:
+        mot_de_passe_oublie_ip:
+            policy: sliding_window
+            limit: 5
+            interval: '15 minutes'
+        mot_de_passe_oublie_compte:
+            policy: sliding_window
+            limit: 3
+            interval: '1 hour'
+
+        # Envois en masse : 5 communications par heure et par auteur (limite les dégâts d'un compte compromis)
+        envoi_communication:
+            policy: sliding_window
+            limit: 5
+            interval: '1 hour'
+
     #esi: true
     #fragments: true
 

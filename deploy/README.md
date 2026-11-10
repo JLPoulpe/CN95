@@ -1,6 +1,6 @@
 # Déploiement CN95
 
-Outil local : `deploy/deploy.sh [cible]`. Il génère la migration de base de données, construit le projet (image Docker `cn95-web`), envoie les fichiers par rsync/SSH, génère un script web de migration à usage unique et crée un tag git `deploy/<cible>/AAAAMMJJ-HHMMSS`.
+Outil local : `deploy/deploy.sh [cible]`. Il génère la migration de base de données, construit le projet (image Docker `cn95-web`), envoie les fichiers par rsync/SSH, applique les migrations sur le serveur par SSH et crée un tag git `deploy/<cible>/AAAAMMJJ-HHMMSS`.
 
 Une **cible** = un hébergement (`deploy/targets/<cible>.conf`, ignoré par git). Chaque cible a ses propres tags, donc son propre historique « déjà envoyé ».
 
@@ -17,14 +17,14 @@ deploy/deploy.sh prod             # déploiement incrémental depuis le dernier 
 ```
 Options : `--first-run` (déploiement complet), `--init-server` (réécrit `.env.local`, ex. mot de passe changé), `--skip-db`, `--create-admin` (crée le compte admin, mot de passe généré et affiché une seule fois dans le terminal ; sans effet si le compte existe), `--seed` (rejoue `app:seed`), `--no-tag`.
 
-L'outil affiche une URL `_migrate_<id>.php?token=...` : l'ouvrir dans le navigateur applique les migrations puis supprime le script. Le tag n'est créé qu'après votre confirmation.
+Les migrations sont appliquées par SSH (`bin/console doctrine:migrations:migrate`, avec le `PHP_CLI` de la cible) : aucun script n'est déposé dans `public/`. En cas d'échec, le déploiement s'arrête et aucun tag n'est créé.
 
 ### Suppression du cache
 
 Après chaque synchronisation effective des fichiers, le déploiement supprime
 `var/cache` sur le serveur, y compris avec `--skip-db` ou sans nouvelle migration.
-Le cache est reconstruit à la prochaine requête. Le script web de migration vide
-également le cache après les migrations et le seed éventuel, puis le préchauffe.
+Le cache est reconstruit à la prochaine requête. Le déploiement vide
+également le cache après les migrations et le seed éventuel.
 En `--dry-run` ou lorsqu'il n'y a rien à déployer, le cache reste intact.
 
 Pour supprimer uniquement le cache d'une cible, sans déployer ni modifier la base :

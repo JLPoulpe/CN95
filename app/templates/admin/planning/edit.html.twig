@@ -31,7 +31,7 @@
                 {% if is_granted('PLANNING_CRENEAU_GERER', c) %}
                 <div class="actions">
                     <a class="btn btn-sm btn-secondary" href="{{ path('admin_planning_creneau_edit', {id: c.id}) }}">Modifier</a>
-                    <form method="post" action="{{ path('admin_planning_creneau_delete', {id: c.id}) }}" onsubmit="return confirm('Supprimer ce créneau ?')">
+                    <form method="post" action="{{ path('admin_planning_creneau_delete', {id: c.id}) }}" data-controller="confirm" data-confirm-message-value="Supprimer ce créneau ?" data-action="submit->confirm#demander">
                         <input type="hidden" name="_token" value="{{ csrf_token('delete_creneau_' ~ c.id) }}">
                         <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
                     </form>

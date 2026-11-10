@@ -15,8 +15,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
 /** Communications officielles par mail. L'accès est réglé par PERM_COMMUNICATION (voir security.yaml). */
@@ -103,8 +105,14 @@ class CommunicationController extends AbstractController
     }
 
     #[Route('/{id}/envoyer', name: 'admin_communication_envoyer', requirements: ['id' => '\\d+'], methods: ['POST'])]
-    public function envoyer(Communication $communication, Request $request, EntityManagerInterface $em, UserRepository $users, CommunicationMailer $mailer): Response
-    {
+    public function envoyer(
+        Communication $communication,
+        Request $request,
+        EntityManagerInterface $em,
+        UserRepository $users,
+        CommunicationMailer $mailer,
+        #[Autowire(service: 'limiter.envoi_communication')] RateLimiterFactory $limiteEnvoi,
+    ): Response {
         $form = $this->createForm(DestinatairesCommunicationType::class);
         $form->handleRequest($request);
 
@@ -112,6 +120,8 @@ class CommunicationController extends AbstractController
             $this->addFlash('error', 'Session expirée ou choix invalide, merci de réessayer.');
         } elseif ($communication->estEnvoyee()) {
             $this->addFlash('error', 'Cette communication a déjà été envoyée.');
+        } elseif (!$limiteEnvoi->create((string) $this->getUser()?->getUserIdentifier())->consume()->isAccepted()) {
+            $this->addFlash('error', 'Trop d\'envois en peu de temps : réessayez dans une heure.');
         } else {
             $destinataires = $users->findPourCommunication($this->enTableau($form->get('roles')->getData()), $this->enTableau($form->get('aptitudes')->getData()));
 

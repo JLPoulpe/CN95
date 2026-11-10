@@ -22,7 +22,7 @@
                 </h2>
                 {% set dpJour = semaine.getDpPour(j.jour) %}
                 {% if dpJour %}
-                    <p class="dp">DP : <strong>{{ dpJour.nomComplet }}</strong></p>
+                    <p class="dp">DP : <strong>{{ is_granted('ROLE_USER') ? dpJour.nomComplet : dpJour.nomAbrege }}</strong></p>
                 {% endif %}
                 {% for l in j.lieux %}
                     <div class="lieu" data-planning-filter-target="lieu">

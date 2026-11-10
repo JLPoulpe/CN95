@@ -3,6 +3,14 @@ Require all granted
 
 DirectoryIndex index.php
 
+# Force HTTPS (méthode préconisée par IONOS). Le cookie de session est « Secure » en production : sans HTTPS, pas de connexion.
+# Redirection temporaire (302) : à passer en 301 une fois validée sur l'hébergement.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{SERVER_PORT} !=443
+    RewriteRule ^ https://__HOST__%{REQUEST_URI} [R=302,L]
+</IfModule>
+
 # Front controller sans mod_rewrite (la réécriture renvoyait un 500 sur IONOS).
 # Chemin depuis la racine du site, rempli par deploy.sh (ex. /projet/CN95/public/index.php)
 FallbackResource __FRONT_CONTROLLER__
@@ -13,5 +21,5 @@ FallbackResource __FRONT_CONTROLLER__
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    # Content-Security-Policy : envoyée par l'application (nonce par requête), voir App\Security\ContentSecurityPolicySubscriber
 </IfModule>

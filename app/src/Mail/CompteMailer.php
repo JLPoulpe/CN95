@@ -31,4 +31,18 @@ class CompteMailer
             ]),
         ));
     }
+
+    /** Mail « mot de passe oublié » : lien valable 1 heure. */
+    public function reinitialisation(User $user, string $lien): bool
+    {
+        return $this->sender->envoyer(new MailMessage(
+            $user->getEmail(),
+            $user->getPrenom().' '.$user->getNom(),
+            'Réinitialisation de votre mot de passe CN95 Plongée',
+            $this->renderer->rendre('mail/compte/reinitialisation.html.twig', [
+                'prenom' => (string) $user->getPrenom(),
+                'lien' => $lien,
+            ]),
+        ));
+    }
 }

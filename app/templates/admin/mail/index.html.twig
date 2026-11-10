@@ -45,15 +45,12 @@
 </div>
 
 {% if resultatTest %}
-    <dialog id="resultat-test" aria-labelledby="resultat-test-titre" style="max-width:420px;width:90%;border:none;border-radius:8px;padding:24px">
+    <dialog id="resultat-test" data-controller="dialogue" data-dialogue-ouvert-value="true" aria-labelledby="resultat-test-titre" style="max-width:420px;width:90%;border:none;border-radius:8px;padding:24px">
         <h2 id="resultat-test-titre" style="margin-top:0">{{ resultatTest.succes ? 'Connexion réussie' : 'Connexion échouée' }}</h2>
         <div class="alert {{ resultatTest.succes ? 'alert-success' : 'alert-danger' }}">{{ resultatTest.message }}</div>
         <form method="dialog" style="text-align:right">
             <button class="btn" type="submit">Fermer</button>
         </form>
     </dialog>
-    <script>
-        document.getElementById('resultat-test').showModal();
-    </script>
 {% endif %}
 {% endblock %}

@@ -6,6 +6,7 @@ use App\Enum\TypeDemandeRgpd;
 use App\Repository\DemandeRgpdRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -25,12 +26,23 @@ class RgpdController extends AbstractController
     }
 
     /** Lien du mail d'information. Le jeton identifie la demande ; accès public, comme les réponses aux invitations. */
-    #[Route('/rgpd/accuse/{jeton}', name: 'rgpd_accuse', requirements: ['jeton' => '[0-9a-f]{64}'], methods: ['GET'])]
-    public function accuse(string $jeton, DemandeRgpdRepository $demandes, EntityManagerInterface $em): Response
+    #[Route('/rgpd/accuse/{jeton}', name: 'rgpd_accuse', requirements: ['jeton' => '[0-9a-f]{64}'], methods: ['GET', 'POST'])]
+    public function accuse(Request $request, string $jeton, DemandeRgpdRepository $demandes, EntityManagerInterface $em): Response
     {
         $demande = $demandes->findOneByJeton($jeton) ?? throw $this->createNotFoundException();
         if (TypeDemandeRgpd::Information !== $demande->getType()) {
             throw $this->createNotFoundException();
+        }
+
+        // Un simple clic sur le lien (antivirus, aperçu de mail) n'enregistre rien : la lecture est confirmée par un POST
+        if (!$request->isMethod('POST') && !$demande->estRepondue()) {
+            return $this->render('fosse/confirmation.html.twig', [
+                'titre' => 'Confirmer la lecture',
+                'message' => 'Confirmez que vous avez pris connaissance de l\'information sur vos données personnelles.',
+                'bouton' => 'Je confirme avoir pris connaissance',
+                'route' => 'rgpd_accuse',
+                'parametres' => ['jeton' => $jeton],
+            ]);
         }
 
         if (!$demande->estRepondue()) {

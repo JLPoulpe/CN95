@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mot de passe oublié – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container login-box">
+    <h1 class="header-title">Mot de passe oublié</h1>
+    <div class="card">
+        <p>Indiquez votre identifiant ou votre adresse e-mail : si un compte correspond, vous recevrez un lien pour choisir un nouveau mot de passe.</p>
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <button class="btn" type="submit">Envoyer le lien</button>
+            <a href="{{ path('app_login') }}" style="margin-left:12px">Retour à la connexion</a>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

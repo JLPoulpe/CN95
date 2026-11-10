@@ -34,4 +34,23 @@ class ContenuMailSanitizerTest extends TestCase
 
         $this->assertStringNotContainsString('javascript:', $html);
     }
+
+    public function testStyleRestreintAuxCouleursEtALignement(): void
+    {
+        $s = new ContenuMailSanitizer();
+        $html = $s->nettoyer('<p style="position:fixed; top:0; left:0; width:100vw; height:100vh; background: url(http://x/y.png); color: #ff0000; background-color: rgb(0, 0, 255); text-align: center">Texte</p>');
+
+        $this->assertStringContainsString('style="color: #ff0000; background-color: rgb(0, 0, 255); text-align: center;"', $html);
+        $this->assertStringNotContainsString('position', $html);
+        $this->assertStringNotContainsString('url(', $html);
+        $this->assertStringNotContainsString('100vw', $html);
+    }
+
+    public function testStyleSansRienDAutoriseEstSupprime(): void
+    {
+        $html = (new ContenuMailSanitizer())->nettoyer('<p style="position:absolute;color:expression(alert(1))">Texte</p>');
+
+        $this->assertStringNotContainsString('style', $html);
+        $this->assertStringContainsString('Texte', $html);
+    }
 }

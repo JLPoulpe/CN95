@@ -18,7 +18,7 @@
                     <td>{{ a.visible ? 'Oui' : 'Non' }}</td>
                     <td class="actions">
                         <a class="btn btn-sm btn-secondary" href="{{ path('admin_aptitude_edit', {id: a.id}) }}">Modifier</a>
-                        <form method="post" action="{{ path('admin_aptitude_delete', {id: a.id}) }}" onsubmit="return confirm('Supprimer cette aptitude ?')">
+                        <form method="post" action="{{ path('admin_aptitude_delete', {id: a.id}) }}" data-controller="confirm" data-confirm-message-value="Supprimer cette aptitude ?" data-action="submit->confirm#demander">
                             <input type="hidden" name="_token" value="{{ csrf_token('delete_aptitude_' ~ a.id) }}">
                             <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
                         </form>
