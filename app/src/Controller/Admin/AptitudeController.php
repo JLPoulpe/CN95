@@ -7,6 +7,7 @@ use App\Form\AptitudeType;
 use App\Repository\AptitudeRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -63,6 +64,37 @@ class AptitudeController extends AbstractController
         }
 
         return $this->render('admin/aptitude/edit.html.twig', ['form' => $form, 'aptitude' => $aptitude]);
+    }
+
+    /** Appelé à chaque déplacement d'une ligne : enregistre le nouvel ordre (ids dans l'ordre souhaité). */
+    #[Route('/ordre', name: 'admin_aptitude_ordre', methods: ['POST'])]
+    public function ordre(Request $request, EntityManagerInterface $em, AptitudeRepository $aptitudes): JsonResponse
+    {
+        $charge = $request->getPayload();
+        if (!$this->isCsrfTokenValid('reorder_aptitudes', (string) $charge->get('_token'))) {
+            return new JsonResponse(['ok' => false, 'message' => 'Session expirée, rechargez la page.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $ids = $charge->all('ids');
+        if (!array_is_list($ids) || array_filter($ids, static fn ($id) => !is_int($id) && !(is_string($id) && ctype_digit($id))) !== []) {
+            return new JsonResponse(['ok' => false, 'message' => 'Liste d\'aptitudes invalide.'], Response::HTTP_BAD_REQUEST);
+        }
+        $ids = array_map('intval', $ids);
+
+        $parId = [];
+        foreach ($aptitudes->findAll() as $aptitude) {
+            $parId[$aptitude->getId()] = $aptitude;
+        }
+        if (count($ids) !== count($parId) || array_diff(array_keys($parId), $ids) !== []) {
+            return new JsonResponse(['ok' => false, 'message' => 'La liste ne correspond plus aux aptitudes, rechargez la page.'], Response::HTTP_CONFLICT);
+        }
+
+        foreach ($ids as $position => $id) {
+            $parId[$id]->setOrdre($position + 1);
+        }
+        $em->flush();
+
+        return new JsonResponse(['ok' => true]);
     }
 
     #[Route('/{id}/supprimer', name: 'admin_aptitude_delete', requirements: ['id' => '\\d+'], methods: ['POST'])]

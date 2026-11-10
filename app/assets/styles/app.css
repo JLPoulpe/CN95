@@ -231,3 +231,8 @@ input[type=checkbox]:disabled + label, input[type=radio]:disabled + label { colo
 .modal ul { padding-left: 22px; margin-bottom: 24px; }
 .modal li { line-height: 1.5; margin-bottom: 8px; }
 .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+
+/* Liste des aptitudes : réordonnancement par glisser-déposer */
+tr[data-aptitude-id] { cursor: grab; }
+tr[data-aptitude-id].is-dragging { opacity: .4; }
+[data-aptitude-ordre-target="statut"].erreur { color: #b91c1c; }

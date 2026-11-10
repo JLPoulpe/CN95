@@ -23,7 +23,7 @@
                     <td><span class="badge">{{ u.aptitude }}</span></td>
                     <td>{% if u.aptitudePreparee %}<span class="badge">{{ u.aptitudePreparee }}</span>{% endif %}</td>
                     <td>{% for r in u.userRoles %}<span class="badge">{{ r }}</span> {% endfor %}</td>
-                    <td><a class="btn btn-sm btn-secondary" href="{{ path('admin_user_edit', {id: u.id}) }}">Modifier</a></td>
+                    <td><a class="btn btn-sm btn-secondary" href="{{ path('admin_user_edit', {id: u.id}) }}" title="Modifier" aria-label="Modifier"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></a></td>
                 </tr>
             {% else %}
                 <tr><td colspan="10">Aucun utilisateur.</td></tr>

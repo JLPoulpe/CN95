@@ -1,18 +1,24 @@
 {% extends 'base.html.twig' %}
 {% block title %}Aptitudes – CN95 Plongée{% endblock %}
 {% block body %}
-<div class="container">
+<div class="container"
+     data-controller="aptitude-ordre"
+     data-aptitude-ordre-url-value="{{ path('admin_aptitude_ordre') }}"
+     data-aptitude-ordre-token-value="{{ csrf_token('reorder_aptitudes') }}">
     <h1 class="header-title">Liste des aptitudes</h1>
     <div class="search-bar">
         <a class="btn" href="{{ path('admin_aptitude_new') }}">Ajouter</a>
     </div>
+    <p class="hint">Glissez une ligne pour changer son ordre : il est enregistré automatiquement.</p>
+    <p class="hint" data-aptitude-ordre-target="statut" hidden role="status"></p>
     <div class="table-wrapper">
         <table>
             <thead><tr><th>Ordre</th><th>Code</th><th>Libellé</th><th>Visible</th><th></th></tr></thead>
-            <tbody>
+            <tbody data-aptitude-ordre-target="corps">
             {% for a in aptitudes %}
-                <tr>
-                    <td>{{ a.ordre }}</td>
+                <tr draggable="true" data-aptitude-id="{{ a.id }}"
+                    data-action="dragstart->aptitude-ordre#debut dragover->aptitude-ordre#survol drop->aptitude-ordre#depot dragend->aptitude-ordre#fin">
+                    <td data-ordre-cellule>{{ a.ordre }}</td>
                     <td><span class="badge">{{ a.code }}</span></td>
                     <td>{{ a.libelle }}</td>
                     <td>{{ a.visible ? 'Oui' : 'Non' }}</td>
