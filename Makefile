@@ -47,6 +47,9 @@ purge: ## Purge la base de chaque environnement (NIVEAU=totale|configuration, DR
 import-adherents: ## Importe un CSV d'adhérents (FICHIER=import/adherents_2027.csv ENVS="local ionos", DRY_RUN=1 pour simuler)
 	bash deploy/import-adherents.sh "$(FICHIER)" $(if $(DRY_RUN),--dry-run) $(ENVS)
 
+import-lieux: ## Importe un CSV de lieux d'activité (FICHIER=import/lieux_activite.csv ENVS="local cn95", DRY_RUN=1 pour simuler)
+	bash deploy/import-lieux.sh "$(FICHIER)" $(if $(DRY_RUN),--dry-run) $(ENVS)
+
 import-planning: ## Importe un calendrier de saison CSV dans le planning (FICHIER=import/calendrier.csv ENVS="local ionos", DRY_RUN=1 pour simuler)
 	bash deploy/import-planning.sh "$(FICHIER)" $(if $(DRY_RUN),--dry-run) $(ENVS)
 
