@@ -89,8 +89,8 @@ class ImportAdherentsCommand extends Command
         if ([] !== $r['created']) {
             $io->section($simulation ? 'Comptes à créer' : 'Comptes créés');
             $io->table(
-                ['Identifiant', 'Prénom', 'Nom', 'Email', 'Aptitude'],
-                array_map(fn (array $c): array => [$c['username'], $c['prenom'], $c['nom'], $c['email'], $c['aptitude']], $r['created']),
+                ['Identifiant', 'Prénom', 'Nom', 'Email', 'Aptitude', 'Aptitude préparée'],
+                array_map(fn (array $c): array => [$c['username'], $c['prenom'], $c['nom'], $c['email'], $c['aptitude'], $c['aptitude_preparee']], $r['created']),
             );
         }
         if ([] !== $r['ignored']) {

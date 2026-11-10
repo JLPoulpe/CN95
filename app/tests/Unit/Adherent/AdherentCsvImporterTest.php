@@ -24,7 +24,7 @@ class AdherentCsvImporterTest extends TestCase
         $users->method('findAll')->willReturn($existants);
         $aptitudes = $this->createStub(AptitudeRepository::class);
         $aptitudes->method('findOneBy')->willReturnCallback(
-            fn (array $c): ?Aptitude => in_array($c['code'], ['N1', 'PN1'], true) ? (new Aptitude())->setCode($c['code']) : null,
+            fn (array $c): ?Aptitude => in_array($c['code'], [...array_keys(AdherentCsvImporter::APTITUDE_PREPAREE), ...array_values(AdherentCsvImporter::APTITUDE_PREPAREE), 'N5'], true) ? (new Aptitude())->setCode($c['code']) : null,
         );
         $roles = $this->createStub(RoleRepository::class);
         $roles->method('findOneBy')->willReturn((new Role())->setCode(Role::ADHERENT));
@@ -61,6 +61,39 @@ class AdherentCsvImporterTest extends TestCase
         $this->assertSame('2026-09-10', $u->getCaciExpireLe()->format('Y-m-d'));
         $this->assertTrue($u->activationEnAttente());
         $this->assertTrue($u->hasRole(Role::ADHERENT));
+        // Le fichier donne N1 (actuelle) : le compte garde N1 et reçoit PE40 (préparée)
+        $this->assertSame('N1', $u->getAptitude()->getCode());
+        $this->assertSame('PE40', $u->getAptitudePreparee()->getCode());
+    }
+
+    public function testAttribueLAptitudePrepareeSelonLaProgression(): void
+    {
+        $persistes = [];
+        $lignes = '';
+        foreach (['PN1', 'N1', 'PE40', 'N2', 'PE60', 'N3', 'N4', 'E1', 'E2', 'E3', 'MF1'] as $i => $actuelle) {
+            $lignes .= sprintf("Nom%d;Prenom%d;p%d@example.org;;;;%s\n", $i, $i, $i, $actuelle);
+        }
+        $f = $this->fichier(self::ENTETE.$lignes);
+        $r = $this->importer([], $persistes)->import($f);
+        unlink($f);
+
+        $this->assertSame([], $r['errors']);
+        $actuelles = array_map(fn (User $u): string => $u->getAptitude()->getCode(), $persistes);
+        $preparees = array_map(fn (User $u): string => $u->getAptitudePreparee()->getCode(), $persistes);
+        $this->assertSame(['PN1', 'N1', 'PE40', 'N2', 'PE60', 'N3', 'N4', 'E1', 'E2', 'E3', 'MF1'], $actuelles);
+        $this->assertSame(['N1', 'PE40', 'N2', 'PE60', 'N3', 'N4', 'N5', 'E2', 'E3', 'E4', 'MF2'], $preparees);
+    }
+
+    public function testAptitudeSansSuivanteLaisseLaPrepareeVide(): void
+    {
+        $persistes = [];
+        $f = $this->fichier(self::ENTETE."Fin;Parcours;f@example.org;;;;N5\n");
+        $r = $this->importer([], $persistes)->import($f);
+        unlink($f);
+
+        $this->assertSame([], $r['errors']);
+        $this->assertSame('N5', $persistes[0]->getAptitude()->getCode());
+        $this->assertNull($persistes[0]->getAptitudePreparee());
     }
 
     public function testPrenomPartageOuDejaPrisDonnePrenomPuisNom(): void

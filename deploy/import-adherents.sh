@@ -6,6 +6,8 @@
 #   Les environnements doivent être nommés explicitement : « local » (Docker) ou une cible de deploy/targets/*.conf.
 #
 # Format du fichier : nom;prenom;email;telephone;date_naissance;caci_expire_le;aptitude (voir AdherentCsvImporter).
+# La colonne aptitude est l'aptitude ACTUELLE du compte ; l'aptitude PRÉPARÉE est déduite (PN1→N1, N1→PE40, PE40→N2, N2→PE60,
+# PE60→N3, N3→N4, N4→N5, E1→E2, E2→E3, E3→E4, MF1→MF2). Sans suivante définie, la préparée reste vide.
 # Les comptes sont créés avec le rôle Adhérent, un mot de passe inutilisable et une activation en attente :
 # AUCUN mail n'est envoyé (voir deploy/envoyer-activation.sh). Un email déjà présent est ignoré : le script est relançable.
 # La commande app:import:adherents doit avoir été déployée sur la cible (deploy/deploy.sh <cible>).

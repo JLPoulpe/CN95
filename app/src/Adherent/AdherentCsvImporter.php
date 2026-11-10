@@ -27,6 +27,25 @@ class AdherentCsvImporter
 {
     private const COLONNES = ['nom', 'prenom', 'email', 'telephone', 'date_naissance', 'caci_expire_le', 'aptitude'];
 
+    /**
+     * Aptitude préparée : la colonne « aptitude » du fichier est l'aptitude actuelle de l'adhérent,
+     * le compte créé reçoit cette aptitude et, en aptitude préparée, la suivante de cette liste.
+     * Un code absent de la liste n'a pas de préparée (champ laissé vide).
+     */
+    public const APTITUDE_PREPAREE = [
+        'PN1' => 'N1',
+        'N1' => 'PE40',
+        'PE40' => 'N2',
+        'N2' => 'PE60',
+        'PE60' => 'N3',
+        'N3' => 'N4',
+        'N4' => 'N5',
+        'E1' => 'E2',
+        'E2' => 'E3',
+        'E3' => 'E4',
+        'MF1' => 'MF2',
+    ];
+
     public function __construct(
         private EntityManagerInterface $em,
         private UserRepository $users,
@@ -37,7 +56,7 @@ class AdherentCsvImporter
     }
 
     /**
-     * @return array{created: list<array{username: string, nom: string, prenom: string, email: string, aptitude: string}>, ignored: list<string>, errors: list<string>}
+     * @return array{created: list<array{username: string, nom: string, prenom: string, email: string, aptitude: string, aptitude_preparee: string}>, ignored: list<string>, errors: list<string>}
      */
     public function import(string $path, bool $simulation = false): array
     {
@@ -139,12 +158,13 @@ class AdherentCsvImporter
                 ->setDateNaissance($this->date($v['date_naissance']))
                 ->setCaciExpireLe($this->date($v['caci_expire_le']))
                 ->setAptitude($this->aptitudes->findOneBy(['code' => $v['aptitude']]))
+                ->setAptitudePreparee(isset(self::APTITUDE_PREPAREE[$v['aptitude']]) ? $this->aptitudes->findOneBy(['code' => self::APTITUDE_PREPAREE[$v['aptitude']]]) : null)
                 ->addUserRole($role);
             // Mot de passe aléatoire inutilisable ; jeton d'activation en attente, le clair est volontairement perdu (renouvelé à l'envoi du mail)
             $user->setPassword($this->hasher->hashPassword($user, bin2hex(random_bytes(32))));
             $user->genererActivation(new \DateTimeImmutable());
             $nouveaux[] = $user;
-            $result['created'][] = ['username' => $username, 'nom' => $v['nom'], 'prenom' => $v['prenom'], 'email' => $v['email'], 'aptitude' => $v['aptitude']];
+            $result['created'][] = ['username' => $username, 'nom' => $v['nom'], 'prenom' => $v['prenom'], 'email' => $v['email'], 'aptitude' => $v['aptitude'], 'aptitude_preparee' => self::APTITUDE_PREPAREE[$v['aptitude']] ?? ''];
         }
 
         if (!$simulation && [] !== $nouveaux) {
@@ -179,6 +199,9 @@ class AdherentCsvImporter
         }
         if (null === $this->aptitudes->findOneBy(['code' => $v['aptitude']])) {
             return sprintf('aptitude « %s » inconnue en base.', $v['aptitude']);
+        }
+        if (isset(self::APTITUDE_PREPAREE[$v['aptitude']]) && null === $this->aptitudes->findOneBy(['code' => self::APTITUDE_PREPAREE[$v['aptitude']]])) {
+            return sprintf('aptitude préparée « %s » (pour %s) inconnue en base.', self::APTITUDE_PREPAREE[$v['aptitude']], $v['aptitude']);
         }
 
         return null;
