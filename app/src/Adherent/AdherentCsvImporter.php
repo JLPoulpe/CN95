@@ -161,7 +161,7 @@ class AdherentCsvImporter
                 ->setAptitudePreparee(isset(self::APTITUDE_PREPAREE[$v['aptitude']]) ? $this->aptitudes->findOneBy(['code' => self::APTITUDE_PREPAREE[$v['aptitude']]]) : null)
                 ->addUserRole($role);
             // Mot de passe aléatoire inutilisable ; jeton d'activation en attente, le clair est volontairement perdu (renouvelé à l'envoi du mail)
-            $user->setPassword($this->hasher->hashPassword($user, bin2hex(random_bytes(32))));
+            $user->setPassword($this->hasher->hashPassword($user, bin2hex(random_bytes(4))));
             $user->genererActivation(new \DateTimeImmutable());
             $nouveaux[] = $user;
             $result['created'][] = ['username' => $username, 'nom' => $v['nom'], 'prenom' => $v['prenom'], 'email' => $v['email'], 'aptitude' => $v['aptitude'], 'aptitude_preparee' => self::APTITUDE_PREPAREE[$v['aptitude']] ?? ''];
