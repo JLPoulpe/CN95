@@ -57,6 +57,7 @@ final class PurgeEnvironnement
         'activite_externe',
         'activite',
         'communication',
+        'remarque',
         'demande_rgpd',
         'messenger_messages',
     ];
@@ -149,6 +150,7 @@ final class PurgeEnvironnement
             'activite_externe' => 'Activités externes',
             'activite' => 'Activités du planning',
             'communication' => 'Communications',
+            'remarque' => 'Remarques des membres',
             'demande_rgpd' => 'Demandes RGPD',
             'messenger_messages' => 'File d\'envoi des mails',
         ];

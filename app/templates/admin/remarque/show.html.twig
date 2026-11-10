@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+{% block title %}Remarque – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <p class="retour"><a href="{{ path('admin_remarque_index') }}">← Remarques</a></p>
+    <h1 class="header-title">Remarque</h1>
+
+    <div class="card">
+        <p><strong>Auteur :</strong> {{ remarque.auteur ? remarque.auteur.nomComplet : '–' }}</p>
+        <p><strong>Reçue le :</strong> {{ remarque.createdAt|date('d/m/Y H:i') }}</p>
+        <div style="white-space:pre-wrap;border-top:1px solid #e5e7eb;padding-top:12px">{{ remarque.contenu }}</div>
+    </div>
+
+    <div class="actions" style="margin-top:20px">
+        <form method="post" action="{{ path('admin_remarque_delete', {id: remarque.id}) }}" data-controller="confirm" data-confirm-message-value="Supprimer cette remarque ?" data-action="submit->confirm#demander">
+            <input type="hidden" name="_token" value="{{ csrf_token('remarque_' ~ remarque.id) }}">
+            <button class="btn btn-danger" type="submit">Supprimer</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

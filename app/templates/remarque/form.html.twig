@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+{% block title %}Laisser une remarque – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <p class="retour"><a href="{{ path('app_member') }}">← Retour</a></p>
+    <h1 class="header-title">Laisser une remarque</h1>
+    <div class="card">
+        <p class="hint">Votre remarque est lue par les administrateurs de l'outil. Votre nom leur est communiqué avec elle.</p>
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <button class="btn" type="submit">Envoyer</button>
+            <a href="{{ path('app_member') }}" style="margin-left:12px">Annuler</a>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

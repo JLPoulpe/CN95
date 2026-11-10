@@ -38,6 +38,9 @@
         <footer class="footer" style="text-align:center;font-size:13px;padding:24px 16px">
             <a href="{{ path('app_confidentialite') }}">Politique de confidentialité</a> ·
             <a href="{{ path('app_mentions_legales') }}">Mentions légales</a>
+            {% if is_granted('ROLE_USER') %}
+                · <a href="{{ path('app_remarque') }}">Laisser une remarque</a>
+            {% endif %}
         </footer>
     </body>
 </html>

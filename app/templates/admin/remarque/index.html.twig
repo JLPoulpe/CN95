@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+{% block title %}Remarques – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container container-wide">
+    <p class="retour"><a href="{{ path('app_member') }}">← Espace administrateur</a></p>
+    <h1 class="header-title">Remarques</h1>
+
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Date</th><th>Auteur</th><th>Extrait</th><th></th></tr></thead>
+            <tbody>
+            {% for r in remarques %}
+                <tr>
+                    <td>{{ r.createdAt|date('d/m/Y H:i') }}</td>
+                    <td>{{ r.auteur ? r.auteur.nomComplet : '–' }}</td>
+                    <td>{{ r.contenu|slice(0, 100) }}{{ r.contenu|length > 100 ? '…' : '' }}</td>
+                    <td class="actions">
+                        <a class="btn btn-sm btn-secondary" href="{{ path('admin_remarque_show', {id: r.id}) }}">Ouvrir</a>
+                        <form method="post" action="{{ path('admin_remarque_delete', {id: r.id}) }}" data-controller="confirm" data-confirm-message-value="Supprimer cette remarque ?" data-action="submit->confirm#demander">
+                            <input type="hidden" name="_token" value="{{ csrf_token('remarque_' ~ r.id) }}">
+                            <button class="btn btn-sm btn-danger" type="submit">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="4">Aucune remarque.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
