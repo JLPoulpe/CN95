@@ -200,6 +200,8 @@ rm -rf "$APP/var"
 # FallbackResource attend un chemin depuis la racine du site : on y inscrit le chemin du front controller
 URL_PATH="$(printf '%s' "${PUBLIC_URL%/}${PUBLIC_SUBPATH}" | sed -E 's#^[a-zA-Z]+://[^/]+##')"
 sed "s#__FRONT_CONTROLLER__#${URL_PATH}/index.php#" "$DEPLOY_DIR/templates/htaccess" > "$APP/public/.htaccess"
+# Racine du projet : aucun accès web (seul public/ est servi, grâce au « Require all granted » de public/.htaccess)
+cp "$DEPLOY_DIR/templates/htaccess-racine" "$APP/.htaccess"
 
 # --- 4. Script web de migration ----------------------------------------------
 MIGRATE_URL=""
@@ -217,6 +219,9 @@ fi
 # --- 5. Synchronisation -------------------------------------------------------
 RSYNC=(rsync -az --delete-after --itemize-changes
   --exclude=/var/ --exclude=/.env.local --exclude=/.env.local.php --exclude=/.env
+  --exclude=/composer.lock --exclude=/symfony.lock --exclude=/tests/ --exclude=/phpunit.dist.xml
+  --exclude=/.phpunit.cache/ --exclude=/.editorconfig --exclude=/.env.dev --exclude=/.env.test
+  --exclude=/.gitignore
   -e ssh)
 [[ $DRY_RUN -eq 1 ]] && RSYNC+=(--dry-run)
 
@@ -258,6 +263,8 @@ fi
 
 info "rsync vers $SSH_TARGET:$REMOTE_DIR"
 "${RSYNC[@]}" "$APP/" "$SSH_TARGET:$REMOTE_DIR/"
+# Fichiers exclus de l'envoi mais présents d'un ancien déploiement : suppression (rsync --delete ne les touche pas)
+ssh "$SSH_TARGET" "cd $REMOTE_DIR && rm -rf composer.lock symfony.lock tests phpunit.dist.xml .phpunit.cache .editorconfig .env.dev .env.test .gitignore"
 # .env minimal : envoyé seulement s'il n'existe pas encore
 rsync -az --ignore-existing $([[ $DRY_RUN -eq 1 ]] && echo --dry-run) -e ssh "$APP/.env" "$SSH_TARGET:$REMOTE_DIR/.env"
 

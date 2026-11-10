@@ -17,6 +17,8 @@
                     {# Réservé aux membres ayant un rôle au-delà d'adhérent #}
                     {% if is_granted('ROLE_MONITEUR') or is_granted('ROLE_BUREAU') or is_granted('ROLE_ADMIN') %}
                         <a href="{{ path('app_member') }}">Espace administrateur</a>
+                    {% else %}
+                        <a href="{{ path('app_member') }}">Mon espace</a>
                     {% endif %}
                     <span>{{ app.user.userIdentifier }}</span>
                     <a href="{{ path('app_logout') }}">Déconnexion</a>

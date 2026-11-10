@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
@@ -52,7 +53,10 @@ class CompteController extends AbstractController
                 $em->persist($accuse);
             }
             $em->flush();
-            $this->addFlash('success', 'Votre compte est activé. Vous pouvez maintenant vous connecter.');
+            $this->addFlash('success', 'Votre compte est activé. Connectez-vous pour confirmer vos informations.');
+
+            // Après la connexion, le membre arrive sur ses données personnelles pour les confirmer, niveau compris
+            $request->getSession()->set('_security.main.target_path', $this->generateUrl('app_profil', ['bienvenue' => 1], UrlGeneratorInterface::ABSOLUTE_URL));
 
             return $this->redirectToRoute('app_login');
         }

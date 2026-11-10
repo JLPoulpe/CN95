@@ -98,6 +98,18 @@ bash deploy/import-adherents.sh import/adherents_2027.csv local ionos       # cr
 make import-adherents FICHIER=import/adherents_2027.csv ENVS="local" DRY_RUN=1
 ```
 
+### Importer le planning (calendrier de saison)
+
+Le CSV a les colonnes `Date;Jour;PN1;PE40;PN2;PN3;Événement / remarque` (dates `AAAA-MM-JJ`, cellule = activité). Prérequis sur chaque environnement : aptitudes N1, N2 et PE40, activités (BLOC, PMT, APNEE, THEORIE…) et lieux d'activité.
+
+```bash
+bash deploy/import-planning.sh import/calendrier.csv --dry-run local   # valide, n'écrit rien
+bash deploy/import-planning.sh import/calendrier.csv local ionos       # crée les semaines (confirmation IMPORTER)
+make import-planning FICHIER=import/calendrier.csv ENVS="local" DRY_RUN=1
+```
+
+Les environnements sont à nommer explicitement. Les événements (FOSSE, TIV…) et les jours autres que lundi/vendredi sont ignorés ; une semaine déjà en base n'est jamais modifiée, donc le script est relançable.
+
 Les environnements sont à nommer explicitement (`local` ou une cible). Chaque compte créé a le rôle Adhérent, un mot de passe inutilisable et une activation en attente ; **aucun mail n'est envoyé**. Identifiant = prénom (sans accent) ; si le prénom est partagé ou déjà pris : `prénom.nom`. Un email déjà en base est ignoré, donc le script est relançable. Une ligne invalide bloque tout l'import.
 
 Mail d'activation (le même que lors de l'ajout d'un adhérent), à envoyer ensuite :

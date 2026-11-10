@@ -1,3 +1,6 @@
+# Seul dossier servi par le web : autorise explicitement ce qui est refusé à la racine du projet.
+Require all granted
+
 DirectoryIndex index.php
 
 # Front controller sans mod_rewrite (la réécriture renvoyait un 500 sur IONOS).

@@ -223,3 +223,12 @@ input[type=checkbox]:disabled + label, input[type=radio]:disabled + label { colo
 /* Case à cocher avant son libellé, sur la même ligne */
 .check-row { display: flex; flex-direction: row-reverse; justify-content: flex-end; align-items: center; gap: 8px; }
 .check-row label { margin: 0; }
+
+/* Modale de confirmation : le reset global retire la marge auto qui centre <dialog> */
+.modal { margin: auto; max-width: 480px; width: 90%; border: none; border-radius: 12px; padding: 28px; box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+.modal::backdrop { background: rgba(0,0,0,.45); }
+.modal h2 { font-size: 22px; margin-bottom: 16px; }
+.modal p { line-height: 1.5; margin-bottom: 14px; }
+.modal ul { padding-left: 22px; margin-bottom: 24px; }
+.modal li { line-height: 1.5; margin-bottom: 8px; }
+.modal-actions { display: flex; gap: 12px; justify-content: flex-end; }

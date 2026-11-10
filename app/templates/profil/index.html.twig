@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mes données personnelles – CN95 Plongée{% endblock %}
+{% block body %}
+<div class="container">
+    <h1 class="header-title">Mes données personnelles</h1>
+
+    {% if bienvenue %}
+    <div class="alert alert-success">
+        Bienvenue ! Votre mot de passe est enregistré. Merci de vérifier vos informations, et en particulier votre <strong>niveau</strong> (aptitude), puis de valider.
+    </div>
+    {% endif %}
+
+    <div class="card">
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <button class="btn" type="submit">{{ bienvenue ? 'Confirmer mes informations' : 'Enregistrer' }}</button>
+            <a href="{{ path('app_member') }}" style="margin-left:12px">Annuler</a>
+        {{ form_end(form) }}
+    </div>
+
+    <div class="card">
+        <h2>Supprimer mes données personnelles</h2>
+        <p class="hint">Vous pouvez demander l'effacement de vos données à tout moment.</p>
+        <button class="btn btn-danger" type="button" data-ouvrir-dialogue="supprimer-donnees">Supprimer mes données personnelles</button>
+    </div>
+
+    <dialog class="modal" id="supprimer-donnees" aria-labelledby="supprimer-donnees-titre">
+        <h2 id="supprimer-donnees-titre">Supprimer mes données ?</h2>
+        <p><strong>Toutes vos données personnelles seront supprimées, définitivement.</strong></p>
+        <ul>
+            <li>Plus aucune invitation ne vous sera envoyée.</li>
+            <li>Vous n'aurez plus accès à l'outil.</li>
+            <li>Cette action est irréversible.</li>
+        </ul>
+        <form method="post" action="{{ path('app_profil_supprimer') }}" class="modal-actions">
+            <input type="hidden" name="_token" value="{{ csrf_token('profil_supprimer') }}">
+            <button class="btn btn-secondary" type="submit" formmethod="dialog" formnovalidate>Annuler</button>
+            <button class="btn btn-danger" type="submit">Oui, tout supprimer</button>
+        </form>
+    </dialog>
+</div>
+<script>
+    document.querySelectorAll('[data-ouvrir-dialogue]').forEach(function (bouton) {
+        bouton.addEventListener('click', function () {
+            document.getElementById(bouton.dataset.ouvrirDialogue).showModal();
+        });
+    });
+</script>
+{% endblock %}

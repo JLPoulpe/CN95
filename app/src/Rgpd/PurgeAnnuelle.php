@@ -52,15 +52,7 @@ final class PurgeAnnuelle
                 $this->supprimer('DELETE FROM invitation_fosse WHERE id IN (:ids)', $invitationIds);
             }
 
-            if ([] !== $userIds) {
-                // Les invitations et plannings conservés ne doivent plus pointer vers un responsable supprimé
-                $this->supprimer('UPDATE invitation_fosse SET dp_id = NULL WHERE dp_id IN (:ids)', $userIds);
-                $this->supprimer('UPDATE planning_semaine SET dp_id = NULL WHERE dp_id IN (:ids)', $userIds);
-                $this->supprimer('DELETE FROM reponse_fosse WHERE user_id IN (:ids)', $userIds);
-                $this->supprimer('DELETE FROM demande_rgpd WHERE user_id IN (:ids)', $userIds);
-                $this->supprimer('DELETE FROM user_role WHERE user_id IN (:ids)', $userIds);
-                $this->supprimer('DELETE FROM `user` WHERE id IN (:ids)', $userIds);
-            }
+            $this->supprimerUtilisateurs($userIds);
 
             $this->connection->commit();
         } catch (\Throwable $e) {
@@ -70,6 +62,46 @@ final class PurgeAnnuelle
         }
 
         return $resultat;
+    }
+
+    /**
+     * Efface toutes les données d'un seul utilisateur (droit à l'effacement demandé par la personne elle-même).
+     * Refuse de supprimer le dernier administrateur : sans lui, plus personne ne pourrait reprendre le site.
+     *
+     * @throws \DomainException si l'utilisateur est le dernier administrateur
+     */
+    public function supprimerUtilisateur(int $userId): void
+    {
+        $this->connection->beginTransaction();
+        try {
+            $administrateurs = array_map('intval', $this->connection->fetchFirstColumn(
+                'SELECT ur.user_id FROM user_role ur INNER JOIN `role` r ON r.id = ur.role_id WHERE r.code = :admin',
+                ['admin' => self::ROLE_EXCLU],
+            ));
+            if ([$userId] === $administrateurs) {
+                throw new \DomainException('Le dernier administrateur ne peut pas être supprimé.');
+            }
+
+            $this->supprimerUtilisateurs([$userId]);
+            $this->connection->commit();
+        } catch (\Throwable $e) {
+            $this->connection->rollBack();
+
+            throw $e;
+        }
+    }
+
+    /** @param non-empty-list<int> $userIds À appeler dans une transaction */
+    private function supprimerUtilisateurs(array $userIds): void
+    {
+        // Les invitations et plannings conservés ne doivent plus pointer vers un responsable supprimé
+        $this->supprimer('UPDATE invitation_fosse SET dp_id = NULL WHERE dp_id IN (:ids)', $userIds);
+        $this->supprimer('UPDATE planning_semaine SET dp_id = NULL WHERE dp_id IN (:ids)', $userIds);
+        $this->supprimer('UPDATE planning_semaine SET dp_vendredi_id = NULL WHERE dp_vendredi_id IN (:ids)', $userIds);
+        $this->supprimer('DELETE FROM reponse_fosse WHERE user_id IN (:ids)', $userIds);
+        $this->supprimer('DELETE FROM demande_rgpd WHERE user_id IN (:ids)', $userIds);
+        $this->supprimer('DELETE FROM user_role WHERE user_id IN (:ids)', $userIds);
+        $this->supprimer('DELETE FROM `user` WHERE id IN (:ids)', $userIds);
     }
 
     /** @return list<int> */
