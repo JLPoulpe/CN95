@@ -18,8 +18,12 @@ class LieuActiviteCsvImporter
     ) {
     }
 
-    /** @return array{created: int, updated: int, errors: list<string>} */
-    public function import(string $path): array
+    /**
+     * Avec $simulation = true, le fichier est validé et les compteurs calculés, sans rien persister ni écrire en base.
+     *
+     * @return array{created: int, updated: int, errors: list<string>}
+     */
+    public function import(string $path, bool $simulation = false): array
     {
         $result = ['created' => 0, 'updated' => 0, 'errors' => []];
 
@@ -109,10 +113,14 @@ class LieuActiviteCsvImporter
                 }
                 ++$result['updated'];
             }
-            $this->em->persist($lieu);
+            if (!$simulation) {
+                $this->em->persist($lieu);
+            }
         }
 
-        $this->em->flush();
+        if (!$simulation) {
+            $this->em->flush();
+        }
 
         return $result;
     }
