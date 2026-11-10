@@ -56,6 +56,8 @@ Thumbs.db
 ###> Deploy ###
 deploy/targets/*.conf
 deploy/.build/
+# Journaux des déploiements (locaux)
+deploy/logs/
 ###< Deploy ###
 
 ###> Données personnelles à importer ###

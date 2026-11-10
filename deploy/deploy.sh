@@ -32,6 +32,28 @@ info() { echo "==> $*"; }
 CONF="$DEPLOY_DIR/targets/$TARGET.conf"
 TAG_PREFIX="deploy/$TARGET/"
 [[ -f "$CONF" ]] || die "$CONF introuvable (copier deploy/targets/prod.conf.example)."
+
+# --- Journal local ------------------------------------------------------------
+# Toute la sortie (étapes, rsync, migrations, erreurs) est conservée dans deploy/logs/AAAAMMJJ-HHMMSS-<cible>.log
+# (ignoré par git, droits 600). Le script se relance une fois dans un tube vers tee : l'entrée reste le terminal
+# (mot de passe DB, confirmations) et le code de retour d'origine est conservé.
+if [[ -z "${CN95_DEPLOY_LOGGED:-}" ]]; then
+  LOG_DIR="$DEPLOY_DIR/logs"
+  mkdir -p "$LOG_DIR" && chmod 700 "$LOG_DIR"
+  LOG_FILE="$LOG_DIR/$(date +%Y%m%d-%H%M%S)-$TARGET.log"
+  ( umask 077; : > "$LOG_FILE" )
+  {
+    echo "# Déploiement CN95 : cible=$TARGET args=[$*] début=$(date '+%F %T') utilisateur=$(id -un)"
+    echo "# git : $(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null) ($(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)), fichiers modifiés non commités : $(git -C "$ROOT" status --porcelain 2>/dev/null | wc -l)"
+  } >> "$LOG_FILE"
+  echo "==> Journal : $LOG_FILE"
+  set +e
+  CN95_DEPLOY_LOGGED=1 bash "$0" "$@" 2>&1 | tee -a "$LOG_FILE"
+  rc=${PIPESTATUS[0]}
+  echo "# fin=$(date '+%F %T') code=$rc" >> "$LOG_FILE"
+  [[ $rc -eq 0 ]] || echo "==> Déploiement en échec (code $rc). Détail : $LOG_FILE"
+  exit "$rc"
+fi
 # shellcheck disable=SC1090
 source "$CONF"
 : "${SSH_TARGET:?}" "${REMOTE_DIR:?}" "${PUBLIC_URL:?}" "${DB_HOST:?}" "${DB_USER:?}"
@@ -48,7 +70,13 @@ create_admin() {
     || die "création de l'admin impossible (migrations appliquées ? $PHP_CLI disponible ?)."
   echo
   echo "    Identifiant  : $ADMIN_USERNAME"
-  echo "    Mot de passe : $pw   (affiché une seule fois ; ignoré si le compte existait déjà)"
+  # Hors journal : écrit directement sur le terminal (le journal local est conservé, pas ce mot de passe)
+  if { printf '    Mot de passe : %s   (affiché une seule fois ; ignoré si le compte existait déjà)\n' "$pw" > /dev/tty; } 2>/dev/null; then
+    echo "    Mot de passe : (affiché sur le terminal, non journalisé)"
+  else
+    echo "    Mot de passe : $pw   (affiché une seule fois ; ignoré si le compte existait déjà)"
+    echo "    ATTENTION : ce mot de passe figure dans le journal local (pas de terminal disponible) ; supprimez-le après usage."
+  fi
   echo
 }
 
