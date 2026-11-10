@@ -10,6 +10,8 @@ use App\Repository\RoleRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -31,7 +33,7 @@ class UserController extends AbstractController
     }
 
     #[Route('/new', name: 'admin_user_new')]
-    public function new(Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher, RoleRepository $roles, CompteMailer $comptes): Response
+    public function new(Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $hasher, RoleRepository $roles, CompteMailer $comptes, #[Autowire('%kernel.environment%')] string $environnement): Response
     {
         $user = new User();
         if ($adherent = $roles->findOneBy(['code' => Role::ADHERENT])) {
@@ -40,7 +42,10 @@ class UserController extends AbstractController
         $form = $this->createForm(UserType::class, $user);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid() && $user->estCompteLocal()) {
+        // Un compte local a pour mot de passe son identifiant : réservé au développement, jamais en production
+        if ($form->isSubmitted() && $form->isValid() && $user->estCompteLocal() && 'prod' === $environnement) {
+            $form->get('email')->addError(new FormError('Le domaine '.User::DOMAINE_COMPTE_LOCAL.' est réservé au développement : utilisez une vraie adresse e-mail.'));
+        } elseif ($form->isSubmitted() && $form->isValid() && $user->estCompteLocal()) {
             // Compte local : pas de mail, le mot de passe initial est l'identifiant, compte utilisable immédiatement
             $user->setPassword($hasher->hashPassword($user, $user->getUserIdentifier()));
             $em->persist($user);

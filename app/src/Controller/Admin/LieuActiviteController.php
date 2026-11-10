@@ -4,13 +4,11 @@ namespace App\Controller\Admin;
 
 use App\Entity\LieuActivite;
 use App\Form\LieuActiviteType;
-use App\Lieu\LieuActiviteCsvImporter;
 use App\Repository\LieuActiviteRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -22,43 +20,6 @@ class LieuActiviteController extends AbstractController
     public function index(LieuActiviteRepository $lieux): Response
     {
         return $this->render('admin/lieu_activite/index.html.twig', ['lieux' => $lieux->findAllOrdonnes()]);
-    }
-
-    #[Route('/import', name: 'admin_lieu_activite_import', methods: ['POST'])]
-    public function import(Request $request, LieuActiviteCsvImporter $importer): Response
-    {
-        if (!$this->isCsrfTokenValid('import_lieux_activite', $request->request->getString('_token'))) {
-            $this->addFlash('error', 'Jeton de sécurité invalide.');
-
-            return $this->redirectToRoute('admin_lieu_activite_index');
-        }
-        $file = $request->files->get('fichier');
-        if (!$file instanceof UploadedFile || !$file->isValid()) {
-            $this->addFlash('error', 'Veuillez sélectionner un fichier CSV.');
-
-            return $this->redirectToRoute('admin_lieu_activite_index');
-        }
-
-        $result = $importer->import($file->getPathname());
-        if ($result['created'] + $result['updated'] > 0) {
-            $this->addFlash('success', sprintf('Import terminé : %d créé(s), %d mis à jour.', $result['created'], $result['updated']));
-        }
-        foreach (array_slice($result['errors'], 0, 20) as $error) {
-            $this->addFlash('error', $error);
-        }
-
-        return $this->redirectToRoute('admin_lieu_activite_index');
-    }
-
-    #[Route('/import/modele', name: 'admin_lieu_activite_import_model')]
-    public function importModel(): Response
-    {
-        $csv = "\xEF\xBB\xBFgroupe;nom;ordre\nPetit bassin;Ligne 1;11\nPetit bassin;Ligne 2;12\nSalles;Grande salle;100\n";
-
-        return new Response($csv, 200, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="modele_lieux_activite.csv"',
-        ]);
     }
 
     #[Route('/new', name: 'admin_lieu_activite_new')]

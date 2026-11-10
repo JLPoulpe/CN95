@@ -27,6 +27,10 @@ security:
                 check_path: app_login
                 enable_csrf: true
                 default_target_path: app_member
+            # Limite les tentatives de connexion (force brute) : par IP, et par identifiant + IP
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
             logout:
                 path: app_logout
 

@@ -3,7 +3,10 @@ framework:
     secret: '%env(APP_SECRET)%'
 
     # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    session:
+        cookie_secure: auto
+        cookie_httponly: true
+        cookie_samesite: lax
 
     #esi: true
     #fragments: true
@@ -13,3 +16,12 @@ when@test:
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file
+
+when@prod:
+    framework:
+        session:
+            # Production : cookie de session uniquement sur HTTPS
+            cookie_secure: true
+        # Seul l'hôte de DEFAULT_URI est accepté : empêche un en-tête Host forgé de fausser les liens des mails
+        trusted_hosts:
+            - '^%env(key:host:url:DEFAULT_URI)%$'

@@ -6,16 +6,6 @@
     <div class="search-bar">
         <a class="btn" href="{{ path('admin_lieu_activite_new') }}">Ajouter</a>
     </div>
-    <div class="card" style="margin-bottom:16px">
-        <form method="post" action="{{ path('admin_lieu_activite_import') }}" enctype="multipart/form-data">
-            <input type="hidden" name="_token" value="{{ csrf_token('import_lieux_activite') }}">
-            <label for="fichier">Importer des lieux (CSV)</label>
-            <input type="file" id="fichier" name="fichier" accept=".csv,text/csv" required>
-            <button class="btn" type="submit">Importer</button>
-            <a href="{{ path('admin_lieu_activite_import_model') }}" style="margin-left:12px">Télécharger un modèle</a>
-            <p class="note">Colonnes : <code>groupe</code> ; <code>nom</code> ; <code>ordre</code> (optionnel). Séparateur « ; » ou « , ». Un lieu existant (même groupe et même nom) est mis à jour.</p>
-        </form>
-    </div>
     <div class="table-wrapper">
         <table>
             <thead><tr><th>Groupe</th><th>Nom</th><th>Ordre</th><th></th></tr></thead>

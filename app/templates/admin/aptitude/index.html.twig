@@ -6,16 +6,6 @@
     <div class="search-bar">
         <a class="btn" href="{{ path('admin_aptitude_new') }}">Ajouter</a>
     </div>
-    <div class="card" style="margin-bottom:16px">
-        <form method="post" action="{{ path('admin_aptitude_import') }}" enctype="multipart/form-data">
-            <input type="hidden" name="_token" value="{{ csrf_token('import_aptitudes') }}">
-            <label for="fichier">Importer des aptitudes (CSV)</label>
-            <input type="file" id="fichier" name="fichier" accept=".csv,text/csv" required>
-            <button class="btn" type="submit">Importer</button>
-            <a href="{{ path('admin_aptitude_import_model') }}" style="margin-left:12px">Télécharger un modèle</a>
-            <p class="note">Colonnes : <code>code</code> ; <code>libelle</code> (optionnel) ; <code>ordre</code> (optionnel). Séparateur « ; » ou « , ». Les codes existants sont mis à jour.</p>
-        </form>
-    </div>
     <div class="table-wrapper">
         <table>
             <thead><tr><th>Ordre</th><th>Code</th><th>Libellé</th><th>Visible</th><th></th></tr></thead>

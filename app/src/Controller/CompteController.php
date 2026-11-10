@@ -34,10 +34,10 @@ class CompteController extends AbstractController
         $form = $this->createFormBuilder()
             ->add('motDePasse', RepeatedType::class, [
                 'type' => PasswordType::class,
-                'first_options' => ['label' => 'Mot de passe (8 caractères minimum)'],
+                'first_options' => ['label' => 'Mot de passe (12 caractères minimum)'],
                 'second_options' => ['label' => 'Confirmer le mot de passe'],
                 'invalid_message' => 'Les deux mots de passe doivent être identiques.',
-                'constraints' => [new NotBlank(), new Length(min: 8)],
+                'constraints' => [new NotBlank(), new Length(min: 12, max: 4096)],
             ])
             ->getForm();
         $form->handleRequest($request);
