@@ -19,9 +19,11 @@ class AptitudeCsvImporter
     }
 
     /**
+     * Avec $simulation = true, le fichier est validé et les compteurs calculés, sans rien modifier en base.
+     *
      * @return array{created: int, updated: int, errors: list<string>}
      */
-    public function import(string $path): array
+    public function import(string $path, bool $simulation = false): array
     {
         $result = ['created' => 0, 'updated' => 0, 'errors' => []];
 
@@ -100,6 +102,14 @@ class AptitudeCsvImporter
             }
 
             $aptitude = $existing[$key] ?? null;
+            if ($simulation) {
+                if ($aptitude === null) {
+                    ++$result['created'];
+                } else {
+                    ++$result['updated'];
+                }
+                continue;
+            }
             if ($aptitude === null) {
                 $aptitude = (new Aptitude())->setCode($code)->setOrdre($ordreRaw !== '' ? (int) $ordreRaw : ++$nextOrdre);
                 $existing[$key] = $aptitude;
@@ -116,7 +126,9 @@ class AptitudeCsvImporter
             $this->em->persist($aptitude);
         }
 
-        $this->em->flush();
+        if (!$simulation) {
+            $this->em->flush();
+        }
 
         return $result;
     }
