@@ -57,8 +57,7 @@ a.week-btn:hover { background: #eff6ff; color: #1f2937; }
 .week-title em { font-style: normal; font-size: 12px; color: #1e40af; background: #dbeafe; padding: 2px 8px; border-radius: 10px; margin-top: 4px; }
 .planning-empty { text-align: center; color: #4b5563; }
 
-.filters { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 12px; margin-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-.filters::-webkit-scrollbar { display: none; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 12px; margin-bottom: 8px; }
 .filter { flex-shrink: 0; min-height: 44px; min-width: 56px; padding: 0 16px; border-radius: 22px; border: 2px solid var(--apt, #6b7280); background: #fff; color: var(--apt, #374151); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
 .filter.is-active { background: var(--apt, #1f2937); color: #fff; border-color: var(--apt, #1f2937); }
 
