@@ -13,6 +13,9 @@ use Doctrine\DBAL\Connection;
  * - {@see self::NIVEAU_CONFIGURATION} : tout est supprimé sauf les administrateurs et tout ce qui se trouve dans
  *   « Configuration de l'outil » (aptitudes, lieux d'activité, configuration des mails, permissions des rôles).
  *
+ * - {@see self::NIVEAU_PLANNING} : seuls les semaines et créneaux du planning (avec leurs aptitudes, activités et lieux
+ *   rattachés) sont supprimés. Les lieux d'activité (lignes d'eau) et tout le reste sont conservés.
+ *
  * Les administrateurs ne sont jamais supprimés : sans eux, plus personne ne pourrait se connecter.
  *
  * Chaque table de la base doit être classée dans une des listes ci-dessous. Une table inconnue fait échouer la purge
@@ -22,7 +25,17 @@ final class PurgeEnvironnement
 {
     public const NIVEAU_TOTALE = 'totale';
     public const NIVEAU_CONFIGURATION = 'configuration';
-    public const NIVEAUX = [self::NIVEAU_TOTALE, self::NIVEAU_CONFIGURATION];
+    public const NIVEAU_PLANNING = 'planning';
+    public const NIVEAUX = [self::NIVEAU_TOTALE, self::NIVEAU_CONFIGURATION, self::NIVEAU_PLANNING];
+
+    /** Tables supprimées par le niveau « planning ». */
+    private const TABLES_PLANNING = [
+        'planning_creneau_aptitude',
+        'planning_creneau_activite',
+        'planning_creneau_lieu_activite',
+        'planning_creneau',
+        'planning_semaine',
+    ];
 
     public const ROLE_ADMIN = 'ADMIN';
 
@@ -154,6 +167,13 @@ final class PurgeEnvironnement
             'demande_rgpd' => 'Demandes RGPD',
             'messenger_messages' => 'File d\'envoi des mails',
         ];
+        if (self::NIVEAU_PLANNING === $niveau) {
+            foreach (self::TABLES_PLANNING as $table) {
+                $etapes[] = $this->etape($libelles[$table], $table, null);
+            }
+
+            return $etapes;
+        }
         foreach (self::TABLES_DONNEES as $table) {
             $etapes[] = $this->etape($libelles[$table], $table, null);
         }

@@ -16,7 +16,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Purge de la base, lancée sur chaque environnement par deploy/purge.sh.
  * Sans --force, la commande demande de taper PURGER : elle ne supprime jamais rien en mode non interactif sans --force.
  */
-#[AsCommand(name: 'app:purge', description: 'Purge la base : niveau « totale » ou « configuration » (les administrateurs sont toujours conservés)')]
+#[AsCommand(name: 'app:purge', description: 'Purge la base : niveau « totale », « configuration » ou « planning » (les administrateurs sont toujours conservés)')]
 class PurgeCommand extends Command
 {
     private const CONFIRMATION = 'PURGER';
@@ -31,7 +31,7 @@ class PurgeCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addOption('niveau', null, InputOption::VALUE_REQUIRED, 'totale : tout sauf administrateurs, rôles, permissions et configuration des mails ; configuration : idem en gardant aussi « Configuration de l\'outil » (aptitudes, lieux, mails, permissions)')
+            ->addOption('niveau', null, InputOption::VALUE_REQUIRED, 'totale : tout sauf administrateurs, rôles, permissions et configuration des mails ; configuration : idem en gardant aussi « Configuration de l\'outil » (aptitudes, lieux, mails, permissions) ; planning : uniquement les semaines et créneaux (lieux et reste conservés)')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Affiche ce qui serait supprimé, sans rien supprimer')
             ->addOption('force', null, InputOption::VALUE_NONE, 'Ne demande pas la confirmation (obligatoire en mode non interactif)');
     }
@@ -62,9 +62,11 @@ class PurgeCommand extends Command
             static fn (array $ligne): array => [$ligne['libelle'], $ligne['nombre']],
             $resultat,
         ));
-        $io->note(PurgeEnvironnement::NIVEAU_TOTALE === $niveau
-            ? 'Conservés : administrateurs, rôles, permissions, configuration des mails, historique des migrations.'
-            : 'Conservés : administrateurs, rôles, permissions, configuration des mails, aptitudes, lieux d\'activité, historique des migrations.');
+        $io->note(match ($niveau) {
+            PurgeEnvironnement::NIVEAU_TOTALE => 'Conservés : administrateurs, rôles, permissions, configuration des mails, historique des migrations.',
+            PurgeEnvironnement::NIVEAU_PLANNING => 'Conservés : tout sauf les semaines et créneaux du planning (utilisateurs, aptitudes, lieux d\'activité, activités, invitations, fiches…).',
+            default => 'Conservés : administrateurs, rôles, permissions, configuration des mails, aptitudes, lieux d\'activité, historique des migrations.',
+        });
 
         if ($simulation) {
             $io->note('Simulation : aucune donnée supprimée.');

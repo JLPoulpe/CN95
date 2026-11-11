@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Purge la base de chaque environnement (local puis cibles de deploy/targets/*.conf).
-# Usage : deploy/purge.sh --niveau totale|configuration [--dry-run] [local] [cible...]
+# Usage : deploy/purge.sh --niveau totale|configuration|planning [--dry-run] [local] [cible...]
 #
 #   --niveau totale        : supprime tout sauf les administrateurs, les rôles et leurs permissions,
 #                            et la configuration des mails. Aptitudes et lieux d'activité sont aussi supprimés.
 #   --niveau configuration : idem, mais garde aussi « Configuration de l'outil » (aptitudes, lieux d'activité,
 #                            configuration des mails, permissions).
+#   --niveau planning      : supprime uniquement les semaines et créneaux du planning. Les lieux d'activité
+#                            (lignes d'eau) et tout le reste sont conservés.
 #   --dry-run              : affiche ce qui serait supprimé, sans rien supprimer ni demander de confirmation
 #   sans cible             : l'environnement local puis toutes les cibles de deploy/targets/*.conf
 #
@@ -21,7 +23,7 @@ NAMES=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --niveau)
-      [[ $# -ge 2 ]] || { echo "ERREUR : --niveau attend une valeur (totale ou configuration)." >&2; exit 2; }
+      [[ $# -ge 2 ]] || { echo "ERREUR : --niveau attend une valeur (totale, configuration ou planning)." >&2; exit 2; }
       NIVEAU="$2"; shift 2 ;;
     --niveau=*) NIVEAU="${1#--niveau=}"; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
@@ -31,8 +33,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$NIVEAU" in
-  totale|configuration) ;;
-  *) echo "ERREUR : --niveau doit valoir totale ou configuration (reçu : '${NIVEAU:-vide}')." >&2; exit 2 ;;
+  totale|configuration|planning) ;;
+  *) echo "ERREUR : --niveau doit valoir totale, configuration ou planning (reçu : '${NIVEAU:-vide}')." >&2; exit 2 ;;
 esac
 
 if [[ ${#NAMES[@]} -eq 0 ]]; then

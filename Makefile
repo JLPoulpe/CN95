@@ -41,7 +41,7 @@ cache-clear: ## Supprime le cache distant (TARGET=prod, fichier deploy/targets/<
 brevo-key: ## Affiche la clé API Brevo de chaque environnement (ENVS="local ionos cn95", MASQUER=1 pour masquer)
 	bash deploy/brevo-key.sh $(if $(MASQUER),--masquer) $(ENVS)
 
-purge: ## Purge la base de chaque environnement (NIVEAU=totale|configuration, DRY_RUN=1 pour simuler, ENVS="local ionos cn95")
+purge: ## Purge la base de chaque environnement (NIVEAU=totale|configuration|planning, DRY_RUN=1 pour simuler, ENVS="local ionos cn95")
 	bash deploy/purge.sh --niveau "$(NIVEAU)" $(if $(DRY_RUN),--dry-run) $(ENVS)
 
 import-adherents: ## Importe un CSV d'adhérents (FICHIER=import/adherents_2027.csv ENVS="local ionos", DRY_RUN=1 pour simuler)
