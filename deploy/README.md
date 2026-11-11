@@ -4,6 +4,35 @@ Outil local : `deploy/deploy.sh [cible]`. Il génère la migration de base de do
 
 Une **cible** = un hébergement (`deploy/targets/<cible>.conf`, ignoré par git). Chaque cible a ses propres tags, donc son propre historique « déjà envoyé ».
 
+## Menu et commandes
+
+Trois façons de lancer la même action : le **menu interactif**, la **cible make** et le **script bash**. Chaque action existe en make *et* en bash, avec les mêmes arguments.
+
+```bash
+make menu            # ou : bash deploy/menu.sh
+```
+
+Le menu affiche la commande make équivalente avant chaque exécution. Pour les imports, purges, mails et déploiements, il propose par défaut de simuler d'abord (`--dry-run`). Les confirmations de purge, d'import ou d'envoi restent celles des scripts.
+
+Conventions des variables make : `ENVS="local ionos"` pour plusieurs environnements, `TARGET=ionos` pour une cible unique, `DRY_RUN=1` pour `--dry-run`.
+
+| Action | make | bash |
+|---|---|---|
+| Docker | `make up` / `down` / `build` / `restart` / `ps` / `logs` / `shell` / `db-shell` / `tools` / `clean` | `bash deploy/docker.sh <action>` |
+| Déployer | `make deploy TARGET=ionos DRY_RUN=1 OPTIONS="--skip-db"` | `bash deploy/deploy.sh ionos --dry-run --skip-db` |
+| Logs serveur | `make logs-serveur TARGET=ionos MODE=errors N=5` | `bash deploy/logs.sh ionos errors 5` |
+| Vider le cache | `make cache-clear TARGET=ionos` | `bash deploy/cache-clear.sh ionos` |
+| Clé API Brevo | `make brevo-key ENVS="local ionos" MASQUER=1` | `bash deploy/brevo-key.sh --masquer local ionos` |
+| Purger | `make purge NIVEAU=totale DRY_RUN=1 ENVS="local"` | `bash deploy/purge.sh --niveau totale --dry-run local` |
+| Import adhérents | `make import-adherents FICHIER=import/x.csv ENVS="local" DRY_RUN=1` | `bash deploy/import-adherents.sh import/x.csv --dry-run local` |
+| Import aptitudes | `make import-aptitudes FICHIER=import/x.csv ENVS="local" DRY_RUN=1` | `bash deploy/import-aptitudes.sh import/x.csv --dry-run local` |
+| Import lieux | `make import-lieux FICHIER=import/x.csv ENVS="local" DRY_RUN=1` | `bash deploy/import-lieux.sh import/x.csv --dry-run local` |
+| Import planning | `make import-planning FICHIER=import/x.csv ENVS="local" DRY_RUN=1` | `bash deploy/import-planning.sh import/x.csv --dry-run local` |
+| Corriger PN1 du planning | `make corriger-pn1 FICHIER=import/x.csv ENVS="local" DRY_RUN=1` | `bash deploy/corriger-pn1.sh --dry-run --fichier import/x.csv local` |
+| Mail d'activation | `make envoyer-activation EMAIL=moi@example.org ENVS="local"` ou `TOUS=1` | `bash deploy/envoyer-activation.sh --email moi@example.org local` ou `--tous` |
+
+Changement de comportement : `make clean` (et `bash deploy/docker.sh clean`) demande désormais de taper `SUPPRIMER` avant de supprimer les volumes.
+
 ## Première utilisation
 1. `cp deploy/targets/prod.conf.example deploy/targets/prod.conf`, puis renseigner `PUBLIC_URL` et `DB_NAME`.
 2. Accès SSH par clé vers le serveur, `rsync` côté serveur, domaine pointant sur `REMOTE_DIR/public`, PHP 8.4 choisi chez l'hébergeur.
