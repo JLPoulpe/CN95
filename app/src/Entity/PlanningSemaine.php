@@ -136,10 +136,14 @@ class PlanningSemaine
         return $this;
     }
 
-    /** DP d'un jour de la semaine : celui du vendredi s'il est renseigné, sinon celui du lundi. */
+    /** DP d'un jour de la semaine : lundi et vendredi uniquement (pas de DP les autres jours). */
     public function getDpPour(Jour $jour): ?User
     {
-        return Jour::Vendredi === $jour ? $this->dpVendredi : $this->dp;
+        return match ($jour) {
+            Jour::Lundi => $this->dp,
+            Jour::Vendredi => $this->dpVendredi,
+            default => null,
+        };
     }
 
     /** @return Collection<int, PlanningCreneau> */

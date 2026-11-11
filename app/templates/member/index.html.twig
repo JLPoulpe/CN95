@@ -7,7 +7,7 @@
 <div class="container">
     <details class="section"{{ ouvrir ? ' open' : '' }}>
         <summary class="section-title">Planning</summary>
-        {{ m.item('📅', 'Planning des entraînements', 'Lundi et vendredi : lieux et aptitudes', path('app_planning')) }}
+        {{ m.item('📅', 'Planning des entraînements', 'Séances, lieux et aptitudes', path('app_planning')) }}
     </details>
     {% set ouvrir = false %}
 

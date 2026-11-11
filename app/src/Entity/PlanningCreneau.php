@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: PlanningCreneauRepository::class)]
 class PlanningCreneau
@@ -29,7 +30,6 @@ class PlanningCreneau
     #[ORM\ManyToMany(targetEntity: LieuActivite::class)]
     #[ORM\JoinTable(name: 'planning_creneau_lieu_activite')]
     #[ORM\OrderBy(['ordre' => 'ASC', 'groupe' => 'ASC', 'nom' => 'ASC'])]
-    #[Assert\Count(min: 1, minMessage: 'Choisir au moins un lieu.')]
     private Collection $lieux;
 
     /** @var Collection<int, Activite> */
@@ -53,6 +53,29 @@ class PlanningCreneau
         $this->aptitudes = new ArrayCollection();
         $this->activites = new ArrayCollection();
         $this->lieux = new ArrayCollection();
+    }
+
+    #[Assert\Callback]
+    public function validate(ExecutionContextInterface $context): void
+    {
+        if (0 === $this->lieux->count() && !$this->estAutres()) {
+            $context->buildViolation('Choisir au moins un lieu.')->atPath('lieux')->addViolation();
+        }
+    }
+
+    /** Créneau « Autres » : seule activité « Autres », sans lieu obligatoire. */
+    public function estAutres(): bool
+    {
+        if ($this->activites->isEmpty()) {
+            return false;
+        }
+        foreach ($this->activites as $a) {
+            if (Activite::CODE_AUTRES !== $a->getCode()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function getId(): ?int

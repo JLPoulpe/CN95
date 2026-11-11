@@ -26,6 +26,12 @@ final class VuePlanning
                 if ($c->getJour() !== $jour) {
                     continue;
                 }
+                if ($c->getLieux()->isEmpty()) {
+                    // Créneau « Autres » sans lieu : regroupé en fin de journée
+                    $groupes['Autres']['ordre'] = PHP_INT_MAX;
+                    $groupes['Autres']['creneaux'][spl_object_id($c)] = $c;
+                    continue;
+                }
                 foreach ($c->getLieux() as $l) {
                     $g = $l->getGroupe();
                     $groupes[$g]['ordre'] = min($groupes[$g]['ordre'] ?? PHP_INT_MAX, $l->getOrdre());

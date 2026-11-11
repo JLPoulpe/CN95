@@ -12,7 +12,7 @@
         {% endif %}
         <div class="week-title">
             <strong>Semaine {{ lundi|date('W') }}</strong>
-            <span>du {{ lundi|date('d/m') }} au {{ lundi|date_modify('+4 days')|date('d/m/Y') }}</span>
+            <span>du {{ lundi|date('d/m') }} au {{ lundi|date_modify('+6 days')|date('d/m/Y') }}</span>
             {% if estCourante %}<em>Cette semaine</em>{% endif %}
         </div>
         {% if suivante %}

@@ -18,7 +18,7 @@
             <section class="jour" data-planning-filter-target="jour">
                 <h2 class="jour-titre">
                     {{ j.jour.label }} {{ j.date|date('d/m') }}
-                    <small>{{ constant('App\\Enum\\Jour::HORAIRE') }}</small>
+                    {% if j.jour.horaire %}<small>{{ j.jour.horaire }}</small>{% endif %}
                 </h2>
                 {% set dpJour = semaine.getDpPour(j.jour) %}
                 {% if dpJour %}

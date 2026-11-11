@@ -8,6 +8,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: ActiviteRepository::class)]
 class Activite
 {
+    /** Activité des créneaux sans lieu ni séance (fosse, salon, réunion…). */
+    public const CODE_AUTRES = 'AUTRES';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

@@ -19,16 +19,24 @@ use Doctrine\ORM\EntityManagerInterface;
  *
  * - Chaque cellule d'aptitude contient une activité (« Séance bloc », « Séance PMT »…).
  * - Pour un jour donné, les aptitudes ayant la même activité forment un seul créneau.
- * - Seuls les lundis et vendredis sont importés (un autre jour avec séances est signalé et ignoré).
+ * - Tous les jours de la semaine sont acceptés (séances comme événements).
  * - « T » (cellule seule) vaut « Séance théorie ».
- * - Les événements (FOSSE, TIV, réunion…) sont ignorés.
+ * - La colonne d'événements (« Événement », « Remarque » ou colonne sans nom : FOSSE, Salon plongée, TIV…) crée un
+ *   créneau « Autres » ce jour-là, sans lieu, avec le texte en précision.
+ * - La colonne « Vacances » (toute valeur non vide) marque les jours de vacances. Une semaine sans aucune séance dont
+ *   le lundi ou le vendredi est en vacances est créée « fermée », motif « Vacances ».
  * - Une semaine déjà présente n'est jamais modifiée.
  * - Les lieux sont déduits de l'activité (voir LIEUX_PAR_ACTIVITE).
  */
 class PlanningCsvImporter
 {
     /** Colonnes reconnues comme non-aptitude. */
-    private const COLONNES_IGNOREES = ['date', 'jour', 'evenement / remarque', 'evenement', 'remarque'];
+    private const COLONNES_IGNOREES = ['date', 'jour', 'vacances', 'vacance'];
+
+    /** Colonnes d'événements (une colonne sans nom en fait partie). */
+    private const COLONNES_EVENEMENT = ['evenement / remarque', 'evenement', 'remarque'];
+
+    private const MOTIF_VACANCES = 'Vacances';
 
     /**
      * Aptitudes ciblées par colonne. PN2 et PN3 sont des groupes de préparation, pas des aptitudes :
@@ -90,8 +98,16 @@ class PlanningCsvImporter
 
         // Colonnes d'aptitude -> entité
         $colAptitudes = [];
+        $colEvenement = null;
+        $colVacances = null;
         foreach ($header as $i => $name) {
-            if ($i === $colDate || in_array($name, self::COLONNES_IGNOREES, true) || '' === $name) {
+            if (in_array($name, ['vacances', 'vacance'], true)) {
+                $colVacances = $i;
+            }
+            if (null === $colEvenement && ('' === $name || in_array($name, self::COLONNES_EVENEMENT, true))) {
+                $colEvenement = $i;
+            }
+            if ($i === $colDate || in_array($name, self::COLONNES_IGNOREES, true) || in_array($name, self::COLONNES_EVENEMENT, true) || '' === $name) {
                 continue;
             }
             $codes = self::APTITUDES_PAR_COLONNE[strtoupper($name)] ?? [strtoupper($name)];
@@ -123,6 +139,10 @@ class PlanningCsvImporter
         // Lecture : semaine (lundi) -> jour -> activité -> aptitudes
         /** @var array<string, array<string, array<string, array{activite: Activite, aptitudes: array<string, Aptitude>}>>> $plan */
         $plan = [];
+        /** @var array<string, list<array{Jour, string}>> $autres Événements par semaine */
+        $autres = [];
+        /** @var array<string, array<int, true>> $vacances Jours de vacances par semaine (numéro ISO) */
+        $vacances = [];
         $activitesManquantes = [];
         foreach ($lines as $i => $line) {
             $n = $i + 2;
@@ -136,6 +156,17 @@ class PlanningCsvImporter
                 continue;
             }
 
+            $jour = Jour::depuisNumeroIso($date->format('N'));
+            $lundi = $date->modify('-'.$jour->decalage().' days')->format('Y-m-d');
+
+            if (null !== $colVacances && '' !== ($row[$colVacances] ?? '')) {
+                $vacances[$lundi][(int) $date->format('N')] = true;
+            }
+            $evenement = null !== $colEvenement ? ($row[$colEvenement] ?? '') : '';
+            if ('' !== $evenement) {
+                $autres[$lundi][] = [$jour, $evenement];
+            }
+
             $cellules = [];
             foreach ($colAptitudes as $idx => $aptitudes) {
                 $v = $row[$idx] ?? '';
@@ -143,20 +174,6 @@ class PlanningCsvImporter
                     $cellules[] = [$aptitudes, $v];
                 }
             }
-            if ([] === $cellules) {
-                continue; // jour sans séance (événements ignorés)
-            }
-
-            $jour = match ($date->format('N')) {
-                '1' => Jour::Lundi,
-                '5' => Jour::Vendredi,
-                default => null,
-            };
-            if (null === $jour) {
-                $result['ignored'][] = sprintf('%s : séances un jour autre que lundi/vendredi, ignorées.', $date->format('d/m/Y'));
-                continue;
-            }
-            $lundi = $date->modify('-'.$jour->decalage().' days')->format('Y-m-d');
 
             foreach ($cellules as [$aptitudes, $v]) {
                 $activite = $activitesParCle[$this->cle($v)] ?? null;
@@ -182,6 +199,29 @@ class PlanningCsvImporter
             return $result;
         }
 
+        // Activité « Autres » : créée si absente (jamais en simulation)
+        $activiteAutres = null;
+        if ([] !== $autres) {
+            $activiteAutres = $activitesParCle[$this->cle(Activite::CODE_AUTRES)] ?? null;
+            if (null === $activiteAutres) {
+                $activiteAutres = (new Activite())->setCode(Activite::CODE_AUTRES)->setLibelle('Autres')->setOrdre(count($this->activites->findAll()) + 1);
+                if (!$dryRun) {
+                    $this->em->persist($activiteAutres);
+                }
+            }
+        }
+
+        // Semaines fermées : aucune séance, lundi ou vendredi en vacances
+        $fermees = [];
+        foreach ($vacances as $lundiStr => $jours) {
+            if (!isset($plan[$lundiStr]) && (isset($jours[1]) || isset($jours[5]))) {
+                $fermees[$lundiStr] = true;
+            }
+        }
+        foreach ([...array_keys($autres), ...array_keys($fermees)] as $lundiStr) {
+            $plan[$lundiStr] ??= [];
+        }
+
         ksort($plan);
         foreach ($plan as $lundiStr => $jours) {
             $lundi = new \DateTimeImmutable($lundiStr);
@@ -191,6 +231,9 @@ class PlanningCsvImporter
             }
 
             $semaine = (new PlanningSemaine())->setLundi($lundi);
+            if (isset($fermees[$lundiStr])) {
+                $semaine->setFermee(true)->setMotif(self::MOTIF_VACANCES);
+            }
             foreach ($jours as $jourValue => $parActivite) {
                 $cles = array_keys($parActivite);
                 foreach ($parActivite as $cle => $data) {
@@ -215,7 +258,13 @@ class PlanningCsvImporter
                     ++$result['creneaux'];
                 }
             }
-            $result['semaines'][] = $lundi->format('d/m/Y');
+            foreach ($autres[$lundiStr] ?? [] as [$jourAutre, $texte]) {
+                $creneau = (new PlanningCreneau())->setJour($jourAutre)->setLibelle(mb_substr($texte, 0, 100));
+                $creneau->addActivite($activiteAutres);
+                $semaine->addCreneau($creneau);
+                ++$result['creneaux'];
+            }
+            $result['semaines'][] = $lundi->format('d/m/Y').(isset($fermees[$lundiStr]) ? ' (fermée : vacances)' : '');
             if (!$dryRun) {
                 $this->em->persist($semaine);
             }

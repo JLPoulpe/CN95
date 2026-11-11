@@ -29,6 +29,7 @@ class PlanningCsvImporterTest extends TestCase
         $acRepo->method('findAll')->willReturn([
             (new Activite())->setCode('BLOC')->setLibelle('Séance bloc'),
             (new Activite())->setCode('PMT')->setLibelle('Séance PMT'),
+            (new Activite())->setCode('AUTRES')->setLibelle('Autres'),
         ]);
 
         $lieux = [];
@@ -55,16 +56,49 @@ class PlanningCsvImporterTest extends TestCase
 
         $this->assertSame([], $r['errors']);
         $this->assertSame(['14/09/2026', '21/09/2026'], $r['semaines']);
-        $this->assertSame(3, $r['creneaux']);
-        $this->assertCount(1, array_filter($r['ignored'], fn ($m) => str_contains($m, '23/09/2026')));
+        // 18/09 : bloc + PMT + « Autres » (REPRISE) ; 23/09 : bloc + « Autres » (FOSSE 1) ; 25/09 : bloc
+        $this->assertSame(6, $r['creneaux']);
         /** @var PlanningSemaine[] $persistes */
         $c = $persistes[0]->getCreneaux();
-        $this->assertCount(4 - 2, $c); // 18/09 : bloc + PMT
+        $this->assertCount(3, $c);
+        $autres = $c[2];
+        $this->assertSame('REPRISE', $autres->getLibelle());
+        $this->assertTrue($autres->estAutres());
+        $this->assertCount(0, $autres->getLieux());
+        $this->assertSame(Jour::Mercredi, $persistes[1]->getCreneaux()[0]->getJour());
         $this->assertSame(['Ligne 1', 'Ligne 2'], array_map(fn ($l) => $l->getNom(), $c[0]->getLieux()->toArray()));
         // La colonne PN1 donne l'aptitude PN1 (et non « tous niveaux »)
         $this->assertSame(['PN1'], array_map(fn ($a) => $a->getCode(), $c[0]->getAptitudes()->toArray()));
         // Un seul créneau le 25/09 : lignes partagées incluses
         $this->assertCount(4, $persistes[1]->getCreneaux()[0]->getLieux());
+    }
+
+    public function testSemaineDeVacancesCreeeFermee(): void
+    {
+        $aRepo = $this->createStub(AptitudeRepository::class);
+        $aRepo->method('findOneBy')->willReturn((new Aptitude())->setCode('PN1'));
+        $acRepo = $this->createStub(ActiviteRepository::class);
+        $acRepo->method('findAll')->willReturn([]);
+        $sRepo = $this->createStub(PlanningSemaineRepository::class);
+        $sRepo->method('findOneBy')->willReturn(null);
+        $persistes = [];
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('persist')->willReturnCallback(function ($o) use (&$persistes) { $persistes[] = $o; });
+
+        $f = tempnam(sys_get_temp_dir(), 'plan');
+        file_put_contents($f, "Date,Jour,PN1,Événement,Vacances\n"
+            ."2026-10-19,lundi,,,x\n"
+            ."2026-10-23,vendredi,,,x\n"
+            ."2026-11-11,mercredi,,,x\n");
+        $r = (new PlanningCsvImporter($em, $sRepo, $acRepo, $aRepo, $this->createStub(LieuActiviteRepository::class)))->import($f);
+        unlink($f);
+
+        $this->assertSame([], $r['errors']);
+        $this->assertSame(0, $r['creneaux']);
+        $semaines = array_values(array_filter($persistes, fn ($o) => $o instanceof PlanningSemaine));
+        $this->assertCount(1, $semaines, 'un mercredi férié seul ne ferme pas la semaine');
+        $this->assertTrue($semaines[0]->isFermee());
+        $this->assertSame('Vacances', $semaines[0]->getMotif());
     }
 
     public function testCorrigerPn1AjouteLAptitudeAuxCreneauxExistantsSansRecreer(): void
