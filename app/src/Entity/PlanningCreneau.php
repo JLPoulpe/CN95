@@ -129,6 +129,18 @@ class PlanningCreneau
         return $this;
     }
 
+    // L'inflecteur de Symfony (anglais) singularise « lieux » en « lieux » : le formulaire
+    // (by_reference => false) cherche donc addLieux()/removeLieux().
+    public function addLieux(LieuActivite $lieu): static
+    {
+        return $this->addLieu($lieu);
+    }
+
+    public function removeLieux(LieuActivite $lieu): static
+    {
+        return $this->removeLieu($lieu);
+    }
+
     /** Groupes concernés, dans l'ordre d'affichage (le plus petit « ordre » de chaque groupe fait foi). @return list<string> */
     public function getGroupes(): array
     {
