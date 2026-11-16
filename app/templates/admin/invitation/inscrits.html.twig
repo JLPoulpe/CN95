@@ -1,49 +1,74 @@
 {% extends 'base.html.twig' %}
 {% block title %}Inscrits – {{ invitation.activite.libelle }} – CN95 Plongée{% endblock %}
 
-{% macro liste_principale(titre, reponses) %}
+{# CACI valable à la date de la fosse : encoche verte, sinon croix rouge. Un clic ouvre la fenêtre avec la date de fin. #}
+{% macro caci(user, date) %}
+    {% set limite = user.caciExpireLe %}
+    {% set valide = limite is not null and not user.caciExpire(date) %}
+    <button type="button" class="caci-btn {{ valide ? 'caci-ok' : 'caci-ko' }}"
+            data-action="click->caci#afficher"
+            data-nom="{{ user.prenom }} {{ user.nom }}"
+            data-fin="{{ limite ? limite|date('d/m/Y') : '' }}"
+            aria-label="{{ valide ? 'CACI valable' : 'CACI non valable' }} : voir la date de fin">{{ valide ? '✔' : '✘' }}</button>
+{% endmacro %}
+
+{% macro liste_principale(titre, reponses, groupe, date) %}
     <h2 class="card-titre">{{ titre }} ({{ reponses|length }})</h2>
-    <div class="table-wrapper">
+    <div class="table-wrapper" data-groupe="{{ groupe }}" data-zone="principale"
+         data-action="dragover->inscrits-echange#survol dragleave->inscrits-echange#quitte drop->inscrits-echange#depot">
         <table>
-            <thead><tr><th>Membre</th><th>Aptitude</th><th>Date d'inscription</th></tr></thead>
+            <thead><tr><th>Membre</th><th>Aptitude</th>{% if groupe == 'plongeurs' %}<th>CACI</th>{% endif %}<th>Date d'inscription</th></tr></thead>
             <tbody>
             {% for reponse in reponses %}
-                <tr>
+                <tr data-inscrit-id="{{ reponse.id }}">
                     <td>{{ reponse.user.prenom }} {{ reponse.user.nom }}</td>
                     <td>{{ reponse.user.aptitude }}</td>
+                    {% if groupe == 'plongeurs' %}<td>{{ _self.caci(reponse.user, date) }}</td>{% endif %}
                     <td>{{ reponse.repondueAt|date('d/m/Y H:i') }}</td>
                 </tr>
             {% else %}
-                <tr><td colspan="3">Aucun inscrit.</td></tr>
+                <tr><td colspan="{{ groupe == 'plongeurs' ? 4 : 3 }}">Aucun inscrit.</td></tr>
             {% endfor %}
             </tbody>
         </table>
     </div>
 {% endmacro %}
 
-{% macro liste_attente(titre, reponses) %}
+{% macro liste_attente(titre, reponses, url, token, groupe, date) %}
     <h2 class="card-titre">{{ titre }} ({{ reponses|length }})</h2>
-    <div class="table-wrapper">
-        <table>
-            <thead><tr><th>Rang</th><th>Membre</th><th>Aptitude</th><th>Date d'inscription</th></tr></thead>
-            <tbody>
-            {% for reponse in reponses %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>{{ reponse.user.prenom }} {{ reponse.user.nom }}</td>
-                    <td>{{ reponse.user.aptitude }}</td>
-                    <td>{{ reponse.repondueAt|date('d/m/Y H:i') }}</td>
-                </tr>
-            {% else %}
-                <tr><td colspan="4">Personne en liste d'attente.</td></tr>
-            {% endfor %}
-            </tbody>
-        </table>
+    {% if reponses|length > 1 %}
+        <p class="hint">Glissez une ligne pour changer l'ordre de promotion : il est enregistré automatiquement.</p>
+    {% endif %}
+    <div data-controller="inscrits-ordre" data-inscrits-ordre-url-value="{{ url }}" data-inscrits-ordre-token-value="{{ token }}">
+        <p class="hint" data-inscrits-ordre-target="statut" hidden role="status"></p>
+        <div class="table-wrapper">
+            <table>
+                <thead><tr><th>Rang</th><th>Membre</th><th>Aptitude</th>{% if groupe == 'plongeurs' %}<th>CACI</th>{% endif %}<th>Date d'inscription</th></tr></thead>
+                <tbody data-inscrits-ordre-target="corps">
+                {% for reponse in reponses %}
+                    <tr draggable="true" data-reponse-id="{{ reponse.id }}" data-groupe="{{ groupe }}"
+                        data-action="dragstart->inscrits-ordre#debut dragover->inscrits-ordre#survol drop->inscrits-ordre#depot dragend->inscrits-ordre#fin">
+                        <td data-ordre-cellule>{{ loop.index }}</td>
+                        <td>{{ reponse.user.prenom }} {{ reponse.user.nom }}</td>
+                        <td>{{ reponse.user.aptitude }}</td>
+                        {% if groupe == 'plongeurs' %}<td>{{ _self.caci(reponse.user, date) }}</td>{% endif %}
+                        <td>{{ reponse.repondueAt|date('d/m/Y H:i') }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="{{ groupe == 'plongeurs' ? 5 : 4 }}">Personne en liste d'attente.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 {% endmacro %}
 
 {% block body %}
-<div class="container">
+<div class="container"
+     data-controller="inscrits-echange caci"
+     data-inscrits-echange-url-value="{{ path('admin_invitation_promouvoir', {id: invitation.id}) }}"
+     data-inscrits-echange-token-value="{{ csrf_token('reorder_attente_' ~ invitation.id) }}"
+     data-action="dragstart->inscrits-echange#debut dragend->inscrits-echange#fin">
     <p class="retour"><a href="{{ path('admin_invitation_show', {id: invitation.id}) }}">← {{ invitation.activite.libelle }} du {{ invitation.date|date('d/m/Y') }}</a></p>
     <h1 class="header-title">Inscrits – {{ invitation.activite.libelle }} du {{ invitation.date|date('d/m/Y') }}</h1>
 
@@ -57,17 +82,27 @@
         {{ total_attente }}{% if invitation.limiteAttente is not null %} / {{ invitation.limiteAttente }}{% endif %} en liste d'attente.
     </p>
 
+    <p class="hint">Pour favoriser un membre de la liste d'attente, glissez-le sur un inscrit de la liste principale du même groupe (ils échangent leur place), ou sur la liste principale s'il reste une place libre.</p>
+    <p class="hint" data-inscrits-echange-target="statut" hidden role="status"></p>
+
     <div class="inscrits-colonnes">
         <section>
             <h2 class="inscrits-groupe">Moniteurs / encadrants</h2>
-            {{ _self.liste_principale('Liste principale', moniteurs_principale) }}
-            <div class="inscrits-espace">{{ _self.liste_attente('Liste d\'attente', moniteurs_attente) }}</div>
+            {{ _self.liste_principale('Liste principale', moniteurs_principale, 'moniteurs', invitation.date) }}
+            <div class="inscrits-espace">{{ _self.liste_attente('Liste d\'attente', moniteurs_attente, ordre_url, csrf_token('reorder_attente_' ~ invitation.id), 'moniteurs', invitation.date) }}</div>
         </section>
         <section>
             <h2 class="inscrits-groupe">Plongeurs</h2>
-            {{ _self.liste_principale('Liste principale', plongeurs_principale) }}
-            <div class="inscrits-espace">{{ _self.liste_attente('Liste d\'attente', plongeurs_attente) }}</div>
+            {{ _self.liste_principale('Liste principale', plongeurs_principale, 'plongeurs', invitation.date) }}
+            <div class="inscrits-espace">{{ _self.liste_attente('Liste d\'attente', plongeurs_attente, ordre_url, csrf_token('reorder_attente_' ~ invitation.id), 'plongeurs', invitation.date) }}</div>
         </section>
     </div>
+
+    <dialog class="modal modal-caci" data-caci-target="dialogue">
+        <h2>CACI</h2>
+        <p data-caci-target="nom"></p>
+        <p>Date de fin de validité : <strong data-caci-target="fin"></strong></p>
+        <form method="dialog" class="modal-actions"><button class="btn btn-secondary">Fermer</button></form>
+    </dialog>
 </div>
 {% endblock %}

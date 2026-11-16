@@ -48,8 +48,13 @@ class PlanningCreneau
     #[ORM\OrderBy(['ordre' => 'ASC'])]
     private Collection $aptitudes;
 
+    /** @var Collection<int, AbsenceMoniteur> */
+    #[ORM\OneToMany(targetEntity: AbsenceMoniteur::class, mappedBy: 'creneau', cascade: ['remove'])]
+    private Collection $absences;
+
     public function __construct()
     {
+        $this->absences = new ArrayCollection();
         $this->aptitudes = new ArrayCollection();
         $this->activites = new ArrayCollection();
         $this->lieux = new ArrayCollection();
@@ -93,6 +98,33 @@ class PlanningCreneau
         $this->semaine = $semaine;
 
         return $this;
+    }
+
+    /** @return Collection<int, AbsenceMoniteur> */
+    public function getAbsences(): Collection
+    {
+        return $this->absences;
+    }
+
+    public function absenceDe(User $moniteur): ?AbsenceMoniteur
+    {
+        foreach ($this->absences as $absence) {
+            if ($absence->getMoniteur()->getId() === $moniteur->getId()) {
+                return $absence;
+            }
+        }
+
+        return null;
+    }
+
+    /** Date de la séance : lundi de la semaine + décalage du jour. */
+    public function getDate(): ?\DateTimeImmutable
+    {
+        if (null === $this->semaine?->getLundi() || null === $this->jour) {
+            return null;
+        }
+
+        return $this->semaine->getLundi()->modify('+'.$this->jour->decalage().' days');
     }
 
     public function getJour(): ?Jour
@@ -151,6 +183,12 @@ class PlanningCreneau
         asort($groupes);
 
         return array_map('strval', array_keys($groupes));
+    }
+
+    /** Le créneau se déroule (aussi) dans une salle. */
+    public function estEnSalle(): bool
+    {
+        return [] !== $this->getLieuxDuGroupe(LieuActivite::GROUPE_SALLES);
     }
 
     /** @return list<LieuActivite> */

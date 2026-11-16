@@ -28,13 +28,36 @@
                     <span>{{ c.jour.label }} · {{ c.lieuxLabel }}</span>
                     {% for a in c.aptitudes %}<span class="apt apt-{{ a.code }}">{{ a.code }}</span>{% else %}<span class="apt apt-tous">Tous niveaux</span>{% endfor %}
                 </div>
-                {% if is_granted('PLANNING_CRENEAU_GERER', c) %}
+                {% set attendusCreneau = attendus[c.id]|default([]) %}
+                {% if attendusCreneau %}
+                <div class="creneau-absences">
+                    {% set nbAbsents = c.absences|length %}
+                    {% if nbAbsents > 0 %}<span class="badge badge-alerte">Besoin d'aide : {{ nbAbsents }} absent{{ nbAbsents > 1 ? 's' : '' }} sur {{ attendusCreneau|length }} attendu{{ attendusCreneau|length > 1 ? 's' : '' }}</span>{% endif %}
+                    <ul class="absences-liste">
+                    {% for m in attendusCreneau %}
+                        {% set absent = c.absenceDe(m) is not null %}
+                        <li class="{{ absent ? 'absent' : '' }}">
+                            {{ m.nomComplet|title }}{% if absent %} <em>(absent)</em>{% endif %}
+                            {% if is_granted('PERM_CONFIG_ACTIVITES') or app.user.id == m.id %}
+                            <form method="post" action="{{ path('admin_planning_creneau_absence', {id: c.id, moniteur: m.id}) }}" style="display:inline">
+                                <input type="hidden" name="_token" value="{{ csrf_token('absence_' ~ c.id ~ '_' ~ m.id) }}">
+                                <button type="submit" class="btn btn-sm btn-secondary">{{ absent ? 'Annuler l\'absence' : (app.user.id == m.id ? 'Je suis absent' : 'Déclarer absent') }}</button>
+                            </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                {% if is_granted('PLANNING_CRENEAU_CHANGER_GROUPE', c) %}
                 <div class="actions">
                     <a class="btn btn-sm btn-secondary" href="{{ path('admin_planning_creneau_edit', {id: c.id}) }}">Modifier</a>
+                    {% if is_granted('PLANNING_CRENEAU_GERER', c) %}
                     <form method="post" action="{{ path('admin_planning_creneau_delete', {id: c.id}) }}" data-controller="confirm" data-confirm-message-value="Supprimer ce créneau ?" data-action="submit->confirm#demander">
                         <input type="hidden" name="_token" value="{{ csrf_token('delete_creneau_' ~ c.id) }}">
                         <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
                     </form>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>

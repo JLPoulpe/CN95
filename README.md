@@ -70,12 +70,13 @@ make cache-clear TARGET=prod # Supprime le cache distant de deploy/targets/prod.
 
 ## 👥 Rôles et droits
 
-Quatre rôles (table `role`, créés par `app:seed`). ADMIN hérite de tous les autres (`role_hierarchy` dans `security.yaml`).
+Cinq rôles (table `role`, créés par `app:seed` ; `GESTIONNAIRE_SALLE` est aussi créé par la migration `Version20261116110000`). ADMIN hérite de tous les autres (`role_hierarchy` dans `security.yaml`).
 
 | Rôle | Description |
 |---|---|
 | `ADHERENT` | Membre du club. Aucun accès à l'espace administrateur. |
 | `MONITEUR` | Moniteur. Peut être désigné responsable d'une invitation. |
+| `GESTIONNAIRE_SALLE` | Gestionnaire de salle. Change le groupe (aptitudes) des créneaux qui se déroulent en salle, même sans les encadrer. |
 | `BUREAU` | Membre du bureau. Gère les invitations, la communication et la configuration des activités. |
 | `ADMIN` | Administrateur. Accès à tout, y compris la configuration de l'outil. |
 
@@ -87,8 +88,12 @@ Les droits fonctionnels sont enregistrés en base (table `role_permission`) et s
 | Communication → Activités externes | `PERM_ACTIVITES_EXTERNES` | BUREAU, MONITEUR |
 | Communication → Communication générale, Réseaux sociaux | `PERM_COMMUNICATION` | BUREAU |
 | Configuration des activités (aptitudes, activités, activités externes, lieux d'activité, planning) | `PERM_CONFIG_ACTIVITES` | BUREAU |
+| Planning → modifier les créneaux de ses groupes | `PERM_PLANNING_GROUPES` | MONITEUR |
+| Planning → changer le groupe des créneaux en salle | `PERM_GESTION_SALLES` | GESTIONNAIRE_SALLE |
 | Gestion des utilisateurs (liste, ajout) | `PERM_UTILISATEURS` | aucun (ADMIN seul) |
 | Configuration de l'outil (configuration des mails, permissions) | `PERM_CONFIG_OUTIL` | aucun (ADMIN seul) |
+
+L'accès à `/admin/planning` est ouvert par `PERM_CONFIG_ACTIVITES`, `PERM_PLANNING_GROUPES` **ou** `PERM_GESTION_SALLES`.
 
 L'accès à `/admin/invitations` est ouvert par `PERM_INVITATIONS` **ou** `PERM_ACTIVITES_EXTERNES` (`security.yaml`) : avec la configuration par défaut, un MONITEUR y accède donc via « Activités externes ».
 
@@ -102,6 +107,42 @@ Les sections vides pour un utilisateur ne sont pas affichées ; la première sec
 - Le bouton « Envoyer un mail test » envoie une copie du mail à une adresse de son choix, avec le commentaire et la date saisis, sans rien enregistrer.
 - Toutes les actions (fiche, inscrits, réponses, export, relance, annulation, suppression) vérifient le droit de gestion (`InvitationVoter`).
 
+### Planning
+
+Le planning est organisé par **semaine** (`PlanningSemaine`, identifiée par son lundi) qui contient des **créneaux** (`PlanningCreneau` : jour, lieux, activités, précision, aptitudes). Un créneau appartient à une semaine précise : modifier son groupe ne touche que ce créneau.
+
+- **Configuration des activités** (`PERM_CONFIG_ACTIVITES`) : tout le planning (semaines, DP, fermeture, ajout/suppression de créneaux).
+- **Moniteurs** (`PERM_PLANNING_GROUPES`) : ne modifient que les aptitudes des créneaux de leurs groupes ; le reste du créneau est en lecture seule (`PlanningCreneauVoter::GERER`).
+- **Gestionnaire de salle** (`PERM_GESTION_SALLES`, rôle `GESTIONNAIRE_SALLE`) : un seul gestionnaire pour toutes les salles. Sur un créneau dont un lieu appartient au groupe « Salles » (`LieuActivite::GROUPE_SALLES`, `PlanningCreneau::estEnSalle()`), il change les aptitudes du créneau (toutes les aptitudes sont proposées), sans pouvoir le supprimer ni modifier le reste (`PlanningCreneauVoter::CHANGER_GROUPE`, option `groupes_seuls` du formulaire). Aucune notification des moniteurs déplacés.
+
+#### Absences de moniteurs
+
+Un moniteur est **attendu** sur un créneau s'il encadre au moins un de ses groupes (`User::encadreUneAptitudeDe`, `UserRepository::findAttendus`). Un créneau « tous niveaux » (sans aptitude) n'a pas de moniteurs attendus déduits.
+
+- Sur la page d'une semaine, chaque créneau liste ses moniteurs attendus. Chacun peut cliquer sur « Je suis absent » ; le bureau (`PERM_CONFIG_ACTIVITES`) peut déclarer ou annuler l'absence de n'importe quel moniteur attendu (`POST /admin/planning/creneau/{id}/absence/{moniteur}`, entité `AbsenceMoniteur`).
+- Le créneau affiche « Besoin d'aide : x absent(s) sur y attendus ». Les autres moniteurs du groupe voient les créneaux à venir concernés dans la section « Besoin d'aide » de leur espace.
+- **Mail** (`AbsenceMailer`, gabarit `mail/absence_moniteur.html.twig`) à la déclaration uniquement : moniteurs attendus du créneau + membres du bureau (rôles `BUREAU` et `ADMIN`, comptes actifs avec adresse), **sans doublon** pour un membre qui cumule les deux, et **jamais à l'absent**. L'annulation n'envoie rien.
+
+### Moniteur par groupe
+
+La page **Utilisateurs → Moniteurs** (`/admin/users/moniteurs`) affiche une carte par groupe (aptitude). Glisser-déposer (Stimulus `moniteur_groupes_controller.js`, route `POST /admin/users/moniteurs/groupes`) :
+
+- tableau → groupe : ajoute le moniteur au groupe ;
+- groupe → autre groupe : le déplace ;
+- groupe → tableau : le retire du groupe.
+
+L'enregistrement est immédiat (CSRF), puis la page se recharge. Le bouton « Éditer » reste disponible.
+
+### Fosse : inscrits, liste d'attente, CACI
+
+La page **Inscrits** d'une invitation (`/admin/invitations/{id}/inscrits`) sépare moniteurs/encadrants et plongeurs, chacun avec sa liste principale et sa liste d'attente.
+
+- **Ordre de la liste d'attente** : glisser-déposer des lignes (même méthode que les aptitudes), enregistré automatiquement (`POST /admin/invitations/{id}/ordre-attente`, champ `ReponseFosse::ordre`). L'ordre manuel passe avant l'ordre d'arrivée ; il est repris par l'export et par la promotion automatique lors d'un désistement (`ReponseFosse::comparerAttente`, `ReponseFosseRepository::listeAttente`).
+- **Favoriser un membre de la liste d'attente** : le glisser sur un inscrit du même groupe (ils échangent leur place, l'inscrit prend sa place dans la liste d'attente) ou sur la liste principale s'il reste une place libre (`POST /admin/invitations/{id}/promouvoir`, verrou pessimiste sur l'invitation, date de réponse conservée). Aucun mail.
+- **CACI** : colonne présente pour les plongeurs (listes principale et d'attente). Encoche verte si le CACI est valable **à la date de la fosse**, croix rouge sinon (expiré ou non renseigné) ; un clic ouvre une petite fenêtre avec la date de fin (`caci_controller.js`).
+- **Feuille d'émargement (CSV)** : titre, moniteurs/encadrants, plongeurs puis liste d'attente, avec les colonnes Places, Nom, Prénom, Aptitudes, Aptitudes préparées, Mineur, Téléphone et **CACI (fin de validité)** (`jj/mm/aaaa`, vide si non renseignée).
+- Message à l'inscription : « Vous avez bien été mis en attente d'approbation à l'activité « … » du … ».
+
 ### Mails
 
 Chaque mail est un fichier Twig de `app/templates/mail/`, enveloppé par la mise en page commune `templates/mail/_base.html.twig` (« Bonjour à toutes et à tous, », contenu, signature, logos, liens CN95 et pied de page RGPD). Les liens propres à un mail sont fournis par son mailer ; il n'y a plus de modèles en base. `MailRenderer` rend le gabarit puis l'enveloppe dans la base.
@@ -111,6 +152,7 @@ Chaque mail est un fichier Twig de `app/templates/mail/`, enveloppé par la mise
 | Création de compte | `CompteMailer` | `compte/activation.html.twig` | Base + information RGPD + types de mails reçus + lien d'activation (valable 7 jours) | Création d'un utilisateur, renvoi du lien depuis sa fiche |
 | Invitation / relance | `FosseMailer` | `invitation.html.twig` | Base + phrase d'introduction + commentaire de l'invitation + 3 liens (je m'inscris, je ne participe pas, je ne peux plus participer) | Création d'une invitation ; bouton « Relancer » (objet « Rappel : ») |
 | Annulation | `FosseMailer` | `annulation.html.twig` | Base + activité et date | Annulation d'une invitation, aux membres ayant répondu |
+| Absence de moniteur | `AbsenceMailer` | `absence_moniteur.html.twig` | Base + moniteur absent, activité, date, lieux, groupes | Déclaration d'une absence sur un créneau, aux moniteurs du groupe et au bureau |
 | Désistement | `FosseMailer` | `desistement.html.twig` | Base + membre, activité et date | Un inscrit se désiste via son lien, envoyé au responsable (DP) |
 | Communication officielle | `CommunicationMailer` | `communication.html.twig` | Base + contenu saisi dans l'éditeur ; objet « CN95 Plongée – titre » | Envoi d'une communication |
 | Information RGPD | `RgpdMailer` | `rgpd/information*.html.twig` | Base + information + lien d'accusé de lecture | Commande `app:rgpd:envoyer-information` |
@@ -139,14 +181,15 @@ CN95/
 │   │   │   ├── PlanningSemaine.php    # Planning hebdomadaire
 │   │   │   ├── PlanningCreneau.php    # Créneaux de planning
 │   │   │   ├── InvitationFosse.php    # Invitations aux activités externes
-│   │   │   ├── ReponseFosse.php       # Réponses des membres aux invitations
+│   │   │   ├── ReponseFosse.php       # Réponses des membres aux invitations (ordre manuel en liste d'attente)
+│   │   │   ├── AbsenceMoniteur.php    # Absence d'un moniteur sur un créneau
 │   │   │   ├── Communication.php      # Communications officielles par mail
 │   │   │   └── RolePermission.php     # Permissions accordées à chaque rôle
 │   │   ├── Controller/          # Contrôleurs (routes & logique HTTP)
 │   │   │   └── Admin/           # Espace administrateur (/admin/...)
 │   │   ├── Form/                # Types de formulaires Symfony
-│   │   ├── Mail/                # Envoi et rendu des mails (MailSender, MailRenderer, FosseMailer, CompteMailer, CommunicationMailer, RgpdMailer, plugins)
-│   │   ├── Security/            # Permission.php (liste des droits), PermissionProvider.php (droits en base) et Voter/ (PermissionVoter, InvitationVoter)
+│   │   ├── Mail/                # Envoi et rendu des mails (MailSender, MailRenderer, FosseMailer, AbsenceMailer, CompteMailer, CommunicationMailer, RgpdMailer, plugins)
+│   │   ├── Security/            # Permission.php (liste des droits), PermissionProvider.php (droits en base) et Voter/ (PermissionVoter, InvitationVoter, PlanningCreneauVoter)
 │   │   ├── Repository/          # Requêtes personnalisées (Doctrine)
 │   │   ├── Command/             # Commandes console (app:seed)
 │   │   └── Kernel.php           # Noyau Symfony
@@ -204,7 +247,8 @@ L'URL de connexion à la base de données est automatiquement définie pour Dock
 - **PlanningCreneau** - Créneaux individuels du planning
 - **ActiviteExterne** - Activité externe pouvant faire l'objet d'invitations (ex. fosse), avec un texte par défaut pré-rempli dans le commentaire des invitations
 - **InvitationFosse** - Invitation à une date pour une activité externe : aptitudes conviées, rôles qui la gèrent, responsable (DP) éventuel, commentaire
-- **ReponseFosse** - Réponse d'un membre à une invitation (en attente, inscrit, refus, désistement), avec un lien personnel
+- **ReponseFosse** - Réponse d'un membre à une invitation (en attente, inscrit, liste d'attente, refus, désistement), avec un lien personnel et un ordre manuel de promotion
+- **AbsenceMoniteur** - Absence d'un moniteur attendu sur un créneau du planning
 - **Communication** - Communication officielle (titre, contenu HTML, auteur, état d'envoi)
 - **RolePermission** - Permission accordée à un rôle (modifiable depuis l'administration)
 - **MailConfiguration** - Configuration du plugin d'envoi (chiffrée)
@@ -254,7 +298,15 @@ php bin/phpunit
 
 ### Éditeur de mails et JavaScript
 
-Les dépendances JavaScript (dont Quill, pour l'éditeur des commentaires d'invitation, des textes par défaut et des communications) sont gérées par l'Asset Mapper : `importmap.php` et `assets/vendor/`. Pas de build Node. Les contrôleurs Stimulus de l'espace administrateur sont `assets/controllers/wysiwyg_controller.js` (éditeur riche) et `mail_test_controller.js` (mail test d'invitation).
+Les dépendances JavaScript (dont Quill, pour l'éditeur des commentaires d'invitation, des textes par défaut et des communications) sont gérées par l'Asset Mapper : `importmap.php` et `assets/vendor/`. Pas de build Node. Les contrôleurs Stimulus de l'espace administrateur sont `wysiwyg_controller.js` (éditeur riche), `mail_test_controller.js` (mail test d'invitation), `aptitude_ordre_controller.js` (ordre des aptitudes), `inscrits_ordre_controller.js` et `inscrits_echange_controller.js` (liste d'attente de la fosse), `caci_controller.js` (fenêtre du CACI) et `moniteur_groupes_controller.js` (moniteurs par groupe).
+
+### Tests en local : pas d'envoi réel
+
+La base Docker locale peut contenir une vraie configuration Brevo et de vraies adresses. Ne déclenchez pas d'action qui envoie un mail (création d'utilisateur, invitation, « Relancer », déclaration d'absence de moniteur…) avec des comptes réels. Utilisez des comptes jetables en `@example.invalid` ; les tests PHPUnit utilisent la base `cn95_test`.
+
+### Migrations
+
+Si `doctrine:migrations:migrate` échoue sur une base de développement ancienne (colonne déjà existante, par exemple `reset_token_hash`), la table des migrations est désynchronisée avec le schéma : exécutez la migration voulue seule avec `doctrine:migrations:execute 'DoctrineMigrations\VersionXXXX' --up`, puis `doctrine:schema:validate`.
 
 ### Base de données
 
@@ -365,5 +417,5 @@ Pour toute question ou amélioration, ouvrir une issue ou une pull request sur [
 
 ---
 
-**Dernière mise à jour** : 2026-10-14  
+**Dernière mise à jour** : 2026-11-16  
 **Créé avec** ❤️ par Claude Code

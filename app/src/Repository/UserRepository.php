@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\PlanningCreneau;
 use App\Entity\Role;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -118,6 +119,40 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->join('u.userRoles', 'r')->leftJoin('u.aptitudesEncadrees', 'g')
             ->where('r.code = :code')->setParameter('code', Role::MONITEUR)
             ->orderBy('u.nom', 'ASC')->addOrderBy('u.prenom', 'ASC')->addOrderBy('g.ordre', 'ASC')
+            ->getQuery()->getResult();
+    }
+
+    /**
+     * Moniteurs attendus sur un créneau : ceux qui encadrent au moins un de ses groupes (aptitudes).
+     * Un créneau sans aptitude (« tous niveaux ») n'a pas de moniteurs attendus déduits.
+     *
+     * @param list<User>|null $moniteurs moniteurs déjà chargés (évite une requête par créneau)
+     *
+     * @return list<User>
+     */
+    public function findAttendus(PlanningCreneau $creneau, ?array $moniteurs = null): array
+    {
+        if ($creneau->getAptitudes()->isEmpty()) {
+            return [];
+        }
+
+        return array_values(array_filter($moniteurs ?? $this->findMoniteurs(), static fn (User $m) => $m->encadreUneAptitudeDe($creneau)));
+    }
+
+    /**
+     * Comptes actifs avec une adresse mail, membres du bureau. L'administrateur en fait partie
+     * (il hérite du rôle bureau dans la hiérarchie de sécurité).
+     *
+     * @return list<User>
+     */
+    public function findBureau(): array
+    {
+        return $this->createQueryBuilder('u')
+            ->join('u.userRoles', 'r')
+            ->where('r.code IN (:codes)')->setParameter('codes', [Role::BUREAU, Role::ADMIN])
+            ->andWhere('u.activationTokenHash IS NULL')
+            ->andWhere("u.email IS NOT NULL AND u.email <> ''")
+            ->distinct()
             ->getQuery()->getResult();
     }
 }

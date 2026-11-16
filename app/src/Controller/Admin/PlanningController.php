@@ -4,6 +4,7 @@ namespace App\Controller\Admin;
 
 use App\Controller\PlanningController as PublicPlanningController;
 use App\Entity\Activite;
+use App\Entity\AbsenceMoniteur;
 use App\Entity\Aptitude;
 use App\Entity\PlanningCreneau;
 use App\Entity\PlanningSemaine;
@@ -12,11 +13,14 @@ use App\Form\PlanningCreneauType;
 use App\Form\PlanningDuplicationType;
 use App\Form\PlanningSemaineType;
 use App\Repository\ActiviteRepository;
+use App\Mail\AbsenceMailer;
 use App\Repository\PlanningCreneauRepository;
 use App\Repository\PlanningSemaineRepository;
+use App\Repository\UserRepository;
 use App\Security\Permission;
 use App\Security\Voter\PlanningCreneauVoter;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -68,7 +72,7 @@ class PlanningController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'admin_planning_edit', requirements: ['id' => '\\d+'])]
-    public function edit(PlanningSemaine $semaine, Request $request, EntityManagerInterface $em): Response
+    public function edit(PlanningSemaine $semaine, Request $request, EntityManagerInterface $em, UserRepository $users): Response
     {
         // Les réglages de la semaine (DP, fermeture) restent réservés à la configuration des activités ;
         // un moniteur n'y voit que les créneaux.
@@ -87,6 +91,7 @@ class PlanningController extends AbstractController
             'form' => $form,
             'semaine' => $semaine,
             'peutAjouter' => $complet,
+            'attendus' => $this->attendusParCreneau($semaine, $users),
         ]);
     }
 
@@ -154,11 +159,13 @@ class PlanningController extends AbstractController
     #[Route('/creneau/{id}/edit', name: 'admin_planning_creneau_edit', requirements: ['id' => '\\d+'])]
     public function creneauEdit(PlanningCreneau $creneau, Request $request, EntityManagerInterface $em): Response
     {
-        $this->denyAccessUnlessGranted(PlanningCreneauVoter::GERER, $creneau);
-        $autorisees = $this->aptitudesAutorisees();
+        $this->denyAccessUnlessGranted(PlanningCreneauVoter::CHANGER_GROUPE, $creneau);
+        // Gestionnaire de salle sur un créneau en salle (sans pouvoir le gérer autrement) : toutes les aptitudes, reste en lecture seule
+        $groupesSeuls = !$this->isGranted(PlanningCreneauVoter::GERER, $creneau);
+        $autorisees = $groupesSeuls ? null : $this->aptitudesAutorisees();
         // Aptitudes des autres groupes : non modifiables par un moniteur, conservées à l'enregistrement
         $horsGroupes = null === $autorisees ? [] : $this->aptitudesHorsGroupes($creneau, $autorisees);
-        $form = $this->createForm(PlanningCreneauType::class, $creneau, ['aptitudes_autorisees' => $autorisees]);
+        $form = $this->createForm(PlanningCreneauType::class, $creneau, ['aptitudes_autorisees' => $autorisees, 'groupes_seuls' => $groupesSeuls]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -172,6 +179,42 @@ class PlanningController extends AbstractController
         }
 
         return $this->render('admin/planning/creneau.html.twig', ['form' => $form, 'semaine' => $creneau->getSemaine(), 'titre' => 'Modifier le créneau']);
+    }
+
+    /** Déclare ou annule l'absence d'un moniteur attendu sur un créneau : lui-même, ou le bureau (configuration des activités). */
+    #[Route('/creneau/{id}/absence/{moniteur}', name: 'admin_planning_creneau_absence', requirements: ['id' => '\\d+', 'moniteur' => '\\d+'], methods: ['POST'])]
+    public function creneauAbsence(PlanningCreneau $creneau, #[MapEntity(id: 'moniteur')] User $moniteur, Request $request, EntityManagerInterface $em, UserRepository $users, AbsenceMailer $mailer): Response
+    {
+        $retour = $this->redirectToRoute('admin_planning_edit', ['id' => $creneau->getSemaine()->getId()]);
+        if (!$this->isCsrfTokenValid('absence_'.$creneau->getId().'_'.$moniteur->getId(), $request->request->getString('_token'))) {
+            return $retour;
+        }
+        $moi = $this->getUser();
+        if (!$this->isGranted(Permission::CONFIG_ACTIVITES) && !($moi instanceof User && $moi->getId() === $moniteur->getId())) {
+            throw $this->createAccessDeniedException();
+        }
+        if (!in_array($moniteur, $users->findAttendus($creneau), true)) {
+            $this->addFlash('error', 'Ce moniteur n\'est pas attendu sur ce créneau.');
+
+            return $retour;
+        }
+
+        $absence = $creneau->absenceDe($moniteur);
+        if (null !== $absence) {
+            $creneau->getAbsences()->removeElement($absence);
+            $em->remove($absence);
+            $this->addFlash('success', sprintf('Absence de %s annulée.', $moniteur->getNomComplet()));
+        } else {
+            $em->persist(new AbsenceMoniteur($creneau, $moniteur, $moi instanceof User ? $moi : null));
+            $em->flush();
+            $mailer->absenceDeclaree($creneau, $moniteur, $users->findAttendus($creneau), $users->findBureau());
+            $this->addFlash('success', sprintf('Absence de %s enregistrée : moniteurs du groupe et bureau prévenus, le créneau est signalé comme ayant besoin d\'aide.', $moniteur->getNomComplet()));
+
+            return $retour;
+        }
+        $em->flush();
+
+        return $retour;
     }
 
     #[Route('/creneau/{id}/supprimer', name: 'admin_planning_creneau_delete', requirements: ['id' => '\\d+'], methods: ['POST'])]
@@ -219,5 +262,21 @@ class PlanningController extends AbstractController
         $user = $this->getUser();
 
         return $user instanceof User ? $user->getAptitudesEncadrees()->getValues() : [];
+    }
+
+    /**
+     * Moniteurs attendus par créneau de la semaine (clé : id du créneau).
+     *
+     * @return array<int, list<User>>
+     */
+    private function attendusParCreneau(PlanningSemaine $semaine, UserRepository $users): array
+    {
+        $moniteurs = $users->findMoniteurs();
+        $attendus = [];
+        foreach ($semaine->getCreneaux() as $creneau) {
+            $attendus[$creneau->getId()] = $users->findAttendus($creneau, $moniteurs);
+        }
+
+        return $attendus;
     }
 }

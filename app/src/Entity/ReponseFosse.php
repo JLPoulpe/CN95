@@ -35,6 +35,10 @@ class ReponseFosse
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $repondueAt = null;
 
+    /** Position manuelle dans la liste d'attente (1 = premier promu). Null tant que l'ordre n'a jamais été modifié à la main. */
+    #[ORM\Column(nullable: true)]
+    private ?int $ordre = null;
+
     public function __construct(InvitationFosse $invitation, User $user)
     {
         $this->invitation = $invitation;
@@ -70,6 +74,14 @@ class ReponseFosse
         return $this;
     }
 
+    /** Changement décidé par le gestionnaire (promotion, échange) : la date de réponse du membre reste celle d'origine. */
+    public function changerStatutParGestionnaire(StatutReponseFosse $statut): static
+    {
+        $this->statut = $statut;
+
+        return $this;
+    }
+
     public function getToken(): string
     {
         return $this->token;
@@ -78,5 +90,23 @@ class ReponseFosse
     public function getRepondueAt(): ?\DateTimeImmutable
     {
         return $this->repondueAt;
+    }
+
+    public function getOrdre(): ?int
+    {
+        return $this->ordre;
+    }
+
+    public function setOrdre(?int $ordre): static
+    {
+        $this->ordre = $ordre;
+
+        return $this;
+    }
+
+    /** Ordre de promotion en liste d'attente : position manuelle d'abord, puis ordre d'arrivée. */
+    public static function comparerAttente(self $a, self $b): int
+    {
+        return [$a->ordre ?? PHP_INT_MAX, $a->repondueAt, $a->id] <=> [$b->ordre ?? PHP_INT_MAX, $b->repondueAt, $b->id];
     }
 }

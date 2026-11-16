@@ -37,6 +37,7 @@ class SeedCommand extends Command
         Role::ADHERENT => 'Adhérent',
         Role::MONITEUR => 'Moniteur',
         Role::BUREAU => 'Membre du bureau',
+        Role::GESTIONNAIRE_SALLE => 'Gestionnaire de salle',
         Role::ADMIN => 'Administrateur',
     ];
 

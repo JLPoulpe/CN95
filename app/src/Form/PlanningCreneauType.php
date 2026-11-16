@@ -26,7 +26,8 @@ class PlanningCreneauType extends AbstractType
         // Moniteur limité à ses groupes : seules ses aptitudes sont proposées, et au moins une est exigée
         $limitees = $options['aptitudes_autorisees'];
         // Moniteur : seule la présence de ses groupes est modifiable, le reste du créneau est en lecture seule
-        $lecture = null === $limitees ? [] : ['disabled' => true];
+        // Gestionnaire de salle (groupes_seuls) : toutes les aptitudes, mais le reste du créneau est en lecture seule
+        $lecture = null === $limitees && !$options['groupes_seuls'] ? [] : ['disabled' => true];
 
         $builder
             ->add('jour', EnumType::class, ['class' => Jour::class, 'choice_label' => fn (Jour $j) => $j->label()] + $lecture)
@@ -112,7 +113,7 @@ class PlanningCreneauType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => PlanningCreneau::class, 'aptitudes_autorisees' => null]);
+        $resolver->setDefaults(['data_class' => PlanningCreneau::class, 'aptitudes_autorisees' => null, 'groupes_seuls' => false]);
         $resolver->setAllowedTypes('aptitudes_autorisees', ['null', 'array']);
     }
 }

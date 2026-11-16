@@ -12,6 +12,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\UniqueConstraint(columns: ['groupe', 'nom'])]
 class LieuActivite
 {
+    /** Groupe de lieux correspondant aux salles (Grande salle, Bureau…). */
+    public const GROUPE_SALLES = 'Salles';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

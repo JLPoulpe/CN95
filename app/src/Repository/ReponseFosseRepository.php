@@ -34,14 +34,22 @@ class ReponseFosseRepository extends ServiceEntityRepository
             ->getQuery()->getSingleScalarResult();
     }
 
-    /** Premier arrivé de la liste d'attente (ordre de réponse, puis d'identifiant). */
+    /**
+     * Liste d'attente dans l'ordre de promotion (ordre manuel, puis ordre d'arrivée).
+     *
+     * @return list<ReponseFosse>
+     */
+    public function listeAttente(InvitationFosse $invitation): array
+    {
+        $reponses = $this->findBy(['invitation' => $invitation, 'statut' => StatutReponseFosse::ListeAttente]);
+        usort($reponses, ReponseFosse::comparerAttente(...));
+
+        return $reponses;
+    }
+
+    /** Prochain à promouvoir depuis la liste d'attente. */
     public function premierEnListeAttente(InvitationFosse $invitation): ?ReponseFosse
     {
-        return $this->createQueryBuilder('r')
-            ->where('r.invitation = :invitation')->andWhere('r.statut = :statut')
-            ->setParameter('invitation', $invitation)->setParameter('statut', StatutReponseFosse::ListeAttente)
-            ->orderBy('r.repondueAt', 'ASC')->addOrderBy('r.id', 'ASC')
-            ->setMaxResults(1)
-            ->getQuery()->getOneOrNullResult();
+        return $this->listeAttente($invitation)[0] ?? null;
     }
 }

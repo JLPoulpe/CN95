@@ -235,4 +235,29 @@ input[type=checkbox]:disabled + label, input[type=radio]:disabled + label { colo
 /* Liste des aptitudes : réordonnancement par glisser-déposer */
 tr[data-aptitude-id] { cursor: grab; }
 tr[data-aptitude-id].is-dragging { opacity: .4; }
-[data-aptitude-ordre-target="statut"].erreur { color: #b91c1c; }
+[data-aptitude-ordre-target="statut"].erreur, [data-inscrits-ordre-target="statut"].erreur { color: #b91c1c; }
+tr[data-reponse-id] { cursor: grab; }
+tr[data-reponse-id].is-dragging { opacity: .4; }
+
+/* Moniteur par groupe : glisser-déposer */
+.groupe li[draggable], tr[data-moniteur-id] { cursor: grab; }
+.groupe li.is-dragging, tr[data-moniteur-id].is-dragging { opacity: .4; }
+.groupe.drop-cible, .table-wrapper.drop-cible { outline: 2px dashed #3b82f6; outline-offset: 2px; background: #eff6ff; }
+[data-moniteur-groupes-target="statut"].erreur { color: #b91c1c; }
+
+/* Absences de moniteurs */
+.creneau-absences { margin-top: 8px; font-size: 14px; }
+.badge-alerte { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.absences-liste { list-style: none; margin: 6px 0 0; padding: 0; }
+.absences-liste li { padding: 3px 0; }
+.absences-liste li.absent { color: #b91c1c; }
+
+/* Inscrits : favoriser un membre de la liste d'attente */
+tr[data-inscrit-id].drop-cible { outline: 2px dashed #3b82f6; background: #eff6ff; }
+[data-inscrits-echange-target="statut"].erreur { color: #b91c1c; }
+
+/* CACI des inscrits */
+.caci-btn { background: none; border: none; padding: 2px 6px; font-size: 18px; font-weight: 700; cursor: pointer; line-height: 1; }
+.caci-ok { color: #15803d; }
+.caci-ko { color: #b91c1c; }
+.modal-caci { max-width: 340px; }

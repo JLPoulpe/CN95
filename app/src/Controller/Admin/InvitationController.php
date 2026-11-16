@@ -18,8 +18,10 @@ use App\Mail\MailMessage;
 use App\Mail\MailSender;
 use App\Repository\ActiviteExterneRepository;
 use App\Repository\InvitationFosseRepository;
+use App\Repository\ReponseFosseRepository;
 use App\Repository\UserRepository;
 use App\Security\Voter\InvitationVoter;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -217,16 +219,17 @@ class InvitationController extends AbstractController
 
         $parStatut = fn (StatutReponseFosse $statut) => array_values(array_filter($invitation->getReponses()->toArray(), fn (ReponseFosse $r) => $statut === $r->getStatut()));
 
-        // Liste principale par ordre alphabétique ; liste d'attente par ordre d'arrivée (c'est l'ordre de promotion)
+        // Liste principale par ordre alphabétique ; liste d'attente dans l'ordre de promotion (ordre manuel, puis ordre d'arrivée)
         $principale = $parStatut(StatutReponseFosse::Inscrit);
         usort($principale, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getUser()->getNom(), $a->getUser()->getPrenom()] <=> [$b->getUser()->getNom(), $b->getUser()->getPrenom()]);
         $attente = $parStatut(StatutReponseFosse::ListeAttente);
-        usort($attente, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getRepondueAt(), $a->getId()] <=> [$b->getRepondueAt(), $b->getId()]);
+        usort($attente, ReponseFosse::comparerAttente(...));
 
         $moniteur = fn (ReponseFosse $r) => $r->getUser()->hasRole(Role::MONITEUR);
 
         return $this->render('admin/invitation/inscrits.html.twig', [
             'invitation' => $invitation,
+            'ordre_url' => $this->generateUrl('admin_invitation_ordre_attente', ['id' => $invitation->getId()]),
             'moniteurs_principale' => array_values(array_filter($principale, $moniteur)),
             'moniteurs_attente' => array_values(array_filter($attente, $moniteur)),
             'plongeurs_principale' => array_values(array_filter($principale, fn (ReponseFosse $r) => !$moniteur($r))),
@@ -234,6 +237,110 @@ class InvitationController extends AbstractController
             'total_principale' => count($principale),
             'total_attente' => count($attente),
         ]);
+    }
+
+    /** Appelé à chaque déplacement d'une ligne de la liste d'attente : enregistre le nouvel ordre de promotion. */
+    #[Route('/{id}/ordre-attente', name: 'admin_invitation_ordre_attente', requirements: ['id' => '\\d+'], methods: ['POST'])]
+    public function ordreAttente(InvitationFosse $invitation, Request $request, EntityManagerInterface $em, ReponseFosseRepository $reponses): JsonResponse
+    {
+        $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
+
+        $charge = $request->getPayload();
+        if (!$this->isCsrfTokenValid('reorder_attente_'.$invitation->getId(), (string) $charge->get('_token'))) {
+            return new JsonResponse(['ok' => false, 'message' => 'Session expirée, rechargez la page.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $ids = $charge->all('ids');
+        if (!array_is_list($ids) || array_filter($ids, static fn ($id) => !is_int($id) && !(is_string($id) && ctype_digit($id))) !== []) {
+            return new JsonResponse(['ok' => false, 'message' => 'Liste invalide.'], Response::HTTP_BAD_REQUEST);
+        }
+        $ids = array_map('intval', $ids);
+
+        // La liste reçue peut ne couvrir qu'un sous-groupe (moniteurs ou plongeurs) : elle redistribue
+        // ses membres sur les places qu'ils occupaient déjà dans la liste d'attente complète.
+        $attente = $reponses->listeAttente($invitation);
+        $parId = [];
+        foreach ($attente as $reponse) {
+            $parId[$reponse->getId()] = $reponse;
+        }
+        if (count($ids) !== count(array_unique($ids)) || array_diff($ids, array_keys($parId)) !== []) {
+            return new JsonResponse(['ok' => false, 'message' => 'La liste d\'attente a changé, rechargez la page.'], Response::HTTP_CONFLICT);
+        }
+
+        $places = array_keys(array_filter($attente, static fn (ReponseFosse $r) => in_array($r->getId(), $ids, true)));
+        foreach ($places as $i => $place) {
+            $attente[$place] = $parId[$ids[$i]];
+        }
+        foreach ($attente as $position => $reponse) {
+            $reponse->setOrdre($position + 1);
+        }
+        $em->flush();
+
+        return new JsonResponse(['ok' => true]);
+    }
+
+    /**
+     * Favorise un membre de la liste d'attente (glisser-déposer) : il passe en liste principale, soit sur une place libre,
+     * soit en échangeant sa place avec un inscrit du même groupe (moniteurs / plongeurs), qui prend alors sa place dans la liste d'attente.
+     */
+    #[Route('/{id}/promouvoir', name: 'admin_invitation_promouvoir', requirements: ['id' => '\\d+'], methods: ['POST'])]
+    public function promouvoir(InvitationFosse $invitation, Request $request, EntityManagerInterface $em, ReponseFosseRepository $reponses): JsonResponse
+    {
+        $this->denyAccessUnlessGranted(InvitationVoter::GERER, $invitation);
+
+        $charge = $request->getPayload();
+        if (!$this->isCsrfTokenValid('reorder_attente_'.$invitation->getId(), (string) $charge->get('_token'))) {
+            return new JsonResponse(['ok' => false, 'message' => 'Session expirée, rechargez la page.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $erreur = $em->wrapInTransaction(function () use ($invitation, $charge, $em, $reponses): ?string {
+            // Même verrou que les inscriptions : la limite ne doit pas être dépassée par une inscription simultanée
+            $em->find(InvitationFosse::class, $invitation->getId(), LockMode::PESSIMISTIC_WRITE);
+
+            $attente = $reponses->listeAttente($invitation);
+            $promu = null;
+            foreach ($attente as $r) {
+                if ($r->getId() === (int) $charge->get('reponse')) {
+                    $promu = $r;
+                }
+            }
+            if (null === $promu) {
+                return 'Ce membre n\'est plus en liste d\'attente, rechargez la page.';
+            }
+
+            $remplace = null;
+            if ($charge->get('remplace')) {
+                $remplace = $reponses->find((int) $charge->get('remplace'));
+                if (!$remplace instanceof ReponseFosse || $remplace->getInvitation()->getId() !== $invitation->getId() || StatutReponseFosse::Inscrit !== $remplace->getStatut()) {
+                    return 'Cet inscrit n\'est plus en liste principale, rechargez la page.';
+                }
+                if ($remplace->getUser()->hasRole(Role::MONITEUR) !== $promu->getUser()->hasRole(Role::MONITEUR)) {
+                    return 'L\'échange n\'est possible qu\'entre membres du même groupe (moniteurs ou plongeurs).';
+                }
+            } elseif (null !== $invitation->getLimiteInscrits() && $reponses->compter($invitation, StatutReponseFosse::Inscrit) >= $invitation->getLimiteInscrits()) {
+                return 'Aucune place libre : déposez le membre sur l\'inscrit dont il doit prendre la place.';
+            }
+
+            $promu->changerStatutParGestionnaire(StatutReponseFosse::Inscrit);
+            $position = array_search($promu, $attente, true);
+            if (null !== $remplace) {
+                // L'inscrit remplacé prend la place du promu dans la liste d'attente
+                $remplace->changerStatutParGestionnaire(StatutReponseFosse::ListeAttente);
+                $attente[$position] = $remplace;
+            } else {
+                array_splice($attente, $position, 1);
+            }
+            foreach (array_values($attente) as $i => $r) {
+                $r->setOrdre($i + 1);
+            }
+            $em->flush();
+
+            return null;
+        });
+
+        return null === $erreur
+            ? new JsonResponse(['ok' => true])
+            : new JsonResponse(['ok' => false, 'message' => $erreur], Response::HTTP_CONFLICT);
     }
 
     private const JOURS = ['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI', 'DIMANCHE'];
@@ -256,13 +363,13 @@ class InvitationController extends AbstractController
         $plongeurs = array_values(array_filter($parStatut(StatutReponseFosse::Inscrit), fn (ReponseFosse $r) => !$r->getUser()->hasRole(Role::MONITEUR)));
         usort($moniteurs, $parNom);
         usort($plongeurs, $parNom);
-        // La liste d'attente reste dans l'ordre d'arrivée
+        // La liste d'attente reste dans l'ordre de promotion
         $attente = $parStatut(StatutReponseFosse::ListeAttente);
-        usort($attente, fn (ReponseFosse $a, ReponseFosse $b) => [$a->getRepondueAt(), $a->getId()] <=> [$b->getRepondueAt(), $b->getId()]);
+        usort($attente, ReponseFosse::comparerAttente(...));
 
         $fosse = $invitation->getDate();
         $ligne = fn (?ReponseFosse $reponse, int|string $place) => null === $reponse
-            ? [$place, '', '', '', '', '', '']
+            ? [$place, '', '', '', '', '', '', '']
             : [
                 $place,
                 mb_strtoupper(trim((string) $reponse->getUser()->getNom())),
@@ -271,13 +378,14 @@ class InvitationController extends AbstractController
                 (string) $reponse->getUser()->getAptitudePreparee(),
                 $reponse->getUser()->estMineur($fosse) ? self::CROIX : '',
                 (string) $reponse->getUser()->getTelephone(),
+                $reponse->getUser()->getCaciExpireLe()?->format('d/m/Y') ?? '',
             ];
-        $vide = ['', '', '', '', '', '', ''];
+        $vide = ['', '', '', '', '', '', '', ''];
 
         $lignes = [
-            [sprintf('%s DU %s %d %s %d', mb_strtoupper($invitation->getActivite()->getLibelle()), self::JOURS[(int) $fosse->format('N') - 1], $fosse->format('j'), self::MOIS[(int) $fosse->format('n') - 1], $fosse->format('Y')), '', '', '', '', '', ''],
-            ['Places', 'Nom', 'Prénom', 'Aptitudes', 'Aptitudes préparées', 'Mineur', 'Téléphone'],
-            ['MONITEURS / ENCADRANTS', '', '', '', '', '', ''],
+            [sprintf('%s DU %s %d %s %d', mb_strtoupper($invitation->getActivite()->getLibelle()), self::JOURS[(int) $fosse->format('N') - 1], $fosse->format('j'), self::MOIS[(int) $fosse->format('n') - 1], $fosse->format('Y')), '', '', '', '', '', '', ''],
+            ['Places', 'Nom', 'Prénom', 'Aptitudes', 'Aptitudes préparées', 'Mineur', 'Téléphone', 'CACI (fin de validité)'],
+            ['MONITEURS / ENCADRANTS', '', '', '', '', '', '', ''],
         ];
 
         // Places libres jusqu'à la limite : les premières sont réservées aux moniteurs (jusqu'à PLACES_MONITEURS lignes), le reste aux plongeurs
@@ -289,12 +397,12 @@ class InvitationController extends AbstractController
             $lignes[] = $ligne($moniteurs[$i] ?? null, ++$place);
         }
 
-        $lignes[] = ['PLONGEURS', '', '', '', '', '', ''];
+        $lignes[] = ['PLONGEURS', '', '', '', '', '', '', ''];
         for ($i = 0, $n = count($plongeurs) + $libres - $libresMoniteurs; $i < $n; ++$i) {
             $lignes[] = $ligne($plongeurs[$i] ?? null, ++$place);
         }
 
-        $lignes[] = ['PLONGEURS EN LISTE D\'ATTENTE', '', '', '', '', '', ''];
+        $lignes[] = ['PLONGEURS EN LISTE D\'ATTENTE', '', '', '', '', '', '', ''];
         $nbAttente = max(count($attente), $invitation->getLimiteAttente() ?? 0);
         for ($i = 0; $i < $nbAttente; ++$i) {
             $lignes[] = isset($attente[$i]) ? $ligne($attente[$i], '') : $vide;

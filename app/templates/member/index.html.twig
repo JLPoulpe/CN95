@@ -5,6 +5,15 @@
 {# Une section n'est affichée que si l'utilisateur a au moins un élément ; la première affichée est ouverte #}
 {% set ouvrir = true %}
 <div class="container">
+    {% if besoinAide %}
+    <details class="section" open>
+        <summary class="section-title">Besoin d'aide ({{ besoinAide|length }})</summary>
+        {% for c in besoinAide %}
+            {{ m.item('🆘', c.jour.label ~ ' ' ~ c.date|date('d/m/Y') ~ ' · ' ~ c.activitesLabel, c.absences|length ~ ' moniteur(s) absent(s) dans votre groupe : un renfort est demandé', path('admin_planning_edit', {id: c.semaine.id})) }}
+        {% endfor %}
+    </details>
+    {% endif %}
+
     <details class="section"{{ ouvrir ? ' open' : '' }}>
         <summary class="section-title">Planning</summary>
         {{ m.item('📅', 'Planning des entraînements', 'Séances, lieux et aptitudes', path('app_planning')) }}
@@ -21,14 +30,14 @@
     {% set ouvrir = false %}
     {% endif %}
 
-    {% if is_granted('PERM_ACTIVITES_EXTERNES') or is_granted('PERM_COMMUNICATION') or (is_granted('PERM_PLANNING_GROUPES') and not is_granted('PERM_CONFIG_ACTIVITES')) %}
+    {% if is_granted('PERM_ACTIVITES_EXTERNES') or is_granted('PERM_COMMUNICATION') or ((is_granted('PERM_PLANNING_GROUPES') or is_granted('PERM_GESTION_SALLES')) and not is_granted('PERM_CONFIG_ACTIVITES')) %}
     <details class="section"{{ ouvrir ? ' open' : '' }}>
         <summary class="section-title">Communication</summary>
         {% if is_granted('PERM_ACTIVITES_EXTERNES') %}
             {{ m.item('📋', 'Activités externes', 'Consulter et gérer les invitations par activité', path('admin_invitation_index_defaut')) }}
         {% endif %}
-        {% if is_granted('PERM_PLANNING_GROUPES') and not is_granted('PERM_CONFIG_ACTIVITES') %}
-            {{ m.item('📅', 'Gestion du planning', 'Modifier les créneaux de vos groupes', path('admin_planning_index')) }}
+        {% if (is_granted('PERM_PLANNING_GROUPES') or is_granted('PERM_GESTION_SALLES')) and not is_granted('PERM_CONFIG_ACTIVITES') %}
+            {{ m.item('📅', 'Gestion du planning', is_granted('PERM_PLANNING_GROUPES') ? 'Modifier les créneaux de vos groupes' : 'Modifier le groupe des créneaux en salle', path('admin_planning_index')) }}
         {% endif %}
         {% if is_granted('PERM_COMMUNICATION') %}
             {{ m.item('💬', 'Communication générale', 'Envoyer des communications générales', path('admin_communication_index')) }}

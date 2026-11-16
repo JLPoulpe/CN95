@@ -1,15 +1,21 @@
 {% extends 'base.html.twig' %}
 {% block title %}Moniteur par groupe – CN95 Plongée{% endblock %}
 {% block body %}
-<div class="container container-wide">
+<div class="container container-wide"
+     data-controller="moniteur-groupes"
+     data-moniteur-groupes-url-value="{{ path('admin_moniteur_groupes') }}"
+     data-moniteur-groupes-token-value="{{ csrf_token('moniteur_groupes') }}">
     <h1 class="header-title">Moniteur par groupe</h1>
 
+    <p class="hint">Glissez un moniteur du tableau vers un groupe pour l'y ajouter, d'un groupe à un autre pour le déplacer, ou d'un groupe vers le tableau pour l'en retirer.</p>
+    <p class="hint" data-moniteur-groupes-target="statut" hidden role="status"></p>
     <div class="groupes">
         {% for g in groupes %}
-            <div class="groupe">
+            <div class="groupe" data-groupe-id="{{ g.aptitude.id }}"
+                 data-action="dragover->moniteur-groupes#survol dragleave->moniteur-groupes#quitte drop->moniteur-groupes#depotGroupe">
                 <div class="groupe-titre">{{ g.aptitude.code }}</div>
                 {% if g.moniteurs %}
-                    <ul>{% for m in g.moniteurs %}<li>{{ m.username }}</li>{% endfor %}</ul>
+                    <ul>{% for m in g.moniteurs %}<li draggable="true" data-moniteur-id="{{ m.id }}" data-source-id="{{ g.aptitude.id }}" data-action="dragstart->moniteur-groupes#debut dragend->moniteur-groupes#fin">{{ m.nomComplet|title }}</li>{% endfor %}</ul>
                 {% else %}
                     <p class="note">Aucun moniteur</p>
                 {% endif %}
@@ -17,12 +23,12 @@
         {% endfor %}
     </div>
 
-    <div class="table-wrapper">
+    <div class="table-wrapper" data-action="dragover->moniteur-groupes#survol dragleave->moniteur-groupes#quitte drop->moniteur-groupes#depotTableau">
         <table>
             <thead><tr><th>Nom</th><th>Prénom</th><th>Aptitudes</th><th></th></tr></thead>
             <tbody>
             {% for m in moniteurs %}
-                <tr>
+                <tr draggable="true" data-moniteur-id="{{ m.id }}" data-action="dragstart->moniteur-groupes#debut dragend->moniteur-groupes#fin">
                     <td><strong>{{ m.nom }}</strong></td>
                     <td>{{ m.prenom }}</td>
                     <td>{% for a in m.aptitudesEncadrees %}<span class="badge">{{ a }}</span> {% endfor %}</td>

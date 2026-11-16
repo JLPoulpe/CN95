@@ -28,4 +28,24 @@ class PlanningCreneauRepository extends ServiceEntityRepository
             ->orderBy('s.lundi', 'DESC')
             ->getQuery()->getResult();
     }
+
+    /**
+     * Créneaux à venir (aujourd'hui compris) ayant au moins une absence de moniteur, dans l'ordre chronologique.
+     *
+     * @return list<PlanningCreneau>
+     */
+    public function findAvecAbsencesAVenir(\DateTimeImmutable $aujourdhui): array
+    {
+        $lundi = $aujourdhui->modify('monday this week')->setTime(0, 0);
+        $creneaux = $this->createQueryBuilder('c')
+            ->join('c.absences', 'ab')->addSelect('ab')
+            ->join('c.semaine', 's')->addSelect('s')
+            ->where('s.lundi >= :lundi')->setParameter('lundi', $lundi)
+            ->getQuery()->getResult();
+
+        $creneaux = array_values(array_filter($creneaux, static fn (PlanningCreneau $c) => $c->getDate() >= $aujourdhui->setTime(0, 0)));
+        usort($creneaux, static fn (PlanningCreneau $a, PlanningCreneau $b) => $a->getDate() <=> $b->getDate());
+
+        return $creneaux;
+    }
 }
