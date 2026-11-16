@@ -261,3 +261,6 @@ tr[data-inscrit-id].drop-cible { outline: 2px dashed #3b82f6; background: #eff6f
 .caci-ok { color: #15803d; }
 .caci-ko { color: #b91c1c; }
 .modal-caci { max-width: 340px; }
+
+/* Glisser-déposer au doigt : pas de sélection de texte ni de menu de l'appui long sur les éléments déplaçables */
+[draggable="true"] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
