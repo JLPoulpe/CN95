@@ -5,7 +5,7 @@ security:
 
     # L'administrateur a tous les rôles. Les droits fins par fonctionnalité sont dans App\Security\Permission.
     role_hierarchy:
-        ROLE_ADMIN: [ROLE_BUREAU, ROLE_MONITEUR, ROLE_GESTIONNAIRE_SALLE, ROLE_ADHERENT]
+        ROLE_ADMIN: [ROLE_BUREAU, ROLE_MONITEUR, ROLE_GESTIONNAIRE_LIEUX, ROLE_ADHERENT]
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
@@ -45,7 +45,7 @@ security:
     access_control:
         - { path: ^/admin/invitations, allow_if: "is_granted('PERM_INVITATIONS') or is_granted('PERM_ACTIVITES_EXTERNES')" }
         - { path: ^/admin/communications, roles: PERM_COMMUNICATION }
-        - { path: ^/admin/planning, allow_if: "is_granted('PERM_CONFIG_ACTIVITES') or is_granted('PERM_PLANNING_GROUPES') or is_granted('PERM_GESTION_SALLES')" }
+        - { path: ^/admin/planning, allow_if: "is_granted('PERM_CONFIG_ACTIVITES') or is_granted('PERM_PLANNING_GROUPES') or is_granted('PERM_GESTION_LIEUX')" }
         - { path: ^/admin/(aptitudes|activites|activites-externes|lieux-activite), allow_if: "is_granted('PERM_CONFIG_ACTIVITES')" }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/membre, roles: ROLE_USER }

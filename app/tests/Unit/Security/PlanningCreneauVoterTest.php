@@ -29,13 +29,14 @@ class PlanningCreneauVoterTest extends TestCase
         return $creneau;
     }
 
-    private function vote(User $user, PlanningCreneau $creneau, bool $configActivites, bool $planningGroupes = true): int
+    private function vote(User $user, PlanningCreneau $creneau, bool $configActivites, bool $planningGroupes = true, bool $gestionLieux = false, string $attribut = PlanningCreneauVoter::GERER): int
     {
         $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->willReturnCallback(
             fn (string $p) => match ($p) {
                 Permission::CONFIG_ACTIVITES => $configActivites,
                 Permission::PLANNING_GROUPES => $planningGroupes,
+                Permission::GESTION_LIEUX => $gestionLieux,
                 default => false,
             }
         );
@@ -43,7 +44,7 @@ class PlanningCreneauVoterTest extends TestCase
         return (new PlanningCreneauVoter($checker))->vote(
             new UsernamePasswordToken($user, 'main', []),
             $creneau,
-            [PlanningCreneauVoter::GERER],
+            [$attribut],
         );
     }
 
@@ -71,6 +72,15 @@ class PlanningCreneauVoterTest extends TestCase
 
         $this->assertSame(VoterInterface::ACCESS_DENIED, $this->vote($moniteur, $this->creneau(), false));
         $this->assertSame(VoterInterface::ACCESS_GRANTED, $this->vote($moniteur, $this->creneau(), true));
+    }
+
+    public function testGestionnaireDeLieuxChangeLeGroupeDeTousLesCreneauxSansLesGerer(): void
+    {
+        $gestionnaire = new User();
+        $creneau = $this->creneau($this->aptitude('A'));
+
+        $this->assertSame(VoterInterface::ACCESS_GRANTED, $this->vote($gestionnaire, $creneau, false, false, true, PlanningCreneauVoter::CHANGER_GROUPE));
+        $this->assertSame(VoterInterface::ACCESS_DENIED, $this->vote($gestionnaire, $creneau, false, false, true));
     }
 
     public function testSansLaPermissionLesGroupesNeSuffisentPas(): void

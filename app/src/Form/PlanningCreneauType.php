@@ -26,7 +26,7 @@ class PlanningCreneauType extends AbstractType
         // Moniteur limité à ses groupes : seules ses aptitudes sont proposées, et au moins une est exigée
         $limitees = $options['aptitudes_autorisees'];
         // Moniteur : seule la présence de ses groupes est modifiable, le reste du créneau est en lecture seule
-        // Gestionnaire de salle (groupes_seuls) : toutes les aptitudes, mais le reste du créneau est en lecture seule
+        // Gestionnaire de lieux d'activité (groupes_seuls) : toutes les aptitudes, mais le reste du créneau est en lecture seule
         $lecture = null === $limitees && !$options['groupes_seuls'] ? [] : ['disabled' => true];
 
         $builder

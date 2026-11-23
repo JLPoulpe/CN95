@@ -173,4 +173,42 @@ class FicheSecuriteBuilderTest extends TestCase
         $this->assertSame($moniteur, $palanquee->getChef());
         $this->assertFalse($fiche->getPalanquees()->first()->contient($moniteur));
     }
+
+    public function testMoniteurExterieurPeutEtreChefDePalanquee(): void
+    {
+        $builder = new FicheSecuriteBuilder();
+        $fiche = $builder->generer($this->invitation);
+        $palanquee = $fiche->ajouterPalanquee();
+        $adherent = $this->inscrire(false);
+
+        $this->assertSame([1, 2, 3], $builder->restants($fiche)['exterieurs']);
+
+        $palanquee->ajouter($adherent)->ajouterExterieur(2);
+        $palanquee->ajouterExterieur(2);
+
+        $this->assertCount(2, $palanquee->getMembres(), 'Une étiquette ne se place qu\'une fois par palanquée.');
+        $this->assertSame('Moniteur extérieur 2', $palanquee->getChefMembre()->getLibelle());
+        $this->assertNull($palanquee->getChef());
+        $this->assertSame([], $palanquee->getAvertissements(), 'Le moniteur extérieur compte comme chef de palanquée.');
+        $this->assertSame([1, 3], $builder->restants($fiche)['exterieurs']);
+
+        $builder->synchroniser($fiche);
+        $this->assertTrue($fiche->estExterieurPlace(2), 'La synchronisation ne retire pas les moniteurs extérieurs.');
+    }
+
+    public function testDeplacerUnMoniteurExterieurLeRetireDeSaPalanqueeActuelle(): void
+    {
+        $fiche = (new FicheSecuriteBuilder())->generer($this->invitation);
+        $p1 = $fiche->ajouterPalanquee()->ajouterExterieur(1);
+        $p2 = $fiche->ajouterPalanquee();
+
+        $fiche->retirerExterieur(1);
+        $p2->ajouterExterieur(1);
+
+        $this->assertFalse($p1->contientExterieur(1));
+        $this->assertTrue($p2->contientExterieur(1));
+
+        $fiche->retirerExterieur(1);
+        $this->assertFalse($fiche->estExterieurPlace(1));
+    }
 }

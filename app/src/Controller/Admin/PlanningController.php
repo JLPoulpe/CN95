@@ -13,7 +13,6 @@ use App\Form\PlanningCreneauType;
 use App\Form\PlanningDuplicationType;
 use App\Form\PlanningSemaineType;
 use App\Repository\ActiviteRepository;
-use App\Mail\AbsenceMailer;
 use App\Repository\PlanningCreneauRepository;
 use App\Repository\PlanningSemaineRepository;
 use App\Repository\UserRepository;
@@ -160,7 +159,7 @@ class PlanningController extends AbstractController
     public function creneauEdit(PlanningCreneau $creneau, Request $request, EntityManagerInterface $em): Response
     {
         $this->denyAccessUnlessGranted(PlanningCreneauVoter::CHANGER_GROUPE, $creneau);
-        // Gestionnaire de salle sur un créneau en salle (sans pouvoir le gérer autrement) : toutes les aptitudes, reste en lecture seule
+        // Gestionnaire de lieux d'activité (sans pouvoir gérer le créneau autrement) : toutes les aptitudes, reste en lecture seule
         $groupesSeuls = !$this->isGranted(PlanningCreneauVoter::GERER, $creneau);
         $autorisees = $groupesSeuls ? null : $this->aptitudesAutorisees();
         // Aptitudes des autres groupes : non modifiables par un moniteur, conservées à l'enregistrement
@@ -183,7 +182,7 @@ class PlanningController extends AbstractController
 
     /** Déclare ou annule l'absence d'un moniteur attendu sur un créneau : lui-même, ou le bureau (configuration des activités). */
     #[Route('/creneau/{id}/absence/{moniteur}', name: 'admin_planning_creneau_absence', requirements: ['id' => '\\d+', 'moniteur' => '\\d+'], methods: ['POST'])]
-    public function creneauAbsence(PlanningCreneau $creneau, #[MapEntity(id: 'moniteur')] User $moniteur, Request $request, EntityManagerInterface $em, UserRepository $users, AbsenceMailer $mailer): Response
+    public function creneauAbsence(PlanningCreneau $creneau, #[MapEntity(id: 'moniteur')] User $moniteur, Request $request, EntityManagerInterface $em, UserRepository $users): Response
     {
         $retour = $this->redirectToRoute('admin_planning_edit', ['id' => $creneau->getSemaine()->getId()]);
         if (!$this->isCsrfTokenValid('absence_'.$creneau->getId().'_'.$moniteur->getId(), $request->request->getString('_token'))) {
@@ -206,11 +205,7 @@ class PlanningController extends AbstractController
             $this->addFlash('success', sprintf('Absence de %s annulée.', $moniteur->getNomComplet()));
         } else {
             $em->persist(new AbsenceMoniteur($creneau, $moniteur, $moi instanceof User ? $moi : null));
-            $em->flush();
-            $mailer->absenceDeclaree($creneau, $moniteur, $users->findAttendus($creneau), $users->findBureau());
-            $this->addFlash('success', sprintf('Absence de %s enregistrée : moniteurs du groupe et bureau prévenus, le créneau est signalé comme ayant besoin d\'aide.', $moniteur->getNomComplet()));
-
-            return $retour;
+            $this->addFlash('success', sprintf('Absence de %s enregistrée : le créneau est signalé comme ayant besoin d\'aide.', $moniteur->getNomComplet()));
         }
         $em->flush();
 

@@ -12,7 +12,7 @@ class Role
     public const ADHERENT = 'ADHERENT';
     public const MONITEUR = 'MONITEUR';
     public const BUREAU = 'BUREAU';
-    public const GESTIONNAIRE_SALLE = 'GESTIONNAIRE_SALLE';
+    public const GESTIONNAIRE_LIEUX = 'GESTIONNAIRE_LIEUX';
     public const ADMIN = 'ADMIN';
 
     #[ORM\Id]

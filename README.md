@@ -70,13 +70,13 @@ make cache-clear TARGET=prod # Supprime le cache distant de deploy/targets/prod.
 
 ## 👥 Rôles et droits
 
-Cinq rôles (table `role`, créés par `app:seed` ; `GESTIONNAIRE_SALLE` est aussi créé par la migration `Version20261116110000`). ADMIN hérite de tous les autres (`role_hierarchy` dans `security.yaml`).
+Cinq rôles (table `role`, créés par `app:seed` ; `GESTIONNAIRE_LIEUX` est aussi créé par la migration `Version20261116110000` (sous son ancien code `GESTIONNAIRE_SALLE`, renommé par `Version20261123100000`)). ADMIN hérite de tous les autres (`role_hierarchy` dans `security.yaml`).
 
 | Rôle | Description |
 |---|---|
 | `ADHERENT` | Membre du club. Aucun accès à l'espace administrateur. |
 | `MONITEUR` | Moniteur. Peut être désigné responsable d'une invitation. |
-| `GESTIONNAIRE_SALLE` | Gestionnaire de salle. Change le groupe (aptitudes) des créneaux qui se déroulent en salle, même sans les encadrer. |
+| `GESTIONNAIRE_LIEUX` | Gestionnaire de lieux d'activité. Change le groupe (aptitudes) des créneaux de tous les lieux d'activité, même sans les encadrer. |
 | `BUREAU` | Membre du bureau. Gère les invitations, la communication et la configuration des activités. |
 | `ADMIN` | Administrateur. Accès à tout, y compris la configuration de l'outil. |
 
@@ -89,11 +89,11 @@ Les droits fonctionnels sont enregistrés en base (table `role_permission`) et s
 | Communication → Communication générale, Réseaux sociaux | `PERM_COMMUNICATION` | BUREAU |
 | Configuration des activités (aptitudes, activités, activités externes, lieux d'activité, planning) | `PERM_CONFIG_ACTIVITES` | BUREAU |
 | Planning → modifier les créneaux de ses groupes | `PERM_PLANNING_GROUPES` | MONITEUR |
-| Planning → changer le groupe des créneaux en salle | `PERM_GESTION_SALLES` | GESTIONNAIRE_SALLE |
+| Planning → changer le groupe des créneaux | `PERM_GESTION_LIEUX` | GESTIONNAIRE_LIEUX |
 | Gestion des utilisateurs (liste, ajout) | `PERM_UTILISATEURS` | aucun (ADMIN seul) |
 | Configuration de l'outil (configuration des mails, permissions) | `PERM_CONFIG_OUTIL` | aucun (ADMIN seul) |
 
-L'accès à `/admin/planning` est ouvert par `PERM_CONFIG_ACTIVITES`, `PERM_PLANNING_GROUPES` **ou** `PERM_GESTION_SALLES`.
+L'accès à `/admin/planning` est ouvert par `PERM_CONFIG_ACTIVITES`, `PERM_PLANNING_GROUPES` **ou** `PERM_GESTION_LIEUX`.
 
 L'accès à `/admin/invitations` est ouvert par `PERM_INVITATIONS` **ou** `PERM_ACTIVITES_EXTERNES` (`security.yaml`) : avec la configuration par défaut, un MONITEUR y accède donc via « Activités externes ».
 
@@ -107,13 +107,17 @@ Les sections vides pour un utilisateur ne sont pas affichées ; la première sec
 - Le bouton « Envoyer un mail test » envoie une copie du mail à une adresse de son choix, avec le commentaire et la date saisis, sans rien enregistrer.
 - Toutes les actions (fiche, inscrits, réponses, export, relance, annulation, suppression) vérifient le droit de gestion (`InvitationVoter`).
 
+- La **fiche de sécurité** (palanquées) propose, en plus des moniteurs inscrits, 3 étiquettes fixes « Moniteur extérieur 1/2/3 » (moniteurs sans compte) : glissées dans une palanquée, elles en deviennent le chef si aucun moniteur ne la précède (`PalanqueeMembre::exterieur`, `user_id` nul).
+
 ### Planning
 
 Le planning est organisé par **semaine** (`PlanningSemaine`, identifiée par son lundi) qui contient des **créneaux** (`PlanningCreneau` : jour, lieux, activités, précision, aptitudes). Un créneau appartient à une semaine précise : modifier son groupe ne touche que ce créneau.
 
 - **Configuration des activités** (`PERM_CONFIG_ACTIVITES`) : tout le planning (semaines, DP, fermeture, ajout/suppression de créneaux).
 - **Moniteurs** (`PERM_PLANNING_GROUPES`) : ne modifient que les aptitudes des créneaux de leurs groupes ; le reste du créneau est en lecture seule (`PlanningCreneauVoter::GERER`).
-- **Gestionnaire de salle** (`PERM_GESTION_SALLES`, rôle `GESTIONNAIRE_SALLE`) : un seul gestionnaire pour toutes les salles. Sur un créneau dont un lieu appartient au groupe « Salles » (`LieuActivite::GROUPE_SALLES`, `PlanningCreneau::estEnSalle()`), il change les aptitudes du créneau (toutes les aptitudes sont proposées), sans pouvoir le supprimer ni modifier le reste (`PlanningCreneauVoter::CHANGER_GROUPE`, option `groupes_seuls` du formulaire). Aucune notification des moniteurs déplacés.
+- **Gestionnaire de lieux d'activité** (`PERM_GESTION_LIEUX`, rôle `GESTIONNAIRE_LIEUX`) : sur n'importe quel créneau, il change les aptitudes (toutes les aptitudes sont proposées), sans pouvoir le supprimer ni modifier le reste (`PlanningCreneauVoter::CHANGER_GROUPE`, option `groupes_seuls` du formulaire). Aucune notification des moniteurs déplacés.
+
+- **Niveaux préparés** : le planning affiche, pour chaque groupe, le niveau préparé précédé de « P » (groupe N1 → `PPE40`, PE40 → `PN2`…), d'après la progression `App\Aptitude\NiveauPrepare` (`Aptitude::getCodePlanning()`). Seul l'affichage change : les filtres, les couleurs et les données restent sur le code de l'aptitude. La fosse (invitations, fiche de sécu) garde l'affichage « aptitude → préparée ».
 
 #### Absences de moniteurs
 
@@ -121,7 +125,7 @@ Un moniteur est **attendu** sur un créneau s'il encadre au moins un de ses grou
 
 - Sur la page d'une semaine, chaque créneau liste ses moniteurs attendus. Chacun peut cliquer sur « Je suis absent » ; le bureau (`PERM_CONFIG_ACTIVITES`) peut déclarer ou annuler l'absence de n'importe quel moniteur attendu (`POST /admin/planning/creneau/{id}/absence/{moniteur}`, entité `AbsenceMoniteur`).
 - Le créneau affiche « Besoin d'aide : x absent(s) sur y attendus ». Les autres moniteurs du groupe voient les créneaux à venir concernés dans la section « Besoin d'aide » de leur espace.
-- **Mail** (`AbsenceMailer`, gabarit `mail/absence_moniteur.html.twig`) à la déclaration uniquement : moniteurs attendus du créneau + membres du bureau (rôles `BUREAU` et `ADMIN`, comptes actifs avec adresse), **sans doublon** pour un membre qui cumule les deux, et **jamais à l'absent**. L'annulation n'envoie rien.
+- Aucun mail n'est envoyé lors d'une déclaration ou d'une annulation d'absence.
 
 ### Moniteur par groupe
 
@@ -152,7 +156,6 @@ Chaque mail est un fichier Twig de `app/templates/mail/`, enveloppé par la mise
 | Création de compte | `CompteMailer` | `compte/activation.html.twig` | Base + information RGPD + types de mails reçus + lien d'activation (valable 7 jours) | Création d'un utilisateur, renvoi du lien depuis sa fiche |
 | Invitation / relance | `FosseMailer` | `invitation.html.twig` | Base + phrase d'introduction + commentaire de l'invitation + 3 liens (je m'inscris, je ne participe pas, je ne peux plus participer) | Création d'une invitation ; bouton « Relancer » (objet « Rappel : ») |
 | Annulation | `FosseMailer` | `annulation.html.twig` | Base + activité et date | Annulation d'une invitation, aux membres ayant répondu |
-| Absence de moniteur | `AbsenceMailer` | `absence_moniteur.html.twig` | Base + moniteur absent, activité, date, lieux, groupes | Déclaration d'une absence sur un créneau, aux moniteurs du groupe et au bureau |
 | Désistement | `FosseMailer` | `desistement.html.twig` | Base + membre, activité et date | Un inscrit se désiste via son lien, envoyé au responsable (DP) |
 | Communication officielle | `CommunicationMailer` | `communication.html.twig` | Base + contenu saisi dans l'éditeur ; objet « CN95 Plongée – titre » | Envoi d'une communication |
 | Information RGPD | `RgpdMailer` | `rgpd/information*.html.twig` | Base + information + lien d'accusé de lecture | Commande `app:rgpd:envoyer-information` |
@@ -188,7 +191,7 @@ CN95/
 │   │   ├── Controller/          # Contrôleurs (routes & logique HTTP)
 │   │   │   └── Admin/           # Espace administrateur (/admin/...)
 │   │   ├── Form/                # Types de formulaires Symfony
-│   │   ├── Mail/                # Envoi et rendu des mails (MailSender, MailRenderer, FosseMailer, AbsenceMailer, CompteMailer, CommunicationMailer, RgpdMailer, plugins)
+│   │   ├── Mail/                # Envoi et rendu des mails (MailSender, MailRenderer, FosseMailer, CompteMailer, CommunicationMailer, RgpdMailer, plugins)
 │   │   ├── Security/            # Permission.php (liste des droits), PermissionProvider.php (droits en base) et Voter/ (PermissionVoter, InvitationVoter, PlanningCreneauVoter)
 │   │   ├── Repository/          # Requêtes personnalisées (Doctrine)
 │   │   ├── Command/             # Commandes console (app:seed)

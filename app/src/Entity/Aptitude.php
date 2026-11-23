@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Aptitude\NiveauPrepare;
 use App\Repository\AptitudeRepository;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -77,6 +78,12 @@ class Aptitude
         $this->visible = $visible;
 
         return $this;
+    }
+
+    /** Libellé du planning : niveau préparé précédé de « P » (N1 → PPE40). */
+    public function getCodePlanning(): string
+    {
+        return NiveauPrepare::libellePlanning((string) $this->code);
     }
 
     public function __toString(): string

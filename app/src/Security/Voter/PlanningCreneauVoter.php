@@ -14,7 +14,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  * Modification d'un créneau du planning : libre avec la permission « Configuration des activités » ;
  * sinon, avec la permission « Planning de ses groupes », uniquement si au moins une aptitude du créneau
  * fait partie des groupes que l'utilisateur encadre.
- * Avec la permission « Gestion des salles », les groupes de tout créneau en salle sont modifiables (CHANGER_GROUPE),
+ * Avec la permission « Gestion des lieux d'activité », les groupes de tout créneau sont modifiables (CHANGER_GROUPE),
  * sans pouvoir supprimer le créneau.
  *
  * @extends Voter<string, PlanningCreneau>
@@ -22,7 +22,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 class PlanningCreneauVoter extends Voter
 {
     public const GERER = 'PLANNING_CRENEAU_GERER';
-    /** Changer les groupes (aptitudes) d'un créneau : GERER, ou gestionnaire de salle sur un créneau en salle. */
+    /** Changer les groupes (aptitudes) d'un créneau : GERER, ou gestionnaire de lieux d'activité. */
     public const CHANGER_GROUPE = 'PLANNING_CRENEAU_CHANGER_GROUPE';
 
     public function __construct(private readonly AuthorizationCheckerInterface $checker)
@@ -43,7 +43,7 @@ class PlanningCreneauVoter extends Voter
         if ($this->checker->isGranted(Permission::CONFIG_ACTIVITES)) {
             return true;
         }
-        if (self::CHANGER_GROUPE === $attribute && $subject->estEnSalle() && $this->checker->isGranted(Permission::GESTION_SALLES)) {
+        if (self::CHANGER_GROUPE === $attribute && $this->checker->isGranted(Permission::GESTION_LIEUX)) {
             return true;
         }
 

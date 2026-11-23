@@ -69,17 +69,22 @@ class FicheSecuriteBuilder
         $inscrits = $this->inscrits($fiche->getInvitation());
         foreach ($fiche->getPalanquees() as $palanquee) {
             foreach ($palanquee->getMembres()->toArray() as $membre) {
-                if (!in_array($membre->getUser(), $inscrits, true)) {
+                if (null !== $membre->getUser() && !in_array($membre->getUser(), $inscrits, true)) {
                     $palanquee->retirer($membre->getUser());
                 }
             }
         }
     }
 
-    /** @return array{moniteurs: list<User>, adherents: list<User>} Inscrits pas encore placés, par rôle */
+    /** @return array{moniteurs: list<User>, adherents: list<User>, exterieurs: list<int>} Inscrits pas encore placés, par rôle, et numéros des étiquettes « Moniteur extérieur » libres */
     public function restants(FicheSecurite $fiche): array
     {
-        $restants = ['moniteurs' => [], 'adherents' => []];
+        $restants = ['moniteurs' => [], 'adherents' => [], 'exterieurs' => []];
+        foreach (range(1, Palanquee::EXTERIEURS) as $numero) {
+            if (!$fiche->estExterieurPlace($numero)) {
+                $restants['exterieurs'][] = $numero;
+            }
+        }
         foreach ($this->inscrits($fiche->getInvitation()) as $user) {
             if (!$fiche->estPlace($user)) {
                 $restants[$user->hasRole(Role::MONITEUR) ? 'moniteurs' : 'adherents'][] = $user;

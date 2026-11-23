@@ -138,21 +138,4 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
 
         return array_values(array_filter($moniteurs ?? $this->findMoniteurs(), static fn (User $m) => $m->encadreUneAptitudeDe($creneau)));
     }
-
-    /**
-     * Comptes actifs avec une adresse mail, membres du bureau. L'administrateur en fait partie
-     * (il hérite du rôle bureau dans la hiérarchie de sécurité).
-     *
-     * @return list<User>
-     */
-    public function findBureau(): array
-    {
-        return $this->createQueryBuilder('u')
-            ->join('u.userRoles', 'r')
-            ->where('r.code IN (:codes)')->setParameter('codes', [Role::BUREAU, Role::ADMIN])
-            ->andWhere('u.activationTokenHash IS NULL')
-            ->andWhere("u.email IS NOT NULL AND u.email <> ''")
-            ->distinct()
-            ->getQuery()->getResult();
-    }
 }

@@ -12,6 +12,8 @@ use Doctrine\ORM\Mapping as ORM;
 class Palanquee
 {
     public const TAILLE = 5;
+    /** Nombre d'étiquettes « Moniteur extérieur » disponibles par fiche (moniteurs sans compte pouvant être chef de palanquée). */
+    public const EXTERIEURS = 3;
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -74,6 +76,36 @@ class Palanquee
         return $this;
     }
 
+    public function ajouterExterieur(int $numero): static
+    {
+        if (!$this->contientExterieur($numero)) {
+            $this->membres->add(new PalanqueeMembre($this, null, $this->membres->count(), $numero));
+        }
+
+        return $this;
+    }
+
+    public function retirerExterieur(int $numero): void
+    {
+        foreach ($this->membres as $membre) {
+            if ($membre->getExterieur() === $numero) {
+                $this->membres->removeElement($membre);
+            }
+        }
+        $this->renumeroter();
+    }
+
+    public function contientExterieur(int $numero): bool
+    {
+        foreach ($this->membres as $membre) {
+            if ($membre->getExterieur() === $numero) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function retirer(User $user): void
     {
         foreach ($this->membres as $membre) {
@@ -81,6 +113,11 @@ class Palanquee
                 $this->membres->removeElement($membre);
             }
         }
+        $this->renumeroter();
+    }
+
+    private function renumeroter(): void
+    {
         foreach (array_values($this->membres->toArray()) as $index => $membre) {
             $membre->setPosition($index);
         }
@@ -97,24 +134,30 @@ class Palanquee
         return false;
     }
 
-    /** Chef de palanquée : le premier moniteur de la palanquée. */
-    public function getChef(): ?User
+    /** Chef de palanquée : le premier moniteur de la palanquée, utilisateur ou moniteur extérieur. */
+    public function getChefMembre(): ?PalanqueeMembre
     {
         foreach ($this->membres as $membre) {
-            if ($membre->getUser()->hasRole(Role::MONITEUR)) {
-                return $membre->getUser();
+            if ($membre->estMoniteur()) {
+                return $membre;
             }
         }
 
         return null;
     }
 
+    /** Chef de palanquée lorsqu'il s'agit d'un utilisateur (nul pour un moniteur extérieur ou sans moniteur). */
+    public function getChef(): ?User
+    {
+        return $this->getChefMembre()?->getUser();
+    }
+
     /** @return list<PalanqueeMembre> Chef d'abord, puis les autres membres dans l'ordre */
     public function getMembresOrdonnes(): array
     {
-        $chef = $this->getChef();
+        $chef = $this->getChefMembre();
         $membres = $this->membres->toArray();
-        usort($membres, fn (PalanqueeMembre $a, PalanqueeMembre $b) => [$a->getUser() === $chef ? 0 : 1, $a->getPosition()] <=> [$b->getUser() === $chef ? 0 : 1, $b->getPosition()]);
+        usort($membres, fn (PalanqueeMembre $a, PalanqueeMembre $b) => [$a === $chef ? 0 : 1, $a->getPosition()] <=> [$b === $chef ? 0 : 1, $b->getPosition()]);
 
         return $membres;
     }
@@ -123,7 +166,7 @@ class Palanquee
     public function getAvertissements(): array
     {
         $avertissements = [];
-        if ($this->membres->count() > 0 && null === $this->getChef()) {
+        if ($this->membres->count() > 0 && null === $this->getChefMembre()) {
             $avertissements[] = 'Aucun moniteur dans cette palanquée.';
         }
         if ($this->membres->count() > self::TAILLE) {

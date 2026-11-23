@@ -8,6 +8,13 @@
     </li>
 {% endmacro %}
 
+{% macro exterieur(numero) %}
+    <li class="fiche-personne" draggable="true" data-exterieur="{{ numero }}" data-action="dragstart->fiche-securite#debut dragend->fiche-securite#fin">
+        <span class="fiche-personne-nom">Moniteur extérieur {{ numero }}</span>
+        <span class="fiche-personne-info">Sans compte, peut être chef de palanquée</span>
+    </li>
+{% endmacro %}
+
 {% block body %}
 <div class="container"
      data-controller="fiche-securite"
@@ -18,7 +25,7 @@
 
     <p class="hint">
         {{ nb_inscrits }} inscrit(s) en liste principale · {{ fiche.palanquees|length }} palanquée(s).
-        Une palanquée compte 5 personnes : un moniteur (chef de palanquée) et 4 accompagnants.
+        Une palanquée compte 5 personnes : un moniteur (chef de palanquée) et 4 accompagnants. Les étiquettes « Moniteur extérieur » (sans compte) peuvent aussi être chefs de palanquée.
         Glissez-déposez une personne pour la changer de palanquée ; les modifications sont enregistrées automatiquement.
     </p>
     <div class="actions-bar">
@@ -49,13 +56,15 @@
                     {% for message in palanquee.avertissements %}<p class="fiche-avertissement">⚠ {{ message }}</p>{% endfor %}
                     <ul class="fiche-liste">
                         {% for membre in palanquee.membresOrdonnes %}
-                            <li class="fiche-personne{% if membre.user is same as palanquee.chef %} fiche-chef{% endif %}" draggable="true" data-user-id="{{ membre.user.id }}"
+                            {% set estChef = membre is same as palanquee.chefMembre %}
+                            <li class="fiche-personne{% if estChef %} fiche-chef{% endif %}" draggable="true"
+                                {% if membre.exterieur %}data-exterieur="{{ membre.exterieur }}"{% else %}data-user-id="{{ membre.user.id }}"{% endif %}
                                 data-action="dragstart->fiche-securite#debut dragend->fiche-securite#fin">
                                 <span class="fiche-personne-nom">
-                                    {% if membre.user is same as palanquee.chef %}<span class="badge badge-yellow">Chef</span>{% endif %}
-                                    {{ membre.user.prenom }} {{ membre.user.nom }}
+                                    {% if estChef %}<span class="badge badge-yellow">Chef</span>{% endif %}
+                                    {{ membre.libelle }}
                                 </span>
-                                <span class="fiche-personne-info">{{ membre.user.aptitude }}{% if membre.user.aptitudePreparee %} → {{ membre.user.aptitudePreparee }}{% endif %}{% if membre.user.estMineur(invitation.date) %} · mineur{% endif %}</span>
+                                {% if membre.user %}<span class="fiche-personne-info">{{ membre.user.aptitude }}{% if membre.user.aptitudePreparee %} → {{ membre.user.aptitudePreparee }}{% endif %}{% if membre.user.estMineur(invitation.date) %} · mineur{% endif %}</span>{% endif %}
                             </li>
                         {% else %}
                             <li class="fiche-vide">Déposez ici une personne.</li>
@@ -72,7 +81,9 @@
                      data-action="dragover->fiche-securite#survol dragleave->fiche-securite#sortie drop->fiche-securite#depot">
                 <h2 class="card-titre">Moniteurs restants ({{ restants.moniteurs|length }})</h2>
                 <ul class="fiche-liste">
-                    {% for user in restants.moniteurs %}{{ _self.personne(user, invitation) }}{% else %}<li class="fiche-vide">Aucun moniteur restant.</li>{% endfor %}
+                    {% for user in restants.moniteurs %}{{ _self.personne(user, invitation) }}{% endfor %}
+                    {% for numero in restants.exterieurs %}{{ _self.exterieur(numero) }}{% endfor %}
+                    {% if not restants.moniteurs and not restants.exterieurs %}<li class="fiche-vide">Aucun moniteur restant.</li>{% endif %}
                 </ul>
             </section>
             <section class="card fiche-restants" data-fiche-securite-target="zone" data-palanquee-id=""

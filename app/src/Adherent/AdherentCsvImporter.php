@@ -2,6 +2,7 @@
 
 namespace App\Adherent;
 
+use App\Aptitude\NiveauPrepare;
 use App\Entity\Role;
 use App\Entity\User;
 use App\Repository\AptitudeRepository;
@@ -32,19 +33,7 @@ class AdherentCsvImporter
      * le compte créé reçoit cette aptitude et, en aptitude préparée, la suivante de cette liste.
      * Un code absent de la liste n'a pas de préparée (champ laissé vide).
      */
-    public const APTITUDE_PREPAREE = [
-        'PN1' => 'N1',
-        'N1' => 'PE40',
-        'PE40' => 'N2',
-        'N2' => 'PE60',
-        'PE60' => 'N3',
-        'N3' => 'N4',
-        'N4' => 'N5',
-        'E1' => 'E2',
-        'E2' => 'E3',
-        'E3' => 'E4',
-        'MF1' => 'MF2',
-    ];
+    public const APTITUDE_PREPAREE = NiveauPrepare::SUIVANT;
 
     public function __construct(
         private EntityManagerInterface $em,

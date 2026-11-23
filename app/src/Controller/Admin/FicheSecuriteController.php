@@ -4,6 +4,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\FicheSecurite;
 use App\Entity\InvitationFosse;
+use App\Entity\Palanquee;
 use App\Entity\User;
 use App\Fosse\FicheSecuriteBuilder;
 use App\Repository\FicheSecuriteRepository;
@@ -82,13 +83,17 @@ class FicheSecuriteController extends AbstractController
         }
 
         $fiche = $fiches->findOneByInvitation($invitation) ?? throw $this->createNotFoundException();
+        $exterieur = $charge->getInt('exterieur');
+        if ($charge->has('exterieur') && ($exterieur < 1 || $exterieur > Palanquee::EXTERIEURS)) {
+            return new JsonResponse(['ok' => false, 'message' => 'Moniteur extérieur inconnu.'], Response::HTTP_BAD_REQUEST);
+        }
         $user = null;
         foreach ($builder->inscrits($invitation) as $inscrit) {
             if ($inscrit->getId() === $charge->getInt('userId')) {
                 $user = $inscrit;
             }
         }
-        if (!$user instanceof User) {
+        if ($exterieur < 1 && !$user instanceof User) {
             return new JsonResponse(['ok' => false, 'message' => 'Cette personne n\'est pas inscrite en liste principale.'], Response::HTTP_BAD_REQUEST);
         }
 
@@ -100,8 +105,13 @@ class FicheSecuriteController extends AbstractController
             }
         }
 
-        $fiche->retirer($user);
-        $cible?->ajouter($user);
+        if ($exterieur >= 1) {
+            $fiche->retirerExterieur($exterieur);
+            $cible?->ajouterExterieur($exterieur);
+        } else {
+            $fiche->retirer($user);
+            $cible?->ajouter($user);
+        }
         $em->flush();
 
         return new JsonResponse(['ok' => true]);

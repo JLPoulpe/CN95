@@ -7,7 +7,9 @@ export default class extends Controller {
     static values = { url: String, token: String };
 
     debut(event) {
-        event.dataTransfer.setData('text/plain', event.currentTarget.dataset.userId);
+        // Une personne est identifiée par son id, un moniteur extérieur (sans compte) par « ext:numéro »
+        const { userId, exterieur } = event.currentTarget.dataset;
+        event.dataTransfer.setData('text/plain', exterieur ? `ext:${exterieur}` : userId);
         event.dataTransfer.effectAllowed = 'move';
         event.currentTarget.classList.add('is-dragging');
     }
@@ -34,16 +36,17 @@ export default class extends Controller {
         event.preventDefault();
         const zone = event.currentTarget;
         zone.classList.remove('is-over');
-        const userId = event.dataTransfer.getData('text/plain');
-        if (!userId) {
+        const donnee = event.dataTransfer.getData('text/plain');
+        if (!donnee) {
             return;
         }
+        const personne = donnee.startsWith('ext:') ? { exterieur: Number(donnee.slice(4)) } : { userId: Number(donnee) };
 
         try {
             const reponse = await fetch(this.urlValue, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify({ userId: Number(userId), palanqueeId: zone.dataset.palanqueeId || null, _token: this.tokenValue }),
+                body: JSON.stringify({ ...personne, palanqueeId: zone.dataset.palanqueeId || null, _token: this.tokenValue }),
             });
             const donnees = await reponse.json();
             if (!reponse.ok || !donnees.ok) {

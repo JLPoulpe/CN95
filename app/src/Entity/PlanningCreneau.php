@@ -185,12 +185,6 @@ class PlanningCreneau
         return array_map('strval', array_keys($groupes));
     }
 
-    /** Le créneau se déroule (aussi) dans une salle. */
-    public function estEnSalle(): bool
-    {
-        return [] !== $this->getLieuxDuGroupe(LieuActivite::GROUPE_SALLES);
-    }
-
     /** @return list<LieuActivite> */
     public function getLieuxDuGroupe(string $groupe): array
     {

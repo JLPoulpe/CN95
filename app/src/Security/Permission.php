@@ -18,7 +18,7 @@ final class Permission
     public const CONFIG_ACTIVITES = 'PERM_CONFIG_ACTIVITES';
     public const PLANNING_GROUPES = 'PERM_PLANNING_GROUPES';
     public const CONFIG_OUTIL = 'PERM_CONFIG_OUTIL';
-    public const GESTION_SALLES = 'PERM_GESTION_SALLES';
+    public const GESTION_LIEUX = 'PERM_GESTION_LIEUX';
 
     /** Libellé affiché dans l'écran des permissions. */
     public const LIBELLES = [
@@ -29,7 +29,7 @@ final class Permission
         self::CONFIG_ACTIVITES => 'Configuration des activités',
         self::PLANNING_GROUPES => 'Planning de ses groupes (créneaux des aptitudes encadrées)',
         self::CONFIG_OUTIL => 'Configuration de l\'outil',
-        self::GESTION_SALLES => 'Gestion des salles (groupe des créneaux en salle, même sans les encadrer)',
+        self::GESTION_LIEUX => 'Gestion des lieux d\'activité (groupe des créneaux, même sans les encadrer)',
     ];
 
     /** Configuration initiale : codes de rôles (hors ADMIN) accordant chaque permission. */
@@ -41,7 +41,7 @@ final class Permission
         self::CONFIG_ACTIVITES => [Role::BUREAU],
         self::PLANNING_GROUPES => [Role::MONITEUR],
         self::CONFIG_OUTIL => [],
-        self::GESTION_SALLES => [Role::GESTIONNAIRE_SALLE],
+        self::GESTION_LIEUX => [Role::GESTIONNAIRE_LIEUX],
     ];
 
     /** @return list<string> */

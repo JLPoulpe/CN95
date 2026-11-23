@@ -30,14 +30,14 @@
     {% set ouvrir = false %}
     {% endif %}
 
-    {% if is_granted('PERM_ACTIVITES_EXTERNES') or is_granted('PERM_COMMUNICATION') or ((is_granted('PERM_PLANNING_GROUPES') or is_granted('PERM_GESTION_SALLES')) and not is_granted('PERM_CONFIG_ACTIVITES')) %}
+    {% if is_granted('PERM_ACTIVITES_EXTERNES') or is_granted('PERM_COMMUNICATION') or ((is_granted('PERM_PLANNING_GROUPES') or is_granted('PERM_GESTION_LIEUX')) and not is_granted('PERM_CONFIG_ACTIVITES')) %}
     <details class="section"{{ ouvrir ? ' open' : '' }}>
         <summary class="section-title">Communication</summary>
         {% if is_granted('PERM_ACTIVITES_EXTERNES') %}
             {{ m.item('📋', 'Activités externes', 'Consulter et gérer les invitations par activité', path('admin_invitation_index_defaut')) }}
         {% endif %}
-        {% if (is_granted('PERM_PLANNING_GROUPES') or is_granted('PERM_GESTION_SALLES')) and not is_granted('PERM_CONFIG_ACTIVITES') %}
-            {{ m.item('📅', 'Gestion du planning', is_granted('PERM_PLANNING_GROUPES') ? 'Modifier les créneaux de vos groupes' : 'Modifier le groupe des créneaux en salle', path('admin_planning_index')) }}
+        {% if (is_granted('PERM_PLANNING_GROUPES') or is_granted('PERM_GESTION_LIEUX')) and not is_granted('PERM_CONFIG_ACTIVITES') %}
+            {{ m.item('📅', 'Gestion du planning', is_granted('PERM_PLANNING_GROUPES') ? 'Modifier les créneaux de vos groupes' : 'Modifier le groupe des créneaux', path('admin_planning_index')) }}
         {% endif %}
         {% if is_granted('PERM_COMMUNICATION') %}
             {{ m.item('💬', 'Communication générale', 'Envoyer des communications générales', path('admin_communication_index')) }}

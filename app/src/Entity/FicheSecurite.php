@@ -90,6 +90,25 @@ class FicheSecurite
         }
     }
 
+    /** Retire une étiquette « Moniteur extérieur » de la palanquée où elle se trouve, le cas échéant. */
+    public function retirerExterieur(int $numero): void
+    {
+        foreach ($this->palanquees as $palanquee) {
+            $palanquee->retirerExterieur($numero);
+        }
+    }
+
+    public function estExterieurPlace(int $numero): bool
+    {
+        foreach ($this->palanquees as $palanquee) {
+            if ($palanquee->contientExterieur($numero)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function estPlace(User $user): bool
     {
         foreach ($this->palanquees as $palanquee) {
