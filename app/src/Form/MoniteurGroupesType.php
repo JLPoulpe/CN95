@@ -18,6 +18,7 @@ class MoniteurGroupesType extends AbstractType
         $builder->add('aptitudesEncadrees', EntityType::class, [
             'class' => Aptitude::class,
             'query_builder' => fn (AptitudeRepository $r) => $r->createQueryBuilder('a')->orderBy('a.ordre'),
+            'choice_label' => fn (Aptitude $a) => $a->getCodePlanning(),
             'label' => 'Aptitudes à préparer',
             'multiple' => true,
             'expanded' => true,

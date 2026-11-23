@@ -13,7 +13,7 @@
         {% for g in groupes %}
             <div class="groupe" data-groupe-id="{{ g.aptitude.id }}"
                  data-action="dragover->moniteur-groupes#survol dragleave->moniteur-groupes#quitte drop->moniteur-groupes#depotGroupe">
-                <div class="groupe-titre">{{ g.aptitude.code }}</div>
+                <div class="groupe-titre">{{ g.aptitude.codePlanning }}</div>
                 {% if g.moniteurs %}
                     <ul>{% for m in g.moniteurs %}<li draggable="true" data-moniteur-id="{{ m.id }}" data-source-id="{{ g.aptitude.id }}" data-action="dragstart->moniteur-groupes#debut dragend->moniteur-groupes#fin">{{ m.nomComplet|title }}</li>{% endfor %}</ul>
                 {% else %}
@@ -31,7 +31,7 @@
                 <tr draggable="true" data-moniteur-id="{{ m.id }}" data-action="dragstart->moniteur-groupes#debut dragend->moniteur-groupes#fin">
                     <td><strong>{{ m.nom }}</strong></td>
                     <td>{{ m.prenom }}</td>
-                    <td>{% for a in m.aptitudesEncadrees %}<span class="badge">{{ a }}</span> {% endfor %}</td>
+                    <td>{% for a in m.aptitudesEncadrees %}<span class="badge">{{ a.codePlanning }}</span> {% endfor %}</td>
                     <td><a class="btn btn-sm btn-secondary" href="{{ path('admin_moniteur_edit', {id: m.id}) }}">Éditer</a></td>
                 </tr>
             {% else %}

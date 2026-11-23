@@ -129,7 +129,7 @@ Un moniteur est **attendu** sur un créneau s'il encadre au moins un de ses grou
 
 ### Moniteur par groupe
 
-La page **Utilisateurs → Moniteurs** (`/admin/users/moniteurs`) affiche une carte par groupe (aptitude). Glisser-déposer (Stimulus `moniteur_groupes_controller.js`, route `POST /admin/users/moniteurs/groupes`) :
+La page **Utilisateurs → Moniteurs** (`/admin/users/moniteurs`) affiche une carte par groupe (aptitude). Les groupes sont nommés comme au planning (niveau préparé précédé de « P » : groupe N1 → `PPE40`), y compris dans le tableau et le formulaire « Éditer ». Glisser-déposer (Stimulus `moniteur_groupes_controller.js`, route `POST /admin/users/moniteurs/groupes`) :
 
 - tableau → groupe : ajoute le moniteur au groupe ;
 - groupe → autre groupe : le déplace ;
