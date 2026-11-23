@@ -31,6 +31,7 @@
         Glissez-déposez une personne pour la changer de palanquée ; les modifications sont enregistrées automatiquement.
     </p>
     <div class="actions-bar">
+        <a class="btn" href="{{ path('admin_fiche_securite_pdf', {id: invitation.id}) }}" target="_blank" rel="noopener">Ouvrir la fiche PDF</a>
         <form method="post" action="{{ path('admin_fiche_securite_ajouter', {id: invitation.id}) }}">
             <input type="hidden" name="_token" value="{{ csrf_token('fiche_securite_' ~ invitation.id) }}">
             <button class="btn" type="submit">Ajouter une palanquée</button>

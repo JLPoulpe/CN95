@@ -7,6 +7,7 @@ use App\Entity\InvitationFosse;
 use App\Entity\Palanquee;
 use App\Entity\User;
 use App\Fosse\FicheSecuriteBuilder;
+use App\Fosse\FicheSecuritePdf;
 use App\Repository\FicheSecuriteRepository;
 use App\Security\Voter\FicheSecuriteVoter;
 use Doctrine\ORM\EntityManagerInterface;
@@ -14,6 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 
 /** Fiche de sécurité (palanquées) d'une invitation : réservée au DP de l'invitation et aux administrateurs. */
@@ -40,6 +42,22 @@ class FicheSecuriteController extends AbstractController
             'groupes_ajout' => $builder->restantsParAptitude($fiche),
             'nb_inscrits' => count($builder->inscrits($invitation)),
         ]);
+    }
+
+    /** Fiche de sécurité club (formulaire UCPA) pré-remplie, au format PDF. */
+    #[Route('/pdf', name: 'admin_fiche_securite_pdf', methods: ['GET'])]
+    public function pdf(InvitationFosse $invitation, FicheSecuriteRepository $fiches, FicheSecuritePdf $pdf): Response
+    {
+        $this->denyAccessUnlessGranted(FicheSecuriteVoter::OUVRIR, $invitation);
+        $fiche = $fiches->findOneByInvitation($invitation) ?? throw $this->createNotFoundException();
+
+        $reponse = new Response($pdf->generer($fiche), Response::HTTP_OK, ['Content-Type' => 'application/pdf']);
+        $reponse->headers->set('Content-Disposition', $reponse->headers->makeDisposition(
+            ResponseHeaderBag::DISPOSITION_INLINE,
+            sprintf('fiche-securite-%s.pdf', $invitation->getDate()->format('Y-m-d')),
+        ));
+
+        return $reponse;
     }
 
     #[Route('/palanquees', name: 'admin_fiche_securite_ajouter', methods: ['POST'])]
