@@ -211,4 +211,20 @@ class FicheSecuriteBuilderTest extends TestCase
         $fiche->retirerExterieur(1);
         $this->assertFalse($fiche->estExterieurPlace(1));
     }
+
+    public function testRestantsRegroupesParAptitudeDansLOrdreDesAptitudes(): void
+    {
+        $n2 = $this->aptitude('N2')->setOrdre(2);
+        $n1 = $this->aptitude('N1')->setOrdre(1);
+        $this->inscrire(false)->setAptitude($n2);
+        $this->inscrire(false)->setAptitude($n1);
+        $this->inscrire(false)->setAptitude($n2);
+
+        $builder = new FicheSecuriteBuilder();
+        $groupes = $builder->restantsParAptitude($builder->generer($this->invitation));
+
+        $this->assertSame(['N1', 'N2', 'Moniteurs extérieurs'], array_column($groupes, 'libelle'));
+        $this->assertCount(2, $groupes[1]['users']);
+        $this->assertSame([1, 2, 3], $groupes[2]['exterieurs']);
+    }
 }

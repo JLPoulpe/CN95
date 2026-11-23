@@ -40,13 +40,60 @@ export default class extends Controller {
         if (!donnee) {
             return;
         }
+        await this.deplacer(donnee, zone.dataset.palanqueeId || null);
+    }
+
+    // Liste déroulante d'une palanquée : la sélection ajoute aussitôt la personne
+    async ajouter(event) {
+        const select = event.currentTarget;
+        const donnee = select.value;
+        if (!donnee) {
+            return;
+        }
+        await this.deplacer(donnee, select.closest('[data-palanquee-id]').dataset.palanqueeId);
+    }
+
+    // Bouton ✕ : la personne retourne aux restants
+    async retirer(event) {
+        event.preventDefault();
+        const li = event.currentTarget.closest('li');
+        const { userId, exterieur } = li.dataset;
+        await this.deplacer(exterieur ? `ext:${exterieur}` : userId, null);
+    }
+
+    // Paramètres de plongée : enregistrés à chaque modification, sans recharger le plateau (le focus est conservé)
+    async parametres(event) {
+        const bloc = event.currentTarget.closest('.fiche-params');
+        const champs = {};
+        bloc.querySelectorAll('input, select').forEach((c) => {
+            champs[c.name] = c.value;
+        });
+        try {
+            const url = `${this.urlValue.replace(/\/deplacer$/, '')}/palanquees/${bloc.dataset.palanqueeId}/parametres`;
+            const reponse = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify({ ...champs, _token: this.tokenValue }),
+            });
+            const donnees = await reponse.json();
+            if (!reponse.ok || !donnees.ok) {
+                throw new Error(donnees.message || 'Enregistrement impossible.');
+            }
+            this.erreurTarget.hidden = true;
+        } catch (e) {
+            this.erreurTarget.textContent = e.message;
+            this.erreurTarget.hidden = false;
+        }
+    }
+
+    async deplacer(donnee, palanqueeId) {
         const personne = donnee.startsWith('ext:') ? { exterieur: Number(donnee.slice(4)) } : { userId: Number(donnee) };
 
         try {
             const reponse = await fetch(this.urlValue, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-                body: JSON.stringify({ ...personne, palanqueeId: zone.dataset.palanqueeId || null, _token: this.tokenValue }),
+                body: JSON.stringify({ ...personne, palanqueeId, _token: this.tokenValue }),
             });
             const donnees = await reponse.json();
             if (!reponse.ok || !donnees.ok) {

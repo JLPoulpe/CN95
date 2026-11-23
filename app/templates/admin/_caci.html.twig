@@ -1,0 +1,10 @@
+{# CACI valable à la date de la fosse : encoche verte, sinon croix rouge. Un clic ouvre la fenêtre (controller caci) avec la date de fin. #}
+{% macro caci(user, date) %}
+    {% set limite = user.caciExpireLe %}
+    {% set valide = limite is not null and not user.caciExpire(date) %}
+    <button type="button" class="caci-btn {{ valide ? 'caci-ok' : 'caci-ko' }}"
+            data-action="click->caci#afficher"
+            data-nom="{{ user.prenom }} {{ user.nom }}"
+            data-fin="{{ limite ? limite|date('d/m/Y') : '' }}"
+            aria-label="{{ valide ? 'CACI valable' : 'CACI non valable' }} : voir la date de fin">{{ valide ? '✔' : '✘' }}</button>
+{% endmacro %}

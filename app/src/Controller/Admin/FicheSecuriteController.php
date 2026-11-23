@@ -37,6 +37,7 @@ class FicheSecuriteController extends AbstractController
             'invitation' => $invitation,
             'fiche' => $fiche,
             'restants' => $builder->restants($fiche),
+            'groupes_ajout' => $builder->restantsParAptitude($fiche),
             'nb_inscrits' => count($builder->inscrits($invitation)),
         ]);
     }
@@ -70,6 +71,42 @@ class FicheSecuriteController extends AbstractController
         $this->addFlash('success', 'Fiche mise à jour : les personnes qui ne sont plus inscrites ont été retirées, les nouveaux inscrits apparaissent dans les restants.');
 
         return $this->redirectToRoute('admin_fiche_securite_show', ['id' => $invitation->getId()]);
+    }
+
+    /** Enregistre les paramètres de plongée d'une palanquée (profondeur max., DTR, durée, type). */
+    #[Route('/palanquees/{palanqueeId}/parametres', name: 'admin_fiche_securite_parametres', requirements: ['palanqueeId' => '\\d+'], methods: ['POST'])]
+    public function parametres(InvitationFosse $invitation, int $palanqueeId, Request $request, FicheSecuriteRepository $fiches, EntityManagerInterface $em): JsonResponse
+    {
+        $this->denyAccessUnlessGranted(FicheSecuriteVoter::OUVRIR, $invitation);
+        $charge = $request->getPayload();
+        if (!$this->isCsrfTokenValid($this->jeton($invitation), (string) $charge->get('_token'))) {
+            return new JsonResponse(['ok' => false, 'message' => 'Session expirée, rechargez la page.'], Response::HTTP_FORBIDDEN);
+        }
+        $fiche = $fiches->findOneByInvitation($invitation) ?? throw $this->createNotFoundException();
+        $palanquee = $fiche->trouverPalanquee($palanqueeId) ?? throw $this->createNotFoundException();
+
+        $valeurs = [];
+        foreach (['profondeurMax' => 100, 'dtr' => 999, 'duree' => 999] as $champ => $max) {
+            $brut = $charge->get($champ);
+            if (null === $brut || '' === $brut) {
+                $valeurs[$champ] = null;
+                continue;
+            }
+            if (!is_numeric($brut) || (int) $brut != $brut || $brut < 0 || $brut > $max) {
+                return new JsonResponse(['ok' => false, 'message' => sprintf('Valeur invalide : « %s » doit être un entier entre 0 et %d.', $champ, $max)], Response::HTTP_BAD_REQUEST);
+            }
+            $valeurs[$champ] = (int) $brut;
+        }
+        $type = $charge->get('type');
+        $type = (null === $type || '' === $type) ? null : (string) $type;
+        if (null !== $type && !isset(Palanquee::TYPES[$type])) {
+            return new JsonResponse(['ok' => false, 'message' => 'Type de palanquée inconnu.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $palanquee->setParametres($valeurs['profondeurMax'], $valeurs['dtr'], $valeurs['duree'], $type);
+        $em->flush();
+
+        return new JsonResponse(['ok' => true]);
     }
 
     /** Appelé à chaque glisser-déposer : place un inscrit dans une palanquée, ou le renvoie aux restants (palanqueeId nul). */

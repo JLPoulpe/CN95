@@ -4,9 +4,10 @@ namespace App\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-/** Une palanquée : idéalement 5 personnes, dont un moniteur chef de palanquée et 4 accompagnants. */
+/** Une palanquée : idéalement 5 personnes, dont un moniteur et 4 accompagnants. */
 #[ORM\Entity]
 #[ORM\Table(name: 'palanquee')]
 class Palanquee
@@ -14,6 +15,8 @@ class Palanquee
     public const TAILLE = 5;
     /** Nombre d'étiquettes « Moniteur extérieur » disponibles par fiche (moniteurs sans compte pouvant être chef de palanquée). */
     public const EXTERIEURS = 3;
+    /** Types de palanquée : valeur enregistrée => libellé. */
+    public const TYPES = ['autonomie' => 'Autonomie', 'enseignement' => 'Enseignement', 'encadree' => 'Encadrée'];
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -26,6 +29,21 @@ class Palanquee
 
     #[ORM\Column]
     private int $numero;
+
+    /** Profondeur maximale prévue, en mètres. */
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $profondeurMax = null;
+
+    /** Durée de trajet de remontée (DTR), en minutes. */
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $dtr = null;
+
+    /** Durée de la plongée, en minutes. */
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $duree = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $type = null;
 
     /** @var Collection<int, PalanqueeMembre> */
     #[ORM\OneToMany(targetEntity: PalanqueeMembre::class, mappedBy: 'palanquee', cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -57,6 +75,40 @@ class Palanquee
     public function setNumero(int $numero): static
     {
         $this->numero = $numero;
+
+        return $this;
+    }
+
+    public function getProfondeurMax(): ?int
+    {
+        return $this->profondeurMax;
+    }
+
+    public function getDtr(): ?int
+    {
+        return $this->dtr;
+    }
+
+    public function getDuree(): ?int
+    {
+        return $this->duree;
+    }
+
+    public function getType(): ?string
+    {
+        return $this->type;
+    }
+
+    /** Type nul ou clé de TYPES, sinon exception. */
+    public function setParametres(?int $profondeurMax, ?int $dtr, ?int $duree, ?string $type): static
+    {
+        if (null !== $type && !isset(self::TYPES[$type])) {
+            throw new \InvalidArgumentException('Type de palanquée inconnu.');
+        }
+        $this->profondeurMax = $profondeurMax;
+        $this->dtr = $dtr;
+        $this->duree = $duree;
+        $this->type = $type;
 
         return $this;
     }

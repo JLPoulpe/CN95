@@ -93,4 +93,29 @@ class FicheSecuriteBuilder
 
         return $restants;
     }
+
+    /**
+     * Personnes pas encore placées regroupées par aptitude (ordre des aptitudes), pour les listes d'ajout des palanquées.
+     * Les moniteurs extérieurs libres forment un dernier groupe.
+     *
+     * @return list<array{libelle: string, users: list<User>, exterieurs: list<int>}>
+     */
+    public function restantsParAptitude(FicheSecurite $fiche): array
+    {
+        $restants = $this->restants($fiche);
+        $groupes = [];
+        foreach ([...$restants['moniteurs'], ...$restants['adherents']] as $user) {
+            $aptitude = $user->getAptitude();
+            $cle = $aptitude->getCode();
+            $groupes[$cle] ??= ['ordre' => $aptitude->getOrdre(), 'libelle' => $cle, 'users' => [], 'exterieurs' => []];
+            $groupes[$cle]['users'][] = $user;
+        }
+        usort($groupes, fn (array $a, array $b) => $a['ordre'] <=> $b['ordre']);
+        $groupes = array_map(fn (array $g) => ['libelle' => $g['libelle'], 'users' => $g['users'], 'exterieurs' => []], $groupes);
+        if ([] !== $restants['exterieurs']) {
+            $groupes[] = ['libelle' => 'Moniteurs extérieurs', 'users' => [], 'exterieurs' => $restants['exterieurs']];
+        }
+
+        return $groupes;
+    }
 }

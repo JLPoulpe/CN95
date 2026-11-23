@@ -1,18 +1,8 @@
 {% extends 'base.html.twig' %}
 {% block title %}Inscrits – {{ invitation.activite.libelle }} – CN95 Plongée{% endblock %}
 
-{# CACI valable à la date de la fosse : encoche verte, sinon croix rouge. Un clic ouvre la fenêtre avec la date de fin. #}
-{% macro caci(user, date) %}
-    {% set limite = user.caciExpireLe %}
-    {% set valide = limite is not null and not user.caciExpire(date) %}
-    <button type="button" class="caci-btn {{ valide ? 'caci-ok' : 'caci-ko' }}"
-            data-action="click->caci#afficher"
-            data-nom="{{ user.prenom }} {{ user.nom }}"
-            data-fin="{{ limite ? limite|date('d/m/Y') : '' }}"
-            aria-label="{{ valide ? 'CACI valable' : 'CACI non valable' }} : voir la date de fin">{{ valide ? '✔' : '✘' }}</button>
-{% endmacro %}
-
 {% macro liste_principale(titre, reponses, groupe, date) %}
+    {% import 'admin/_caci.html.twig' as caci_macros %}
     <h2 class="card-titre">{{ titre }} ({{ reponses|length }})</h2>
     <div class="table-wrapper" data-groupe="{{ groupe }}" data-zone="principale"
          data-action="dragover->inscrits-echange#survol dragleave->inscrits-echange#quitte drop->inscrits-echange#depot">
@@ -23,7 +13,7 @@
                 <tr data-inscrit-id="{{ reponse.id }}">
                     <td>{{ reponse.user.prenom }} {{ reponse.user.nom }}</td>
                     <td>{{ reponse.user.aptitude }}</td>
-                    {% if groupe == 'plongeurs' %}<td>{{ _self.caci(reponse.user, date) }}</td>{% endif %}
+                    {% if groupe == 'plongeurs' %}<td>{{ caci_macros.caci(reponse.user, date) }}</td>{% endif %}
                     <td>{{ reponse.repondueAt|date('d/m/Y H:i') }}</td>
                 </tr>
             {% else %}
@@ -35,6 +25,7 @@
 {% endmacro %}
 
 {% macro liste_attente(titre, reponses, url, token, groupe, date) %}
+    {% import 'admin/_caci.html.twig' as caci_macros %}
     <h2 class="card-titre">{{ titre }} ({{ reponses|length }})</h2>
     {% if reponses|length > 1 %}
         <p class="hint">Glissez une ligne pour changer l'ordre de promotion : il est enregistré automatiquement.</p>
@@ -51,7 +42,7 @@
                         <td data-ordre-cellule>{{ loop.index }}</td>
                         <td>{{ reponse.user.prenom }} {{ reponse.user.nom }}</td>
                         <td>{{ reponse.user.aptitude }}</td>
-                        {% if groupe == 'plongeurs' %}<td>{{ _self.caci(reponse.user, date) }}</td>{% endif %}
+                        {% if groupe == 'plongeurs' %}<td>{{ caci_macros.caci(reponse.user, date) }}</td>{% endif %}
                         <td>{{ reponse.repondueAt|date('d/m/Y H:i') }}</td>
                     </tr>
                 {% else %}
