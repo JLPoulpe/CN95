@@ -25,7 +25,7 @@
 
     <div class="table-wrapper" data-action="dragover->moniteur-groupes#survol dragleave->moniteur-groupes#quitte drop->moniteur-groupes#depotTableau">
         <table>
-            <thead><tr><th>Nom</th><th>Prénom</th><th>Aptitudes</th><th></th></tr></thead>
+            <thead><tr><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">Aptitudes</th><th scope="col"></th></tr></thead>
             <tbody>
             {% for m in moniteurs %}
                 <tr draggable="true" data-moniteur-id="{{ m.id }}" data-action="dragstart->moniteur-groupes#debut dragend->moniteur-groupes#fin">

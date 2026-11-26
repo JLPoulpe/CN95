@@ -7,7 +7,7 @@
     <div class="table-wrapper" data-groupe="{{ groupe }}" data-zone="principale"
          data-action="dragover->inscrits-echange#survol dragleave->inscrits-echange#quitte drop->inscrits-echange#depot">
         <table>
-            <thead><tr><th>Membre</th><th>Aptitude</th>{% if groupe == 'plongeurs' %}<th>CACI</th>{% endif %}<th>Date d'inscription</th></tr></thead>
+            <thead><tr><th scope="col">Membre</th><th scope="col">Aptitude</th>{% if groupe == 'plongeurs' %}<th scope="col">CACI</th>{% endif %}<th scope="col">Date d'inscription</th></tr></thead>
             <tbody>
             {% for reponse in reponses %}
                 <tr data-inscrit-id="{{ reponse.id }}">
@@ -34,7 +34,7 @@
         <p class="hint" data-inscrits-ordre-target="statut" hidden role="status"></p>
         <div class="table-wrapper">
             <table>
-                <thead><tr><th>Rang</th><th>Membre</th><th>Aptitude</th>{% if groupe == 'plongeurs' %}<th>CACI</th>{% endif %}<th>Date d'inscription</th></tr></thead>
+                <thead><tr><th scope="col">Rang</th><th scope="col">Membre</th><th scope="col">Aptitude</th>{% if groupe == 'plongeurs' %}<th scope="col">CACI</th>{% endif %}<th scope="col">Date d'inscription</th></tr></thead>
                 <tbody data-inscrits-ordre-target="corps">
                 {% for reponse in reponses %}
                     <tr draggable="true" data-reponse-id="{{ reponse.id }}" data-groupe="{{ groupe }}"

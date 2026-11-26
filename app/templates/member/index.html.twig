@@ -34,14 +34,14 @@
     <details class="section"{{ ouvrir ? ' open' : '' }}>
         <summary class="section-title">Communication</summary>
         {% if is_granted('PERM_ACTIVITES_EXTERNES') %}
-            {{ m.item('📋', 'Activités externes', 'Consulter et gérer les invitations par activité', path('admin_invitation_index_defaut')) }}
+            {{ m.item('📋', 'Invitations par activité', 'Consulter et gérer les invitations par activité', path('admin_invitation_index_defaut')) }}
         {% endif %}
         {% if (is_granted('PERM_PLANNING_GROUPES') or is_granted('PERM_GESTION_LIEUX')) and not is_granted('PERM_CONFIG_ACTIVITES') %}
             {{ m.item('📅', 'Gestion du planning', is_granted('PERM_PLANNING_GROUPES') ? 'Modifier les créneaux de vos groupes' : 'Modifier le groupe des créneaux', path('admin_planning_index')) }}
         {% endif %}
         {% if is_granted('PERM_COMMUNICATION') %}
             {{ m.item('💬', 'Communication générale', 'Envoyer des communications générales', path('admin_communication_index')) }}
-            {{ m.item('📱', 'Réseaux sociaux', 'Gérer les publications sur les réseaux sociaux') }}
+            {% if is_granted('ROLE_ADMIN') %}{{ m.item('📱', 'Réseaux sociaux', 'Gérer les publications sur les réseaux sociaux') }}{% endif %}
         {% endif %}
     </details>
     {% set ouvrir = false %}
@@ -52,7 +52,7 @@
         <summary class="section-title">Configuration des activités</summary>
         {{ m.item('📅', 'Gestion du planning', 'Créer, modifier et dupliquer les semaines', path('admin_planning_index')) }}
         {{ m.item('🏊', 'Gestion des activités', 'Créer, modifier et supprimer les activités du planning', path('admin_activite_index')) }}
-        {{ m.item('🤿', 'Activités externes', 'Créer et modifier les activités externes (fosse, sorties…)', path('admin_activite_externe_index')) }}
+        {{ m.item('🤿', 'Activités externes — configuration', 'Créer et modifier les activités externes (fosse, sorties…)', path('admin_activite_externe_index')) }}
     </details>
     {% set ouvrir = false %}
     {% endif %}
@@ -71,7 +71,7 @@
 
     {% if is_granted('PERM_CONFIG_OUTIL') or is_granted('PERM_CONFIG_ACTIVITES') or is_granted('ROLE_ADMIN') %}
     <details class="section"{{ ouvrir ? ' open' : '' }}>
-        <summary class="section-title">⚠️ Configuration de l'outil</summary>
+        <summary class="section-title"><span aria-hidden="true">⚠️</span> Configuration de l'outil <span class="section-hint">(paramètres sensibles : à modifier avec précaution)</span></summary>
         {% if is_granted('PERM_CONFIG_ACTIVITES') %}
             {{ m.item('🎓', 'Gestion des aptitudes', 'Créer, modifier et supprimer les aptitudes', path('admin_aptitude_index')) }}
             {{ m.item('🌊', 'Lieux d\'activité', 'Gérer les lieux : lignes des bassins, salles, bureau…', path('admin_lieu_activite_index')) }}

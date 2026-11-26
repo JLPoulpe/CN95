@@ -208,6 +208,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /** CACI encore valide mais expirant dans moins d'un mois. */
+    /** Statut CACI : « expire », « bientot », « valide » ou « non_renseigne ». */
+    public function caciStatut(?\DateTimeImmutable $quand = null): string
+    {
+        return match (true) {
+            null === $this->caciExpireLe => 'non_renseigne',
+            $this->caciExpire($quand) => 'expire',
+            $this->caciBientotExpire($quand) => 'bientot',
+            default => 'valide',
+        };
+    }
+
     public function caciBientotExpire(?\DateTimeImmutable $quand = null): bool
     {
         $quand ??= new \DateTimeImmutable('today');

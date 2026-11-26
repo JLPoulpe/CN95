@@ -16,8 +16,8 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Fonctionnalité</th>
-                        {% for role in roles %}<th style="text-align:center">{{ role.libelle }}</th>{% endfor %}
+                        <th scope="col">Fonctionnalité</th>
+                        {% for role in roles %}<th scope="col" style="text-align:center">{{ role.libelle }}</th>{% endfor %}
                     </tr>
                 </thead>
                 <tbody>

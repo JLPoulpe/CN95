@@ -13,7 +13,7 @@
     <p class="hint" data-aptitude-ordre-target="statut" hidden role="status"></p>
     <div class="table-wrapper">
         <table>
-            <thead><tr><th>Ordre</th><th>Code</th><th>Libellé</th><th>Visible</th><th></th></tr></thead>
+            <thead><tr><th scope="col">Ordre</th><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Visible</th><th scope="col"></th></tr></thead>
             <tbody data-aptitude-ordre-target="corps">
             {% for a in aptitudes %}
                 <tr draggable="true" data-aptitude-id="{{ a.id }}"

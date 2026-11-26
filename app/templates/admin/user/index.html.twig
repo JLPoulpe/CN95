@@ -1,36 +1,78 @@
 {% extends 'base.html.twig' %}
 {% block title %}Utilisateurs – CN95 Plongée{% endblock %}
+{% set statuts = {expire: 'Expiré', bientot: 'Expire bientôt', valide: 'Valide', non_renseigne: 'Non renseigné'} %}
 {% block body %}
 <div class="container container-wide">
+    <p class="retour"><a href="{{ path('app_member') }}">← Espace administrateur</a></p>
     <h1 class="header-title">Liste des utilisateurs</h1>
-    <form class="search-bar" method="get">
-        <input type="text" name="q" value="{{ q }}" placeholder="Rechercher par nom, prénom...">
+    <div data-controller="liste-utilisateurs">
+    <form class="search-bar" method="get" role="search" data-action="submit->liste-utilisateurs#soumettre">
+        <input type="search" name="q" value="{{ q }}" placeholder="Rechercher par nom, prénom, email..." aria-label="Rechercher un utilisateur" data-liste-utilisateurs-target="recherche" data-action="input->liste-utilisateurs#differer">
         <button class="btn" type="submit">Rechercher</button>
         <a class="btn" href="{{ path('admin_user_new') }}">Ajouter</a>
     </form>
+    <div class="filtres-liste" role="group" aria-label="Filtres" data-js-only hidden>
+        <label>Rôle
+            <select data-liste-utilisateurs-target="role" data-action="change->liste-utilisateurs#filtrer">
+                <option value="">Tous</option>
+                {% for r in roles %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+            </select>
+        </label>
+        <label>Aptitude
+            <select data-liste-utilisateurs-target="aptitude" data-action="change->liste-utilisateurs#filtrer">
+                <option value="">Toutes</option>
+                {% for a in aptitudes %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+            </select>
+        </label>
+        <label>Mineur
+            <select data-liste-utilisateurs-target="mineur" data-action="change->liste-utilisateurs#filtrer">
+                <option value="">Tous</option><option value="1">Mineurs</option><option value="0">Majeurs</option>
+            </select>
+        </label>
+        <label>CACI
+            <select data-liste-utilisateurs-target="caci" data-action="change->liste-utilisateurs#filtrer">
+                <option value="">Tous</option>
+                {% for k, l in statuts %}<option value="{{ k }}">{{ l }}</option>{% endfor %}
+            </select>
+        </label>
+        <button class="btn btn-sm btn-secondary" type="button" data-action="liste-utilisateurs#reinitialiser">Réinitialiser</button>
+    </div>
+    <p class="note" role="status" aria-live="polite" data-liste-utilisateurs-target="compteur">{{ users|length }} utilisateur(s)</p>
     <div class="table-wrapper">
         <table>
-            <thead><tr><th>Nom</th><th>Prénom</th><th>Email</th><th>Téléphone</th><th>Mineur</th><th>Expiration CACI</th><th>Aptitude</th><th>Préparée</th><th>Rôles</th><th></th></tr></thead>
-            <tbody>
+            <thead><tr>
+                <th scope="col" aria-sort="none"><button type="button" class="tri-btn" data-cle="Nom" data-liste-utilisateurs-target="tri" data-action="liste-utilisateurs#trier" data-js-only hidden>Nom</button><span data-no-js>Nom</span></th>
+                <th scope="col">Prénom</th><th scope="col">Email</th><th scope="col">Téléphone</th><th scope="col">Mineur</th>
+                <th scope="col" aria-sort="none"><button type="button" class="tri-btn" data-cle="Caci" data-liste-utilisateurs-target="tri" data-action="liste-utilisateurs#trier" data-js-only hidden>Expiration CACI</button><span data-no-js>Expiration CACI</span></th>
+                <th scope="col" aria-sort="none"><button type="button" class="tri-btn" data-cle="Aptitude" data-liste-utilisateurs-target="tri" data-action="liste-utilisateurs#trier" data-js-only hidden>Aptitude</button><span data-no-js>Aptitude</span></th>
+                <th scope="col">Préparée</th><th scope="col">Rôles</th><th scope="col"><span class="sr-only">Actions</span></th>
+            </tr></thead>
+            <tbody data-liste-utilisateurs-target="corps">
             {% for u in users %}
-                <tr>
-                    <td><strong>{{ u.nom }}</strong></td>
+                {% set statut = u.caciStatut %}
+                <tr class="ligne-cliquable" data-liste-utilisateurs-target="ligne" data-action="click->liste-utilisateurs#ouvrir"
+                    data-recherche="{{ (u.nom ~ ' ' ~ u.prenom ~ ' ' ~ u.email ~ ' ' ~ u.telephone)|lower }}"
+                    data-roles="{{ u.userRoles|join('|') }}" data-aptitude="{{ u.aptitude }}" data-mineur="{{ u.estMineur ? 1 : 0 }}" data-caci="{{ statut }}"
+                    data-tri-nom="{{ u.nom ~ ' ' ~ u.prenom }}" data-tri-caci="{{ u.caciExpireLe ? u.caciExpireLe|date('Y-m-d') : '' }}" data-tri-aptitude="{{ u.aptitude }}">
+                    <td><a data-fiche href="{{ path('admin_user_edit', {id: u.id}) }}"><strong>{{ u.nom }}</strong></a></td>
                     <td>{{ u.prenom }}</td>
                     <td>{{ u.email }}</td>
                     <td>{{ u.telephone }}</td>
-                    <td>{% if u.estMineur %}<span style="color:#2e9e4f" title="Mineur">&#10004;</span>{% endif %}</td>
-                    <td>{% if u.caciExpireLe %}{% set caciAlerte = u.caciExpire or u.caciBientotExpire %}<span{% if caciAlerte %} style="color:#c0392b;font-weight:bold" title="{{ u.caciExpire ? 'Expiré' : 'Expire dans moins d\'un mois' }}"{% endif %}>{% if u.caciBientotExpire %}&#9888; {% endif %}{{ u.caciExpireLe|date('d/m/Y') }}</span>{% endif %}</td>
+                    <td>{% if u.estMineur %}<span style="color:#2e7d46" title="Mineur"><span aria-hidden="true">&#10004;</span><span class="sr-only">Mineur</span></span>{% endif %}</td>
+                    <td>
+                        {% if u.caciExpireLe %}{{ u.caciExpireLe|date('d/m/Y') }}{% endif %}
+                        <span class="statut-caci statut-{{ statut }}">{{ statuts[statut] }}</span>
+                    </td>
                     <td><span class="badge">{{ u.aptitude }}</span></td>
                     <td>{% if u.aptitudePreparee %}<span class="badge">{{ u.aptitudePreparee }}</span>{% endif %}</td>
                     <td>{% for r in u.userRoles %}<span class="badge">{{ r }}</span> {% endfor %}</td>
-                    <td><a class="btn btn-sm btn-secondary" href="{{ path('admin_user_edit', {id: u.id}) }}" title="Modifier" aria-label="Modifier"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></a></td>
+                    <td><a class="btn btn-sm btn-secondary" href="{{ path('admin_user_edit', {id: u.id}) }}" title="Modifier" aria-label="Modifier {{ u.prenom }} {{ u.nom }}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></a></td>
                 </tr>
-            {% else %}
-                <tr><td colspan="10">Aucun utilisateur.</td></tr>
             {% endfor %}
             </tbody>
         </table>
+        <p class="note" style="padding:16px" data-liste-utilisateurs-target="vide"{% if users %} hidden{% endif %}>Aucun utilisateur ne correspond. <a href="{{ path('admin_user_new') }}">Ajouter un utilisateur</a></p>
     </div>
-    <p class="note">{{ users|length }} utilisateur(s)</p>
+    </div>
 </div>
 {% endblock %}

@@ -272,3 +272,34 @@ tr[data-inscrit-id].drop-cible { outline: 2px dashed #3b82f6; background: #eff6f
 
 /* Glisser-déposer au doigt : pas de sélection de texte ni de menu de l'appui long sur les éléments déplaçables */
 [draggable="true"] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+/* ===== Accessibilité & finitions (lot 1 UX) ===== */
+a:focus-visible, button:focus-visible, summary:focus-visible, .btn:focus-visible, [tabindex]:focus-visible { outline: 2px solid #1d4ed8; outline-offset: 2px; border-radius: 4px; }
+main:focus { outline: none; }
+.skip-link { position: absolute; left: 8px; top: -60px; z-index: 100; background: #1d4ed8; color: #fff; padding: 10px 16px; border-radius: 6px; }
+.skip-link:focus { top: 8px; color: #fff; }
+.week-title em.invisible { visibility: hidden; }
+.week-today { text-align: center; margin-bottom: 12px; }
+.section-hint { font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 12px; margin-left: 8px; }
+.bandeau-description { color: #6b7280; }
+/* Tableaux larges : colonnes plus serrées, colonne d'action toujours visible */
+.container-wide th, .container-wide td { padding: 12px 10px; }
+.container-wide td:last-child, .container-wide th:last-child { position: sticky; right: 0; background: #fff; }
+.container-wide thead th:last-child { background: #f9fafb; }
+
+/* ===== Liste des utilisateurs ===== */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+[hidden] { display: none !important; }
+.filtres-liste { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
+.filtres-liste label { font-size: 13px; color: #374151; display: flex; flex-direction: column; gap: 4px; }
+.filtres-liste select { width: auto; min-width: 130px; padding: 8px; }
+.tri-btn { background: none; border: none; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; padding: 0; }
+.tri-btn::after { content: ' ↕'; opacity: .5; }
+th[aria-sort=ascending] .tri-btn::after { content: ' ↑'; opacity: 1; }
+th[aria-sort=descending] .tri-btn::after { content: ' ↓'; opacity: 1; }
+.ligne-cliquable { cursor: pointer; }
+.statut-caci { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 6px; }
+.statut-expire { background: #fee2e2; color: #991b1b; }
+.statut-bientot { background: #fef3c7; color: #92400e; }
+.statut-valide { background: #d1fae5; color: #065f46; }
+.statut-non_renseigne { background: #e5e7eb; color: #374151; }

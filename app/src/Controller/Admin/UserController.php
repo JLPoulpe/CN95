@@ -26,9 +26,27 @@ class UserController extends AbstractController
     {
         $q = $request->query->getString('q');
 
+        $liste = $users->search($q);
+        $roles = [];
+        $aptitudes = [];
+        foreach ($liste as $u) {
+            foreach ($u->getUserRoles() as $r) {
+                $roles[(string) $r] = true;
+            }
+            if ((string) $u->getAptitude() !== '') {
+                $aptitudes[(string) $u->getAptitude()] = true;
+            }
+        }
+        $roles = array_keys($roles);
+        $aptitudes = array_keys($aptitudes);
+        sort($roles);
+        sort($aptitudes);
+
         return $this->render('admin/user/index.html.twig', [
-            'users' => $users->search($q),
+            'users' => $liste,
             'q' => $q,
+            'roles' => $roles,
+            'aptitudes' => $aptitudes,
         ]);
     }
 

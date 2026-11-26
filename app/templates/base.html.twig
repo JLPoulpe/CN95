@@ -11,8 +11,9 @@
         {% endblock %}
     </head>
     <body>
+        <a class="skip-link" href="#contenu">Aller au contenu principal</a>
         <nav class="nav">
-            <a class="nav-brand" href="{{ path('app_home') }}">🤿 CN95 Plongée</a>
+            <a class="nav-brand" href="{{ path('app_home') }}"><span aria-hidden="true">🤿</span> CN95 Plongée</a>
             <div class="nav-links">
                 {% if is_granted('ROLE_USER') %}
                     {# Réservé aux membres ayant un rôle au-delà d'adhérent #}
@@ -21,7 +22,7 @@
                     {% else %}
                         <a href="{{ path('app_member') }}">Mon espace</a>
                     {% endif %}
-                    <span>{{ app.user.userIdentifier }}</span>
+                    <a href="{{ path('app_profil') }}" title="Mon compte : mes données personnelles">Mon compte ({{ app.user.userIdentifier }})</a>
                     <a href="{{ path('app_logout') }}">Déconnexion</a>
                 {% else %}
                     <a href="{{ path('app_login') }}">Connexion</a>
@@ -34,7 +35,9 @@
         {% for message in app.flashes('success') %}
             <div class="container" style="padding-bottom:0"><div class="alert alert-success">{{ message }}</div></div>
         {% endfor %}
+        <main id="contenu" tabindex="-1">
         {% block body %}{% endblock %}
+        </main>
         <footer class="footer" style="text-align:center;font-size:13px;padding:24px 16px">
             <a href="{{ path('app_confidentialite') }}">Politique de confidentialité</a> ·
             <a href="{{ path('app_mentions_legales') }}">Mentions légales</a>

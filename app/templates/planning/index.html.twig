@@ -1,5 +1,5 @@
 {% extends 'base.html.twig' %}
-{% block title %}Planning – CN95 Plongée{% endblock %}
+{% block title %}Planning semaine {{ lundi|date('W') }} – CN95 Plongée{% endblock %}
 {% block body %}
 <div class="container planning">
     <h1 class="header-title">Planning</h1>
@@ -13,7 +13,7 @@
         <div class="week-title">
             <strong>Semaine {{ lundi|date('W') }}</strong>
             <span>du {{ lundi|date('d/m') }} au {{ lundi|date_modify('+6 days')|date('d/m/Y') }}</span>
-            {% if estCourante %}<em>Cette semaine</em>{% endif %}
+            <em{% if not estCourante %} class="invisible" aria-hidden="true"{% endif %}>Cette semaine</em>
         </div>
         {% if suivante %}
             <a class="week-btn" href="{{ path('app_planning', {date: suivante|date('Y-m-d')}) }}" aria-label="Semaine suivante">›</a>
@@ -21,6 +21,8 @@
             <span class="week-btn disabled" aria-hidden="true">›</span>
         {% endif %}
     </div>
+
+    {% if not estCourante %}<p class="week-today"><a class="btn btn-sm btn-secondary" href="{{ path('app_planning') }}">Aujourd'hui</a></p>{% endif %}
 
     {% include 'planning/_semaine.html.twig' %}
 </div>
